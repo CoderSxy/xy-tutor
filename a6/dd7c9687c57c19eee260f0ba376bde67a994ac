@@ -1,0 +1,63 @@
+docs/runbooks/external-services.md
+  s_b208eb8dae8dfc::t_dc42acc27e619e 16
+tests/integration/uploads.test.ts
+  s_b208eb8dae8dfc::t_dc42acc27e619e 50,127-164
+tests/e2e/content-ui.spec.ts
+  s_b208eb8dae8dfc::t_96b31d1530dd6a 156-222
+apps/server/src/jobs/parsers/pdf-child.ts
+  s_b208eb8dae8dfc::t_7430769f0b3b8a 1-2,4,16-23
+  s_b208eb8dae8dfc::t_b45d847c91cce6 3
+apps/web/src/features/uploads/UploadInput.tsx
+  s_b208eb8dae8dfc::t_96b31d1530dd6a 243-244,246-247
+  s_b208eb8dae8dfc::t_dc42acc27e619e 1,74-79,245
+apps/server/src/modules/catalog/contracts.ts
+  s_b208eb8dae8dfc::t_7430769f0b3b8a 1,17-21,35
+apps/web/src/routes/admin/TextbookReview.tsx
+  s_b208eb8dae8dfc::t_96b31d1530dd6a 11,128-132
+apps/server/src/jobs/runner.ts
+  s_b208eb8dae8dfc::t_7430769f0b3b8a 1-9,11,54-58,62
+  s_b208eb8dae8dfc::t_c0026f33d0fc82 10
+apps/server/src/jobs/parsers/pdf-process.ts
+  s_b208eb8dae8dfc::t_7430769f0b3b8a 1-2,6,36,65-70,83
+  s_b208eb8dae8dfc::t_dc42acc27e619e 4-5,37,40-46
+  s_b208eb8dae8dfc::t_634ddbdf974a72 3
+apps/server/src/jobs/textbook-job.ts
+  s_b208eb8dae8dfc::t_7430769f0b3b8a 34
+  s_b208eb8dae8dfc::t_dc42acc27e619e 1-4,35
+docs/runbooks/deployment.md
+  s_b208eb8dae8dfc::t_dc42acc27e619e 40
+apps/server/src/modules/uploads/service.ts
+  s_b208eb8dae8dfc::t_dc42acc27e619e 1,60
+apps/web/src/routes/admin/Textbooks.tsx
+  s_b208eb8dae8dfc::t_96b31d1530dd6a 19-21,23-33,180-184
+  s_b208eb8dae8dfc::t_dc42acc27e619e 22
+apps/server/src/modules/catalog/service.ts
+  s_b208eb8dae8dfc::t_7430769f0b3b8a 20
+packages/contracts/src/file-limits.ts
+  s_b208eb8dae8dfc::t_7430769f0b3b8a 1-2
+  s_b208eb8dae8dfc::t_dc42acc27e619e 3-17
+docs/qa/textbook-limits-fix.md
+  s_b208eb8dae8dfc::t_9c6cf77024886a 1-11
+tests/integration/catalog.test.ts
+  s_b208eb8dae8dfc::t_43465c359c2c33 98-126
+tests/integration/jobs.test.ts
+  s_b208eb8dae8dfc::t_43775aad5a8120 154-174
+tests/unit/parsers.test.ts
+  s_b208eb8dae8dfc::t_5fae8476acac48 51-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a6dd7c9687c57c19eee260f0ba376bde67a994ac",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
