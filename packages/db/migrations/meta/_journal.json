@@ -15,6 +15,13 @@
       "when": 1794123293417,
       "tag": "0001_regular_vengeance",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794123652053,
+      "tag": "0002_lovely_hulk",
+      "breakpoints": true
     }
   ]
 }

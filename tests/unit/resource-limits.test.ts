@@ -1,0 +1,3 @@
+import {it,expect} from 'vitest';
+import {canProcess} from '../../apps/server/src/jobs/limits.js';
+it('defers processing when disk or memory is below safe headroom',()=>{expect(canProcess({diskFreeBytes:9,diskTotalBytes:100,availableMemoryBytes:1024**3,rssBytes:100*1024**2})).toBe(false);expect(canProcess({diskFreeBytes:50,diskTotalBytes:100,availableMemoryBytes:100*1024**2,rssBytes:100*1024**2})).toBe(false);expect(canProcess({diskFreeBytes:50,diskTotalBytes:100,availableMemoryBytes:1024**3,rssBytes:600*1024**2})).toBe(false);expect(canProcess({diskFreeBytes:50,diskTotalBytes:100,availableMemoryBytes:1024**3,rssBytes:100*1024**2})).toBe(true);});
