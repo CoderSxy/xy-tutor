@@ -1,0 +1,89 @@
+apps/web/src/features/tutor/Composer.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-75
+apps/web/src/routes/Profile.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-101
+apps/web/src/lib/utils.ts
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-5
+tests/e2e/design-system.spec.ts
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-34
+apps/web/src/routes/TaskHistory.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-53
+apps/web/src/App.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-59
+apps/web/src/routes/Activate.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-78
+apps/web/src/styles/global.css
+  s_b208eb8dae8dfc::t_f048038d69c85b 3-1012
+apps/web/src/components/Markdown.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-15
+apps/web/src/components/NextActions.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-24
+apps/web/src/components/MarkdownRenderer.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-25
+apps/web/src/components/StatusPanel.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-41
+apps/web/src/styles/tokens.css
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-16
+apps/web/src/components/ui/field.tsx
+  s_b208eb8dae8dfc::t_f13747e5f1232e 34
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-33,35-43
+apps/web/src/routes/StudyEntry.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-141
+apps/web/src/lib/types.ts
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-51
+apps/web/src/lib/api.ts
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-44
+apps/web/src/routes/Login.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-95
+tests/e2e/tutor-ui.spec.ts
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-28
+apps/web/src/features/tutor/useTutorRun.ts
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-145
+apps/server/src/modules/auth/routes.ts
+  s_b208eb8dae8dfc::t_f048038d69c85b 73-75
+tests/integration/auth.test.ts
+  s_b208eb8dae8dfc::t_d8688bd7f0694a 132
+apps/web/src/routes/Home.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-239
+apps/web/src/components/QuestionCard.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-36
+apps/web/src/components/ui/button.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-34
+apps/web/src/lib/useRemote.ts
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-31
+apps/web/src/components/DesignPreview.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-44
+apps/web/src/components/SourceLink.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-17
+apps/web/src/features/tutor/TutorPanel.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-91
+tests/e2e/fixtures/ui-api.ts
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-103
+apps/web/src/routes/Study.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-213
+apps/web/src/main.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-9
+apps/server/src/modules/auth/service.ts
+  s_b208eb8dae8dfc::t_f048038d69c85b 291,341-347
+  s_b208eb8dae8dfc::t_d96ad894882513 348-350
+apps/web/src/components/AppShell.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-124
+apps/web/src/lib/auth.tsx
+  s_b208eb8dae8dfc::t_f048038d69c85b 1-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "80eb1accc05304fb0ff695ca5e3b9b4323d36681",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
