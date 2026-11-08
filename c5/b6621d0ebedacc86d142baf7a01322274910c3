@@ -1,0 +1,63 @@
+apps/web/src/routes/MaterialReview.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-30,32-267
+  s_b208eb8dae8dfc::t_e5ba4a733eb1fc 31
+apps/web/src/routes/MistakeDetail.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-191
+apps/server/src/modules/learning/attempts.ts
+  s_b208eb8dae8dfc::t_5b1017dc431822 100-123
+apps/web/src/routes/admin/Textbooks.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-178
+apps/server/src/modules/materials/routes.ts
+  s_b208eb8dae8dfc::t_5b1017dc431822 49-51
+apps/web/src/routes/Materials.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-136
+tests/e2e/content-ui.spec.ts
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-155
+  s_b208eb8dae8dfc::t_1c4941160dd2e4 156
+apps/web/src/routes/Profile.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1,100
+apps/web/src/routes/StudyEntry.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 139
+tests/e2e/fixtures/ui-api.ts
+  s_b208eb8dae8dfc::t_5b1017dc431822 6-9,21,25
+apps/web/src/App.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-7,61-67
+apps/web/src/features/uploads/QuestionEditor.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-77
+apps/web/src/routes/admin/Accounts.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-166
+apps/web/src/features/uploads/UploadInput.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-248
+apps/web/src/features/uploads/DocumentViewer.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-126
+apps/web/src/routes/Mistakes.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-124
+apps/server/src/modules/learning/routes.ts
+  s_b208eb8dae8dfc::t_5b1017dc431822 58-63
+apps/server/src/modules/materials/service.ts
+  s_b208eb8dae8dfc::t_5b1017dc431822 365-375
+apps/server/src/modules/uploads/service.ts
+  s_b208eb8dae8dfc::t_5b1017dc431822 147-150,154-157
+apps/web/src/styles/global.css
+  s_b208eb8dae8dfc::t_5b1017dc431822 1013-1262
+apps/web/src/routes/StudentAccess.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-91
+apps/web/src/routes/admin/TextbookReview.tsx
+  s_b208eb8dae8dfc::t_5b1017dc431822 1-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c5b6621d0ebedacc86d142baf7a01322274910c3",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
