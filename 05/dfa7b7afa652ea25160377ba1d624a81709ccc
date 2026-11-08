@@ -1,0 +1,67 @@
+tests/e2e/responsive.spec.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 1-46
+tests/unit/state-rules.test.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 61-65
+tests/e2e/recovery.spec.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 1-27
+apps/server/src/app.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 68-70
+  s_b208eb8dae8dfc::t_77da4ff150f6c8 49,237
+apps/web/src/routes/Study.tsx
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 56-58,61-64
+  s_b208eb8dae8dfc::t_7dcc6490fb9ba9 102
+apps/web/src/lib/auth.tsx
+  s_b208eb8dae8dfc::t_0e92c5e6547f47 53-55,58,87
+  s_b208eb8dae8dfc::t_104745344cbf81 117-118
+  s_b208eb8dae8dfc::t_a5ffa7d58a84cd 52,56
+tests/integration/runs.test.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 23-25
+tests/integration/learning-records.test.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 131-156
+apps/web/src/features/tutor/useTutorRun.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 30-41,117-127,146
+  s_b208eb8dae8dfc::t_0ed9ab2130ed09 116,135,145
+docs/qa/mvp-acceptance.md
+  s_b208eb8dae8dfc::t_fac05f713686a7 1-29
+apps/web/vite.config.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 1-16
+apps/server/src/modules/learning/state-rules.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 44-48
+tests/e2e/learning-journey.spec.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 1-162
+apps/server/src/modules/learning/tasks.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 87-109
+  s_b208eb8dae8dfc::t_2292a8189ac4a2 110
+tests/e2e/real-server.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 1-214
+playwright.config.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 1-25
+apps/server/src/modules/conversations/runs.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 36-53
+  s_b208eb8dae8dfc::t_a4a0156966e52c 54
+apps/server/src/modules/conversations/sse.ts
+  s_b208eb8dae8dfc::t_cfa04ed87638d4 12-14
+  s_b208eb8dae8dfc::t_99701276335f85 50
+tests/integration/mistakes.test.ts
+  s_b208eb8dae8dfc::t_7aaea6b669a893 79,81-83,85-88,91,170
+  s_b208eb8dae8dfc::t_3fe010f71aa6f9 92-93,95,97-99,102-109,112-114,116-118,121-127,129,131,133-135,139-143,148-151,154-155,157-159,161-165,169
+  s_b208eb8dae8dfc::t_ed8385472610da 77-78,80,84,89-90,94,96,100-101,110-111,115,119-120,128,130,132,136-138,144-147,152-153,156,160,166-168
+.gitignore
+  s_b208eb8dae8dfc::t_fac05f713686a7 12-13
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "05dfa7b7afa652ea25160377ba1d624a81709ccc",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
