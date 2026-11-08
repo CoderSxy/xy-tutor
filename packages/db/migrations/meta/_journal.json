@@ -57,6 +57,20 @@
       "when": 1794130363595,
       "tag": "0007_wide_thanos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794130575338,
+      "tag": "0008_shallow_sasquatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794130702751,
+      "tag": "0009_greedy_cannonball",
+      "breakpoints": true
     }
   ]
 }
