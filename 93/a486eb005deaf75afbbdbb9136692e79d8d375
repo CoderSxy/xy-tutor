@@ -1,0 +1,33 @@
+apps/server/src/config.ts
+  s_b208eb8dae8dfc::t_14d61a079ae8df 1-17
+README.md
+  s_b208eb8dae8dfc::t_37078c5bea1777 1-16
+apps/server/src/main.ts
+  s_b208eb8dae8dfc::t_14d61a079ae8df 1-6
+apps/server/src/app.ts
+  s_b208eb8dae8dfc::t_14d61a079ae8df 2-17
+  s_b208eb8dae8dfc::t_37078c5bea1777 1
+tests/unit/config.test.ts
+  s_b208eb8dae8dfc::t_1c5e318d8d12ea 3-7
+  s_b208eb8dae8dfc::t_e5b965e166c6f2 1-2
+package.json
+  s_b208eb8dae8dfc::t_1335cf124002b8 1-41
+pnpm-lock.yaml
+  s_b208eb8dae8dfc::t_d7b1422f287ee9 1-2167
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "93a486eb005deaf75afbbdbb9136692e79d8d375",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
