@@ -1,3 +1,58 @@
-import type {FastifyInstance,FastifyRequest} from 'fastify';import {z} from 'zod';import {AppError} from '../../../../../packages/contracts/src/api.js';import {requireSession} from '../auth/routes.js';import type {AuthService} from '../auth/service.js';import type {TaskService} from './tasks.js';import type {AttemptService} from './attempts.js';
-export async function scopeForRequest(auth:AuthService,req:FastifyRequest){const session=requireSession(req);const query=z.object({studentId:z.uuid().optional()}).passthrough().parse(req.query);const studentId=query.studentId??session.studentId;if(!studentId)throw new AppError('VALIDATION',422,'请选择学生');return auth.requireStudentAccess(session.actor,studentId);}
-export function registerLearning(app:FastifyInstance,deps:{auth:AuthService;tasks:TaskService;attempts:AttemptService}){const id=z.object({id:z.uuid()});app.get('/api/tasks',async req=>deps.tasks.list(await scopeForRequest(deps.auth,req)));app.post('/api/tasks',async req=>deps.tasks.create(await scopeForRequest(deps.auth,req),req.body));app.get('/api/tasks/:id',async req=>deps.tasks.resume(await scopeForRequest(deps.auth,req),id.parse(req.params).id));app.get('/api/tasks/:id/items',async req=>deps.tasks.items(await scopeForRequest(deps.auth,req),id.parse(req.params).id));app.patch('/api/tasks/:id',async req=>deps.tasks.transition(await scopeForRequest(deps.auth,req),{...z.record(z.string(),z.unknown()).parse(req.body),taskId:id.parse(req.params).id}));app.post('/api/tasks/:id/skip',async req=>{await deps.tasks.skip(await scopeForRequest(deps.auth,req),id.parse(req.params).id,z.object({itemId:z.uuid()}).strict().parse(req.body).itemId);return {ok:true};});app.post('/api/attempts',async req=>deps.attempts.submit(await scopeForRequest(deps.auth,req),req.body));}
+import type { FastifyInstance, FastifyRequest } from "fastify";
+import { z } from "zod";
+import { AppError } from "../../../../../packages/contracts/src/api.js";
+import { requireSession } from "../auth/routes.js";
+import type { AuthService } from "../auth/service.js";
+import type { TaskService } from "./tasks.js";
+import type { AttemptService } from "./attempts.js";
+export async function scopeForRequest(auth: AuthService, req: FastifyRequest) {
+  const session = requireSession(req);
+  const query = z
+    .object({ studentId: z.uuid().optional() })
+    .passthrough()
+    .parse(req.query);
+  const studentId = query.studentId ?? session.studentId;
+  if (!studentId) throw new AppError("VALIDATION", 422, "请选择学生");
+  return auth.requireStudentAccess(session.actor, studentId);
+}
+export function registerLearning(
+  app: FastifyInstance,
+  deps: { auth: AuthService; tasks: TaskService; attempts: AttemptService },
+) {
+  const id = z.object({ id: z.uuid() });
+  app.get("/api/tasks", async (req) =>
+    deps.tasks.list(await scopeForRequest(deps.auth, req)),
+  );
+  app.post("/api/tasks", async (req) =>
+    deps.tasks.create(await scopeForRequest(deps.auth, req), req.body),
+  );
+  app.get("/api/tasks/:id", async (req) =>
+    deps.tasks.resume(
+      await scopeForRequest(deps.auth, req),
+      id.parse(req.params).id,
+    ),
+  );
+  app.get("/api/tasks/:id/items", async (req) =>
+    deps.tasks.items(
+      await scopeForRequest(deps.auth, req),
+      id.parse(req.params).id,
+    ),
+  );
+  app.patch("/api/tasks/:id", async (req) =>
+    deps.tasks.transition(await scopeForRequest(deps.auth, req), {
+      ...z.record(z.string(), z.unknown()).parse(req.body),
+      taskId: id.parse(req.params).id,
+    }),
+  );
+  app.post("/api/tasks/:id/skip", async (req) => {
+    await deps.tasks.skip(
+      await scopeForRequest(deps.auth, req),
+      id.parse(req.params).id,
+      z.object({ itemId: z.uuid() }).strict().parse(req.body).itemId,
+    );
+    return { ok: true };
+  });
+  app.post("/api/attempts", async (req) =>
+    deps.attempts.submit(await scopeForRequest(deps.auth, req), req.body),
+  );
+}

@@ -1,5 +1,89 @@
-import type {Correctness} from './verifier.js';
-export type MistakeState='pending_correction'|'correcting'|'corrected_pending_practice'|'consolidated_pending_review'|'mastered';
-export type TransitionInput={state:MistakeState;correctness:Correctness;verification:'verified'|'pending'|'rejected';hintDependency:'none'|'guided'|'solution_exposed'|'unknown';practiceRole:'original'|'variant';variantVerified:boolean;consolidatedAt:Date|null;lastConsolidatedQuestionId:string|null;questionId:string};
-export type TransitionDecision={changed:boolean;to:MistakeState;reason:string;ruleVersion:'mistake-v1';consolidatedAt?:Date|null;lastConsolidatedQuestionId?:string|null;dueAt?:Date|null};
-export function decideTransition(v:TransitionInput,evidenceAt:Date):TransitionDecision{const base:TransitionDecision={changed:false,to:v.state,reason:'没有满足状态变化的证据',ruleVersion:'mistake-v1'};if(v.verification!=='verified'||v.correctness==='uncertain'||(v.practiceRole==='variant'&&!v.variantVerified))return base;if(v.correctness==='incorrect')return {...base,changed:v.state!=='corrected_pending_practice',to:'corrected_pending_practice',reason:'相关练习再次判错，需要巩固',consolidatedAt:null,lastConsolidatedQuestionId:null,dueAt:null};if(v.practiceRole==='original'){if(v.state==='pending_correction'||v.state==='correcting')return {...base,changed:true,to:'corrected_pending_practice',reason:'原题答对，仍需独立变式巩固'};return base;}if(v.hintDependency!=='none')return base;if(v.state==='corrected_pending_practice')return {...base,changed:true,to:'consolidated_pending_review',reason:'独立完成核验通过的相关变式',consolidatedAt:evidenceAt,lastConsolidatedQuestionId:v.questionId,dueAt:new Date(evidenceAt.getTime()+86400000)};if(v.state==='consolidated_pending_review'&&v.consolidatedAt&&evidenceAt.getTime()-v.consolidatedAt.getTime()>=86400000&&v.questionId!==v.lastConsolidatedQuestionId)return {...base,changed:true,to:'mastered',reason:'至少24小时后独立完成新的相关变式',dueAt:null};return base;}
+import type { Correctness } from "./verifier.js";
+export type MistakeState =
+  | "pending_correction"
+  | "correcting"
+  | "corrected_pending_practice"
+  | "consolidated_pending_review"
+  | "mastered";
+export type TransitionInput = {
+  state: MistakeState;
+  correctness: Correctness;
+  verification: "verified" | "pending" | "rejected";
+  hintDependency: "none" | "guided" | "solution_exposed" | "unknown";
+  practiceRole: "original" | "variant";
+  variantVerified: boolean;
+  consolidatedAt: Date | null;
+  lastConsolidatedQuestionId: string | null;
+  questionId: string;
+};
+export type TransitionDecision = {
+  changed: boolean;
+  to: MistakeState;
+  reason: string;
+  ruleVersion: "mistake-v1";
+  consolidatedAt?: Date | null;
+  lastConsolidatedQuestionId?: string | null;
+  dueAt?: Date | null;
+};
+export function decideTransition(
+  v: TransitionInput,
+  evidenceAt: Date,
+): TransitionDecision {
+  const base: TransitionDecision = {
+    changed: false,
+    to: v.state,
+    reason: "没有满足状态变化的证据",
+    ruleVersion: "mistake-v1",
+  };
+  if (
+    v.verification !== "verified" ||
+    v.correctness === "uncertain" ||
+    (v.practiceRole === "variant" && !v.variantVerified)
+  )
+    return base;
+  if (v.correctness === "incorrect")
+    return {
+      ...base,
+      changed: v.state !== "corrected_pending_practice",
+      to: "corrected_pending_practice",
+      reason: "相关练习再次判错，需要巩固",
+      consolidatedAt: null,
+      lastConsolidatedQuestionId: null,
+      dueAt: null,
+    };
+  if (v.practiceRole === "original") {
+    if (v.state === "pending_correction" || v.state === "correcting")
+      return {
+        ...base,
+        changed: true,
+        to: "corrected_pending_practice",
+        reason: "原题答对，仍需独立变式巩固",
+      };
+    return base;
+  }
+  if (v.hintDependency !== "none") return base;
+  if (v.state === "corrected_pending_practice")
+    return {
+      ...base,
+      changed: true,
+      to: "consolidated_pending_review",
+      reason: "独立完成核验通过的相关变式",
+      consolidatedAt: evidenceAt,
+      lastConsolidatedQuestionId: v.questionId,
+      dueAt: new Date(evidenceAt.getTime() + 86400000),
+    };
+  if (
+    v.state === "consolidated_pending_review" &&
+    v.consolidatedAt &&
+    evidenceAt.getTime() - v.consolidatedAt.getTime() >= 86400000 &&
+    v.questionId !== v.lastConsolidatedQuestionId
+  )
+    return {
+      ...base,
+      changed: true,
+      to: "mastered",
+      reason: "至少24小时后独立完成新的相关变式",
+      dueAt: null,
+    };
+  return base;
+}

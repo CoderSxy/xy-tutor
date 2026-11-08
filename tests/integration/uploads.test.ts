@@ -1,10 +1,126 @@
-import {it,expect} from 'vitest';
-import {withTestDb} from '../helpers/database.js';
-import {AuthService} from '../../apps/server/src/modules/auth/service.js';
-import {UploadService} from '../../apps/server/src/modules/uploads/service.js';
-import {MemoryFileStore} from '../helpers/files.js';
-const password='test-password-long';
-it('keeps uploads private even from administrators and deduplicates completion',async()=>withTestDb(async db=>{const auth=new AuthService(db);const admin=await auth.createAdmin('admin',password);const inv=await auth.invite(admin,{login:'student'});const st=await auth.activate({token:inv.activationToken,password});const actor={userId:st.userId,role:'student' as const};const store=new MemoryFileStore();const service=new UploadService(db,auth,store);const grant=await service.create(actor,{studentId:st.studentId,purpose:'student_material',name:'试卷.pdf',contentType:'application/pdf',size:100});store.put(grant.key,{size:100,contentType:'application/pdf',prefix:Buffer.from('%PDF-1.7')});await service.complete(actor,grant.fileId);await service.complete(actor,grant.fileId);expect((await service.getDownload(actor,grant.fileId)).url).toContain('download');await expect(service.getDownload(admin,grant.fileId)).rejects.toMatchObject({code:'NOT_FOUND'});expect((await db.pool.query('SELECT count(*)::int AS n FROM files')).rows[0].n).toBe(1);}));
-it('rejects fake MIME, oversize files and foreign object keys',async()=>withTestDb(async db=>{const auth=new AuthService(db);const admin=await auth.createAdmin('admin',password);const store=new MemoryFileStore();const s=new UploadService(db,auth,store);await expect(s.create(admin,{purpose:'textbook',name:'large.pdf',size:31*1024*1024,contentType:'application/pdf'})).rejects.toMatchObject({code:'VALIDATION'});await expect(s.create(admin,{purpose:'textbook',name:'x.pdf',size:10,contentType:'application/pdf',key:'someone-else'})).rejects.toMatchObject({code:'VALIDATION'});const grant=await s.create(admin,{purpose:'textbook',name:'fake.pdf',size:10,contentType:'application/pdf'});store.put(grant.key,{size:10,contentType:'application/pdf',prefix:Buffer.from('<html>')});await expect(s.complete(admin,grant.fileId)).rejects.toMatchObject({code:'VALIDATION'});expect((await db.pool.query('SELECT status FROM files WHERE id=$1',[grant.fileId])).rows[0].status).toBe('rejected');}));
-it('reports missing OSS explicitly',async()=>withTestDb(async db=>{const auth=new AuthService(db);const admin=await auth.createAdmin('admin',password);const s=new UploadService(db,auth);await expect(s.create(admin,{purpose:'textbook',name:'x.pdf',size:10,contentType:'application/pdf'})).rejects.toMatchObject({code:'UPSTREAM_UNAVAILABLE'});}));
-it('seals completed originals against reuse of a live upload URL',async()=>withTestDb(async db=>{const auth=new AuthService(db);const admin=await auth.createAdmin('admin',password);const store=new MemoryFileStore();const s=new UploadService(db,auth,store);const g=await s.create(admin,{purpose:'textbook',name:'original.pdf',size:100,contentType:'application/pdf'});store.put(g.key,{size:100,contentType:'application/pdf',prefix:Buffer.from('%PDF-1.7 original')});await s.complete(admin,g.fileId);store.put(g.key,{size:100,contentType:'application/pdf',prefix:Buffer.from('%PDF-1.7 replaced')});const file=await s.authorize(admin,g.fileId);expect((await store.head(file.object_key)).prefix.toString()).toBe('%PDF-1.7 original');}));
+import { it, expect } from "vitest";
+import { withTestDb } from "../helpers/database.js";
+import { AuthService } from "../../apps/server/src/modules/auth/service.js";
+import { UploadService } from "../../apps/server/src/modules/uploads/service.js";
+import { MemoryFileStore } from "../helpers/files.js";
+const password = "test-password-long";
+it("keeps uploads private even from administrators and deduplicates completion", async () =>
+  withTestDb(async (db) => {
+    const auth = new AuthService(db);
+    const admin = await auth.createAdmin("admin", password);
+    const inv = await auth.invite(admin, { login: "student" });
+    const st = await auth.activate({ token: inv.activationToken, password });
+    const actor = { userId: st.userId, role: "student" as const };
+    const store = new MemoryFileStore();
+    const service = new UploadService(db, auth, store);
+    const grant = await service.create(actor, {
+      studentId: st.studentId,
+      purpose: "student_material",
+      name: "试卷.pdf",
+      contentType: "application/pdf",
+      size: 100,
+    });
+    store.put(grant.key, {
+      size: 100,
+      contentType: "application/pdf",
+      prefix: Buffer.from("%PDF-1.7"),
+    });
+    await service.complete(actor, grant.fileId);
+    await service.complete(actor, grant.fileId);
+    expect((await service.getDownload(actor, grant.fileId)).url).toContain(
+      "download",
+    );
+    await expect(
+      service.getDownload(admin, grant.fileId),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(
+      (await db.pool.query("SELECT count(*)::int AS n FROM files")).rows[0].n,
+    ).toBe(1);
+  }));
+it("rejects fake MIME, oversize files and foreign object keys", async () =>
+  withTestDb(async (db) => {
+    const auth = new AuthService(db);
+    const admin = await auth.createAdmin("admin", password);
+    const store = new MemoryFileStore();
+    const s = new UploadService(db, auth, store);
+    await expect(
+      s.create(admin, {
+        purpose: "textbook",
+        name: "large.pdf",
+        size: 31 * 1024 * 1024,
+        contentType: "application/pdf",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(
+      s.create(admin, {
+        purpose: "textbook",
+        name: "x.pdf",
+        size: 10,
+        contentType: "application/pdf",
+        key: "someone-else",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    const grant = await s.create(admin, {
+      purpose: "textbook",
+      name: "fake.pdf",
+      size: 10,
+      contentType: "application/pdf",
+    });
+    store.put(grant.key, {
+      size: 10,
+      contentType: "application/pdf",
+      prefix: Buffer.from("<html>"),
+    });
+    await expect(s.complete(admin, grant.fileId)).rejects.toMatchObject({
+      code: "VALIDATION",
+    });
+    expect(
+      (
+        await db.pool.query("SELECT status FROM files WHERE id=$1", [
+          grant.fileId,
+        ])
+      ).rows[0].status,
+    ).toBe("rejected");
+  }));
+it("reports missing OSS explicitly", async () =>
+  withTestDb(async (db) => {
+    const auth = new AuthService(db);
+    const admin = await auth.createAdmin("admin", password);
+    const s = new UploadService(db, auth);
+    await expect(
+      s.create(admin, {
+        purpose: "textbook",
+        name: "x.pdf",
+        size: 10,
+        contentType: "application/pdf",
+      }),
+    ).rejects.toMatchObject({ code: "UPSTREAM_UNAVAILABLE" });
+  }));
+it("seals completed originals against reuse of a live upload URL", async () =>
+  withTestDb(async (db) => {
+    const auth = new AuthService(db);
+    const admin = await auth.createAdmin("admin", password);
+    const store = new MemoryFileStore();
+    const s = new UploadService(db, auth, store);
+    const g = await s.create(admin, {
+      purpose: "textbook",
+      name: "original.pdf",
+      size: 100,
+      contentType: "application/pdf",
+    });
+    store.put(g.key, {
+      size: 100,
+      contentType: "application/pdf",
+      prefix: Buffer.from("%PDF-1.7 original"),
+    });
+    await s.complete(admin, g.fileId);
+    store.put(g.key, {
+      size: 100,
+      contentType: "application/pdf",
+      prefix: Buffer.from("%PDF-1.7 replaced"),
+    });
+    const file = await s.authorize(admin, g.fileId);
+    expect((await store.head(file.object_key)).prefix.toString()).toBe(
+      "%PDF-1.7 original",
+    );
+  }));
