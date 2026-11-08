@@ -1,0 +1,45 @@
+docs/qa/aliyun-ocr-acceptance.md
+  s_b208eb8dae8dfc::t_e1073184d070d6 1-11
+apps/server/src/jobs/parsers/ocr.ts
+  s_b208eb8dae8dfc::t_48bcfdfe7c7473 1,15
+tests/unit/aliyun-ocr.test.ts
+  s_b208eb8dae8dfc::t_48bcfdfe7c7473 1-19,21-22,24-95
+  s_b208eb8dae8dfc::t_78839aeab4c052 20,23
+package.json
+  s_b208eb8dae8dfc::t_7a2b55638915b1 26
+  s_b208eb8dae8dfc::t_bad7d67102a05d 22-23
+  s_b208eb8dae8dfc::t_260de57618ea7c 27-28
+README.md
+  s_b208eb8dae8dfc::t_bad7d67102a05d 26
+apps/server/src/jobs/parsers/aliyun-ocr.ts
+  s_b208eb8dae8dfc::t_7e2439389c1168 5,71,83
+  s_b208eb8dae8dfc::t_48bcfdfe7c7473 1-4,6-70,72-82
+scripts/smoke-ocr.ts
+  s_b208eb8dae8dfc::t_bad7d67102a05d 1-59
+docs/runbooks/external-services.md
+  s_b208eb8dae8dfc::t_bad7d67102a05d 3,20-46,50
+docs/superpowers/plans/2026-11-08-aliyun-ocr.md
+  s_b208eb8dae8dfc::t_c85ec01be29d83 1-11
+.env.example
+  s_b208eb8dae8dfc::t_71f4b898b9fa1c 17-18,21-24
+pnpm-lock.yaml
+  s_b208eb8dae8dfc::t_7f741f26492abf 11-19,167-211,311-313,1441-1446,1579-1582,2186-2189,2198-2200,2228-2230,2331-2333,2604-2609,3051-3065,3422-3545,3749-3764,4580-4585,4729-4734,5397-5403,5420-5426,5445-5446,5536-5539,6015-6020,6485-6501
+tests/integration/aliyun-ocr.test.ts
+  s_b208eb8dae8dfc::t_cfbd0d9bfe2989 1-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "9972968a34128e8b94edc9200f0935342dbcf493",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
