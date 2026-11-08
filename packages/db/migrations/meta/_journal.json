@@ -43,6 +43,13 @@
       "when": 1794129810100,
       "tag": "0005_natural_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794130026557,
+      "tag": "0006_omniscient_sheva_callister",
+      "breakpoints": true
     }
   ]
 }
