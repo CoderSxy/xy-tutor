@@ -1,11 +1,14 @@
 import Fastify from 'fastify';
+import type {FileStore} from './infra/oss.js';
+import {UploadService} from './modules/uploads/service.js';
+import {registerUploads} from './modules/uploads/routes.js';
 import {ZodError} from 'zod';
 import type {Database} from '../../../packages/db/src/client.js';
 import type {AppConfig} from './config.js';
 import {AuthService} from './modules/auth/service.js';
 import {registerAuth} from './modules/auth/routes.js';
 import { AppError } from '../../../packages/contracts/src/api.js';
-export type AppDependencies = { readiness?:()=>Promise<void>;database?:Database;config?:AppConfig };
+export type AppDependencies = { readiness?:()=>Promise<void>;database?:Database;config?:AppConfig;fileStore?:FileStore };
 export function buildApp(deps:AppDependencies) {
   const app=Fastify({logger:false,bodyLimit:1024*1024});
   app.setErrorHandler((error,_request,reply)=>{
@@ -21,6 +24,6 @@ export function buildApp(deps:AppDependencies) {
     if(!deps.readiness) return reply.code(503).send({status:'unavailable'});
     try {await deps.readiness();return {status:'ok'};} catch {return reply.code(503).send({status:'unavailable'});}
   });
-  if(deps.database&&deps.config){const auth=new AuthService(deps.database);app.register(async scoped=>{await registerAuth(scoped,auth,deps.config!);});}
+  if(deps.database&&deps.config){const auth=new AuthService(deps.database);app.register(async scoped=>{await registerAuth(scoped,auth,deps.config!);registerUploads(scoped,new UploadService(deps.database!,auth,deps.fileStore));});}
   return app;
 }
