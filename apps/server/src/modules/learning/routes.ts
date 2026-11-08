@@ -55,4 +55,10 @@ export function registerLearning(
   app.post("/api/attempts", async (req) =>
     deps.attempts.submit(await scopeForRequest(deps.auth, req), req.body),
   );
+  app.get("/api/attempts/:id", async (req) =>
+    deps.attempts.get(
+      await scopeForRequest(deps.auth, req),
+      id.parse(req.params).id,
+    ),
+  );
 }

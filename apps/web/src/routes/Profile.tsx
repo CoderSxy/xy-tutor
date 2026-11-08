@@ -1,3 +1,4 @@
+import { StudentAccess } from "./StudentAccess";
 import { useEffect, useState, type FormEvent } from "react";
 import { useAuth } from "../lib/auth";
 import { api, jsonBody, errorMessage } from "../lib/api";
@@ -96,6 +97,7 @@ export function Profile() {
           <Button type="submit">保存资料</Button>
         </form>
       </section>
+      <StudentAccess />
     </>
   );
 }

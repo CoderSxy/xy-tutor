@@ -144,10 +144,16 @@ export class UploadService {
       throw new AppError("VALIDATION", 422, "文件格式或大小与声明不一致");
   }
 
-  async getDownload(actor: Actor, fileId: string): Promise<{ url: string }> {
+  async getDownload(
+    actor: Actor,
+    fileId: string,
+  ): Promise<{ url: string; contentType: string }> {
     const row = await this.authorize(actor, fileId);
     if (row.status !== "ready")
       throw new AppError("CONFLICT", 409, "文件尚未就绪");
-    return { url: await this.requireStore().signDownload(row.object_key, 300) };
+    return {
+      url: await this.requireStore().signDownload(row.object_key, 300),
+      contentType: row.content_type,
+    };
   }
 }

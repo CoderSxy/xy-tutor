@@ -97,4 +97,28 @@ export class AttemptService {
       };
     });
   }
+  async get(scope: StudentScope, id: string) {
+    await this.auth.requireStudentAccess(scope.actor, scope.studentId);
+    z.uuid().parse(id);
+    const row = (
+      await this.db.pool.query(
+        'SELECT a.id,a.answer,a.question_version_id,a.created_at,v.stem AS "questionStem",mv.content AS "messageContent" FROM attempts a JOIN question_versions v ON v.id=a.question_version_id LEFT JOIN message_versions mv ON mv.id=a.message_version_id WHERE a.id=$1 AND a.student_id=$2',
+        [id, scope.studentId],
+      )
+    ).rows[0];
+    if (!row) throw new AppError("NOT_FOUND", 404, "作答不存在");
+    const hints = (
+      await this.db.pool.query(
+        "SELECT h.level,v.content FROM hints h JOIN message_versions v ON v.id=h.message_version_id WHERE h.question_version_id=$1 AND h.displayed_at<=$2 ORDER BY h.displayed_at",
+        [row.question_version_id, row.created_at],
+      )
+    ).rows;
+    return {
+      id: row.id,
+      answer: row.answer,
+      questionStem: row.questionStem,
+      messageContent: row.messageContent,
+      hints,
+    };
+  }
 }

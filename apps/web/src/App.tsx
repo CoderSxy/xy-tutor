@@ -1,3 +1,10 @@
+import { Materials } from "./routes/Materials";
+import { MaterialReview } from "./routes/MaterialReview";
+import { Mistakes } from "./routes/Mistakes";
+import { MistakeDetail } from "./routes/MistakeDetail";
+import { Textbooks } from "./routes/admin/Textbooks";
+import { TextbookReview } from "./routes/admin/TextbookReview";
+import { Accounts } from "./routes/admin/Accounts";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { AppShell } from "./components/AppShell";
@@ -51,6 +58,13 @@ export function App() {
           <Route path="/study/:id" element={<Study />} />
           <Route path="/history" element={<TaskHistory />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/materials" element={<Materials />} />
+          <Route path="/materials/:id" element={<MaterialReview />} />
+          <Route path="/mistakes" element={<Mistakes />} />
+          <Route path="/mistakes/:id" element={<MistakeDetail />} />
+          <Route path="/admin/textbooks" element={<Textbooks />} />
+          <Route path="/admin/textbooks/:id" element={<TextbookReview />} />
+          <Route path="/admin/accounts" element={<Accounts />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

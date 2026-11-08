@@ -362,4 +362,15 @@ export class MaterialService {
       );
     });
   }
+  async getQuestion(scope: StudentScope, versionId: string) {
+    await this.auth.requireStudentAccess(scope.actor, scope.studentId);
+    const row = (
+      await this.db.pool.query(
+        'SELECT v.id,v.question_id AS "questionId",v.version_no AS "versionNo",v.stem,v.knowledge_point AS "knowledgePoint",q.revision_id AS "revisionId" FROM question_versions v JOIN questions q ON q.id=v.question_id WHERE v.id=$1 AND q.student_id=$2',
+        [versionId, scope.studentId],
+      )
+    ).rows[0];
+    if (!row) throw new AppError("NOT_FOUND", 404, "题目不存在");
+    return row;
+  }
 }

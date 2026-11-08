@@ -136,6 +136,7 @@ export function RequireTextbook({ children }: { children: React.ReactNode }) {
   const a = useAuth();
   if (a.catalogLoading)
     return <StatusPanel state="loading" title="正在加载教材" />;
+  if (a.session?.actor.role === "admin" && !a.studentId) return children;
   if (!a.selected) return <Navigate to="/select" replace />;
   return children;
 }

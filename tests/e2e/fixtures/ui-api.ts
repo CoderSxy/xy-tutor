@@ -3,7 +3,10 @@ export const studentId = "10000000-0000-4000-8000-000000000001";
 export const revisionId = "20000000-0000-4000-8000-000000000001";
 export const taskId = "30000000-0000-4000-8000-000000000001";
 export const conversationId = "40000000-0000-4000-8000-000000000001";
-export async function mockLearningApi(page: Page) {
+export async function mockLearningApi(
+  page: Page,
+  role: "student" | "admin" = "student",
+) {
   let signedIn = false;
   let tasks: unknown[] = [];
   await page.route("**/api/**", async (route) => {
@@ -15,11 +18,11 @@ export async function mockLearningApi(page: Page) {
     if (path === "/api/auth/session") {
       status = signedIn ? 200 : 401;
       body = signedIn
-        ? { actor: { userId: studentId, role: "student" }, studentId }
+        ? { actor: { userId: studentId, role }, studentId }
         : { error: { code: "UNAUTHENTICATED", message: "请先登录" } };
     } else if (path === "/api/auth/login") {
       signedIn = true;
-      body = { actor: { userId: studentId, role: "student" }, studentId };
+      body = { actor: { userId: studentId, role }, studentId };
     } else if (path === "/api/students")
       body = [{ id: studentId, displayName: "测试同学", permission: "owner" }];
     else if (path === `/api/students/${studentId}`)

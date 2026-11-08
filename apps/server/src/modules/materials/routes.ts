@@ -46,4 +46,7 @@ export function registerMaterials(app: FastifyInstance, s: MaterialService) {
     await s.retry(await scopeForRequest(s.auth, req), id.parse(req.params).id);
     return { ok: true };
   });
+  app.get("/api/question-versions/:id", async (req) =>
+    s.getQuestion(await scopeForRequest(s.auth, req), id.parse(req.params).id),
+  );
 }
