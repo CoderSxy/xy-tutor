@@ -1,0 +1,48 @@
+apps/server/src/modules/conversations/sse.ts
+  s_b208eb8dae8dfc::t_b1c17eeaaa3f9f 1-2
+apps/server/src/main.ts
+  s_b208eb8dae8dfc::t_b1c17eeaaa3f9f 9-10
+tests/integration/tutor.test.ts
+  s_b208eb8dae8dfc::t_9f5f025bbd3266 1-3
+  s_b208eb8dae8dfc::t_5205e10d162638 5
+  s_b208eb8dae8dfc::t_b1c17eeaaa3f9f 4
+apps/server/src/agent/tutor.ts
+  s_b208eb8dae8dfc::t_9f5f025bbd3266 9-10
+  s_b208eb8dae8dfc::t_b1c17eeaaa3f9f 4,6-7
+  s_b208eb8dae8dfc::t_4a040a3383fff6 1-3,5,8
+apps/server/src/app.ts
+  s_b208eb8dae8dfc::t_b1c17eeaaa3f9f 2-6,30,46
+apps/server/src/agent/bootstrap.ts
+  s_b208eb8dae8dfc::t_9f5f025bbd3266 2,5
+  s_b208eb8dae8dfc::t_2a92b7f2e48c5c 1,3-4
+apps/server/src/agent/context.ts
+  s_b208eb8dae8dfc::t_0e5cd2d52febd2 1-3
+apps/server/src/agent/prompts.ts
+  s_b208eb8dae8dfc::t_cb142acc07ab0c 1-8
+apps/server/src/agent/tools.ts
+  s_b208eb8dae8dfc::t_83b2c6fe363ee8 1-14
+packages/db/migrations/0006_omniscient_sheva_callister.sql
+  s_b208eb8dae8dfc::t_774e0078bde590 1-12
+packages/db/migrations/meta/0006_snapshot.json
+  s_b208eb8dae8dfc::t_1c7b3d8d583bb0 1-2671
+packages/db/migrations/meta/_journal.json
+  s_b208eb8dae8dfc::t_f7ad61be9b9d4f 46-52
+packages/db/src/schema/entries.ts
+  s_b208eb8dae8dfc::t_461a30114170a1 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4e24c0826bcfd438865b10cedb84d70b4876d4be",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
