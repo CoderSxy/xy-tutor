@@ -1,0 +1,46 @@
+apps/server/src/modules/learning/corrections.ts
+  s_b208eb8dae8dfc::t_e47c597cdf84bc 1-2
+apps/server/src/app.ts
+  s_b208eb8dae8dfc::t_c551bfc77a55f7 2-3,54
+packages/db/migrations/meta/_journal.json
+  s_b208eb8dae8dfc::t_e47c597cdf84bc 74-80
+packages/db/src/schema/mistakes.ts
+  s_b208eb8dae8dfc::t_e47c597cdf84bc 1-4
+apps/server/src/modules/learning/practice.ts
+  s_b208eb8dae8dfc::t_c551bfc77a55f7 8-9
+packages/db/migrations/meta/0010_snapshot.json
+  s_b208eb8dae8dfc::t_e47c597cdf84bc 1-3795
+apps/server/src/modules/learning/mistakes.ts
+  s_b208eb8dae8dfc::t_e47c597cdf84bc 1-5,7-14
+  s_b208eb8dae8dfc::t_c551bfc77a55f7 6
+apps/server/src/agent/prompts.ts
+  s_b208eb8dae8dfc::t_c551bfc77a55f7 3
+apps/server/src/modules/learning/mistake-routes.ts
+  s_b208eb8dae8dfc::t_c551bfc77a55f7 1-2
+apps/server/src/agent/tools.ts
+  s_b208eb8dae8dfc::t_c551bfc77a55f7 10
+tests/integration/mistakes.test.ts
+  s_b208eb8dae8dfc::t_daf37861425111 1-2
+tests/unit/state-rules.test.ts
+  s_b208eb8dae8dfc::t_ee376e0820728e 1-5
+packages/db/migrations/0010_premium_giant_girl.sql
+  s_b208eb8dae8dfc::t_e47c597cdf84bc 1-52
+apps/server/src/modules/learning/state-rules.ts
+  s_b208eb8dae8dfc::t_9ec20e84efbb18 1-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "102a741cef63ea97921fa9cd1d0dfa58d2621816",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
