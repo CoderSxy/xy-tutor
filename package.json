@@ -1,0 +1,41 @@
+{
+  "name": "xy-tutor",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.30.3",
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "dev:server": "tsx watch apps/server/src/main.ts",
+    "dev:web": "vite apps/web --host 127.0.0.1",
+    "test": "pnpm test:unit && pnpm test:integration",
+    "test:unit": "vitest run --config vitest.unit.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "build": "tsc -p apps/server/tsconfig.build.json && vite build apps/web",
+    "db:migrate": "tsx packages/db/src/migrate.ts",
+    "smoke:provider": "tsx scripts/smoke-provider.ts",
+    "smoke:oss": "tsx scripts/smoke-oss.ts"
+  },
+  "dependencies": {
+    "fastify": "5.12.8",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "10.14.0",
+    "tsx": "4.23.15",
+    "typescript": "6.0.2",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.6",
+    "vitest": "5.1.0"
+  }
+}
