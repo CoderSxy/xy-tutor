@@ -1,3 +1,4 @@
+import { createAliyunOcr } from "./aliyun-ocr.js";
 import { z } from "zod";
 import type { ModelGateway } from "../../agent/provider.js";
 export interface OcrProvider {
@@ -11,6 +12,7 @@ export function createOcr(
   env: Record<string, string | undefined>,
   gateway?: ModelGateway,
 ): OcrProvider | undefined {
+  if (env.OCR_PROVIDER === "aliyun") return createAliyunOcr(env);
   if (
     env.OCR_PROVIDER === "http-json-v1" &&
     env.OCR_BASE_URL &&

@@ -1,6 +1,6 @@
 # 外部服务配置
 
-当前用户计划使用 `https://api.nerosun.cn/v1` 模型网关，尚无 OSS/OCR。未配置的服务返回明确“尚未配置”状态，不能使用虚假上传或识别结果替代。
+当前用户计划使用 `https://api.nerosun.cn/v1` 模型网关，OSS bucket已确定为`nerosun-storage`（杭州），OCR控制台已确认统一识别服务开通；本地RAM密钥尚待填写。未配置的服务返回明确“尚未配置”状态，不能使用虚假上传或识别结果替代。
 
 ## 本地配置
 
@@ -17,8 +17,34 @@
 5. 下载签名有效期300秒；撤销访问后立即停止签发新链接，已有链接最多300秒过期。
 6. 使用 `pnpm smoke:oss` 验证上传、校验、下载；生产上线前再验证备份策略。不会因配置项非空就宣称真实连接可用。
 
-## OCR
+## 阿里云 OCR 统一识别
+
+2026-11-08通过用户已打开的Chrome控制台只读确认“OCR统一识别已开通”，当时页面显示本月赠送200次、剩余200次。该数值有延迟且会变化，不能作为实时配额保证。未查看RAM密钥、未修改云配置。
+
+已实现官方SDK的`RecognizeAllText`（API版本2021-07-07），固定杭州HTTPS端点`ocr-api.cn-hangzhou.aliyuncs.com`，默认`Type=Advanced`。按图片二进制上传，扫描PDF由已有解析器逐页渲染后识别，不要求公开OSS原件。
+
+```dotenv
+OSS_REGION=oss-cn-hangzhou
+OSS_BUCKET=nerosun-storage
+OSS_ACCESS_KEY_ID=在本地填写
+OSS_ACCESS_KEY_SECRET=在本地填写
+OCR_PROVIDER=aliyun
+# 两项都留空时复用OSS的RAM密钥；同一个RAM身份须已获OCR权限。
+# 如果使用另一个OCR身份，必须成对填写，不能只填一项。
+OCR_ACCESS_KEY_ID=
+OCR_ACCESS_KEY_SECRET=
+```
+
+调用该接口需要`ocr:RecognizeAllText`权限。本轮不修改用户已有RAM策略。凭据只在服务端使用。SDK单次调用关闭自动重试，连接超时5秒、读取超时20秒；后台队列仍有最多3次尝试，失败重试也可能消耗调用额度。取消后丢弃识别结果并停止继续处理页面；已发送的云请求不能保证撤回或免计费。
+
+填写本地未追踪.env后，执行`pnpm smoke:ocr`只识别一张自动生成的无个人信息测试图；`pnpm smoke:oss`会在smoke/目录上传一个合成测试文件，随后校验私有读取。每页OCR可能计一次调用，建议先单页验证再批量导入教材。官方说明按量付费可能在免费额度用尽后继续计费。
+
+自有样本可设置`OCR_SMOKE_FILE=/绝对路径/样本.png`，可选`OCR_SMOKE_EXPECT=预期片段`；运行后只报告成功与字符数，不打印识别原文。通用高精OCR不等于已验证公式结构、题目切分或批改，仍须在应用中人工确认。
+
+官方参考：[RecognizeAllText接口与RAM授权](https://help.aliyun.com/zh/ocr/developer-reference/api-ocr-api-2021-07-07-recognizealltext)、[官方TypeScript SDK](https://github.com/aliyun/alibabacloud-typescript-sdk/tree/master/ocr-api-20210707)。
+
+## 其他 OCR 接口
 
 预留 `OCR_PROVIDER`、`OCR_BASE_URL`、`OCR_API_KEY`。应用将定义统一按页识别适配器；具体服务协议需根据选定供应商映射。未配置时文本PDF仍可提取，扫描页标“需要OCR配置”，学生可补充题干并确认。图片识题也可使用已验证图像能力的模型；没有图像能力时不假装识图成功。
 
-真实服务未配置前，测试仅能证明接口、权限和失败处理；无法证明公网连通性、OCR质量、模型出题质量或实际费用。
+真实密钥未填并完成冒烟前，测试仅能证明接口、权限和失败处理；无法证明公网连通性、OCR质量、模型出题质量或实际费用。

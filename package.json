@@ -19,9 +19,13 @@
     "db:migrate": "node --env-file-if-exists=.env --import tsx packages/db/src/migrate.ts",
     "smoke:provider": "node --env-file-if-exists=.env --import tsx scripts/smoke-provider.ts",
     "smoke:oss": "node --env-file-if-exists=.env --import tsx scripts/smoke-oss.ts",
-    "admin:create": "node --env-file-if-exists=.env --import tsx scripts/create-admin.ts"
+    "admin:create": "node --env-file-if-exists=.env --import tsx scripts/create-admin.ts",
+    "smoke:ocr": "node --env-file-if-exists=.env --import tsx scripts/smoke-ocr.ts"
   },
   "dependencies": {
+    "@alicloud/ocr-api20210707": "3.1.3",
+    "@alicloud/openapi-core": "1.0.9",
+    "@darabonba/typescript": "1.0.6",
     "@earendil-works/pi-agent-core": "1.5.0",
     "@earendil-works/pi-ai": "1.5.0",
     "@fastify/cookie": "11.1.5",

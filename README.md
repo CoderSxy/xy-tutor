@@ -23,7 +23,7 @@ pnpm dev:web
 
 - `pnpm test`：单元与真实PG集成；`pnpm test:e2e`：Chrome浏览器，独立3002/5175测试端口。
 - `pnpm typecheck && pnpm lint && pnpm build`：静态检查和构建。
-- `pnpm smoke:provider`、`pnpm smoke:oss`：真实服务冒烟，需配置。
+- `pnpm smoke:provider`、`pnpm smoke:oss`、`pnpm smoke:ocr`：真实服务冒烟，需配置。
 - `node --import tsx tests/ops/backup-restore.ts`：独立临时数据库实际备份恢复演练。
 - [技术栈与架构图](docs/architecture.md)
 - [验收记录](docs/qa/mvp-acceptance.md)、[外部服务配置](docs/runbooks/external-services.md)、[ECS部署](docs/runbooks/deployment.md)、[备份恢复](docs/runbooks/backup-restore.md)、[运维](docs/runbooks/operations.md)。
