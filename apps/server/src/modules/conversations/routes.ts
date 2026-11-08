@@ -1,0 +1,2 @@
+import type {FastifyInstance} from 'fastify';import {z} from 'zod';import type {MessageService} from './messages.js';import {scopeForRequest} from '../learning/routes.js';
+export function registerConversations(app:FastifyInstance,s:MessageService){const id=z.object({id:z.uuid()});app.get('/api/conversations/:id/messages',async req=>s.history(await scopeForRequest(s.auth,req),id.parse(req.params).id));app.patch('/api/messages/:id',async req=>s.edit(await scopeForRequest(s.auth,req),{...z.record(z.string(),z.unknown()).parse(req.body),messageId:id.parse(req.params).id}));}

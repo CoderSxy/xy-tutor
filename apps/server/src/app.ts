@@ -1,4 +1,9 @@
 import Fastify from 'fastify';
+import {TaskService} from './modules/learning/tasks.js';
+import {AttemptService} from './modules/learning/attempts.js';
+import {MessageService} from './modules/conversations/messages.js';
+import {registerLearning} from './modules/learning/routes.js';
+import {registerConversations} from './modules/conversations/routes.js';
 import {CatalogService} from './modules/catalog/service.js';
 import {registerCatalog} from './modules/catalog/routes.js';
 import {JobQueue} from './jobs/queue.js';
@@ -31,6 +36,6 @@ export function buildApp(deps:AppDependencies) {
     if(!deps.readiness) return reply.code(503).send({status:'unavailable'});
     try {await deps.readiness();return {status:'ok'};} catch {return reply.code(503).send({status:'unavailable'});}
   });
-  if(deps.database&&deps.config){const auth=new AuthService(deps.database);app.register(async scoped=>{await registerAuth(scoped,auth,deps.config!);const uploads:UploadService=new UploadService(deps.database!,auth,deps.fileStore,async(actor,id):Promise<boolean>=>catalog.canReadFile(actor,id));const catalog:CatalogService=new CatalogService(deps.database!,auth,uploads);registerUploads(scoped,uploads);registerCatalog(scoped,catalog);if(deps.enableJobs){const runner=new JobRunner(new JobQueue(deps.database!),{'textbook.parse':textbookHandler(catalog,deps.ocr)},resourcesAvailable);scoped.addHook('onReady',async()=>runner.start());scoped.addHook('onClose',async()=>runner.stop());}});}
+  if(deps.database&&deps.config){const auth=new AuthService(deps.database);app.register(async scoped=>{await registerAuth(scoped,auth,deps.config!);const uploads:UploadService=new UploadService(deps.database!,auth,deps.fileStore,async(actor,id):Promise<boolean>=>catalog.canReadFile(actor,id));const catalog:CatalogService=new CatalogService(deps.database!,auth,uploads);registerUploads(scoped,uploads);registerCatalog(scoped,catalog);registerLearning(scoped,{auth,tasks:new TaskService(deps.database!,auth,catalog),attempts:new AttemptService(deps.database!,auth)});registerConversations(scoped,new MessageService(deps.database!,auth));if(deps.enableJobs){const runner=new JobRunner(new JobQueue(deps.database!),{'textbook.parse':textbookHandler(catalog,deps.ocr)},resourcesAvailable);scoped.addHook('onReady',async()=>runner.start());scoped.addHook('onClose',async()=>runner.stop());}});}
   return app;
 }
