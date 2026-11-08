@@ -1,0 +1,47 @@
+apps/server/src/modules/materials/service.ts
+  s_b208eb8dae8dfc::t_41239c0e3fb87e 1-15
+apps/server/src/modules/materials/contracts.ts
+  s_b208eb8dae8dfc::t_41239c0e3fb87e 1-6
+packages/db/migrations/meta/0007_snapshot.json
+  s_b208eb8dae8dfc::t_41239c0e3fb87e 1-3184
+tests/integration/materials.test.ts
+  s_b208eb8dae8dfc::t_252ac07d5c9f13 1-3
+packages/db/migrations/0007_wide_thanos.sql
+  s_b208eb8dae8dfc::t_41239c0e3fb87e 1-69
+packages/db/migrations/meta/_journal.json
+  s_b208eb8dae8dfc::t_41239c0e3fb87e 53-59
+packages/db/src/schema/conversations.ts
+  s_b208eb8dae8dfc::t_41239c0e3fb87e 5
+packages/db/src/schema/materials.ts
+  s_b208eb8dae8dfc::t_41239c0e3fb87e 1-7
+apps/server/src/app.ts
+  s_83f356d25873c3::t_7f71b7223c73d0 2-4,49
+apps/server/src/jobs/material-job.ts
+  s_83f356d25873c3::t_bceb37c25b5f17 1-4
+apps/server/src/modules/materials/routes.ts
+  s_83f356d25873c3::t_6acb989bb96eaa 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "d20eb69c2043326f658e992c9abe4495ac1a5ef3",
+  "prompts": {},
+  "sessions": {
+    "s_83f356d25873c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ba6c-8e92-7e61-b7f1-cb9ff98455ad",
+        "model": "unknown"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
