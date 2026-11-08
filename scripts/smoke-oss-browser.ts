@@ -34,7 +34,9 @@ const server = createServer(async (req, res) => {
       console.log(
         "BROWSER_OSS_VERIFIED: cross-origin PUT, sealed copy and GET; synthetic data only.",
       );
-      server.close(() => process.exit(0));
+      server.close();
+      // Browser preconnect/SDK sockets can outlive this completed one-shot probe.
+      setTimeout(() => process.exit(0), 1000).unref();
       return;
     }
     res.writeHead(404);
