@@ -1,0 +1,13 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: xy_tutor
+      POSTGRES_PASSWORD: local-development-only
+      POSTGRES_DB: xy_tutor
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - pg_dev:/var/lib/postgresql/data
+volumes:
+  pg_dev:
