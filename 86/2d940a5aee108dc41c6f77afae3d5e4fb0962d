@@ -1,0 +1,52 @@
+apps/server/src/app.ts
+  s_b208eb8dae8dfc::t_e92625e4d607cd 34
+  s_b208eb8dae8dfc::t_f1bc42e84749b6 2-8,18
+apps/server/src/main.ts
+  s_b208eb8dae8dfc::t_f1bc42e84749b6 1-2,9
+tests/integration/catalog.test.ts
+  s_b208eb8dae8dfc::t_c9247d8ff0c827 1-4
+apps/server/src/jobs/textbook-job.ts
+  s_b208eb8dae8dfc::t_f1bc42e84749b6 1-8
+apps/server/src/modules/catalog/service.ts
+  s_b208eb8dae8dfc::t_f1bc42e84749b6 20-21
+  s_b208eb8dae8dfc::t_c9247d8ff0c827 13,31
+  s_b208eb8dae8dfc::t_816b75924b6ea5 1-12,14-19,22-30
+apps/server/src/modules/catalog/contracts.ts
+  s_b208eb8dae8dfc::t_323c5abe341732 1-5
+apps/server/src/modules/catalog/routes.ts
+  s_b208eb8dae8dfc::t_189bacea371d00 1-2
+packages/db/migrations/0003_fast_moira_mactaggert.sql
+  s_b208eb8dae8dfc::t_b225add63e11b1 1-79
+packages/db/migrations/meta/0003_snapshot.json
+  s_b208eb8dae8dfc::t_a64caa9b215468 1-1249
+packages/db/migrations/meta/_journal.json
+  s_b208eb8dae8dfc::t_2d78216ee602fe 25-31
+packages/db/src/schema/catalog.ts
+  s_b208eb8dae8dfc::t_94685d9a5de059 1-10
+tests/integration/jobs.test.ts
+  s_83f356d25873c3::t_2ca63c41aded14 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "862d940a5aee108dc41c6f77afae3d5e4fb0962d",
+  "prompts": {},
+  "sessions": {
+    "s_83f356d25873c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ba6c-8e92-7e61-b7f1-cb9ff98455ad",
+        "model": "unknown"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
