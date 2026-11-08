@@ -9,6 +9,9 @@ export function registerRuns(
   available: () => boolean = () => true,
 ) {
   const id = z.object({ id: z.uuid() });
+  app.get("/api/conversations/:id/latest-run", async (req) =>
+    s.latest(await scopeForRequest(s.auth, req), id.parse(req.params).id),
+  );
   app.post("/api/conversations/:id/runs", async (req) => {
     if (!available())
       throw new AppError(
@@ -44,7 +47,7 @@ export function registerRuns(
       .object({ after: z.string().optional() })
       .passthrough()
       .parse(req.query);
-    let cursor = query.after ?? String(req.headers["last-event-id"] ?? "0");
+    let cursor = String(req.headers["last-event-id"] ?? query.after ?? "0");
     await s.events.readAfter(scope, runId, cursor);
     reply.hijack();
     reply.raw.writeHead(200, {

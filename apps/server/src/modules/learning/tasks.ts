@@ -84,6 +84,30 @@ export class TaskService {
       .parse(input);
     await this.resume(scope, v.taskId);
     await inTransaction(this.db, async (tx) => {
+      const locked = (
+        await tx.query(
+          "SELECT kind,version FROM learning_tasks WHERE id=$1 FOR UPDATE",
+          [v.taskId],
+        )
+      ).rows[0];
+      if (
+        v.status === "completed" &&
+        locked?.version === v.expectedVersion &&
+        locked.kind === "daily_practice"
+      ) {
+        const progress = (
+          await tx.query(
+            "SELECT count(*)::int AS total,count(*) FILTER (WHERE status <> 'pending')::int AS done FROM task_items WHERE task_id=$1",
+            [v.taskId],
+          )
+        ).rows[0];
+        if (progress.total < 5 || progress.done < 5)
+          throw new AppError(
+            "CONFLICT",
+            409,
+            "每日5练尚未完成，请先暂停保存进度",
+          );
+      }
       const result = await tx.query(
         "UPDATE learning_tasks SET status=$1,version=version+1,updated_at=now() WHERE id=$2 AND student_id=$3 AND version=$4 AND status NOT IN ('completed','abandoned') RETURNING id,version",
         [v.status, v.taskId, scope.studentId, v.expectedVersion],

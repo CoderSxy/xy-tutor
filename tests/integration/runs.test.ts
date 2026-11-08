@@ -20,6 +20,9 @@ it("deduplicates submissions and permits only one live run per conversation", as
     };
     const first = await s.submit(f.scope, input);
     expect((await s.submit(f.scope, input)).runId).toBe(first.runId);
+    expect((await s.latest(f.scope, task.conversationId))?.id).toBe(
+      first.runId,
+    );
     await expect(
       s.submit(f.scope, { ...input, requestKey: "two" }),
     ).rejects.toMatchObject({ code: "CONFLICT" });

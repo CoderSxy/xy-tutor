@@ -41,6 +41,11 @@ export function decideTransition(
     (v.practiceRole === "variant" && !v.variantVerified)
   )
     return base;
+  if (
+    v.correctness === "incorrect" &&
+    (v.state === "pending_correction" || v.state === "correcting")
+  )
+    return base;
   if (v.correctness === "incorrect")
     return {
       ...base,

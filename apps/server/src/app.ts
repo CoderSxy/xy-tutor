@@ -46,6 +46,7 @@ export type AppDependencies = {
   fileStore?: FileStore;
   ocr?: OcrProvider;
   enableJobs?: boolean;
+  canStartJobs?: () => Promise<boolean>;
   gateway?: ModelGateway;
 };
 export function buildApp(deps: AppDependencies) {
@@ -64,11 +65,9 @@ export function buildApp(deps: AppDependencies) {
       "statusCode" in error &&
       error.statusCode === 429
     )
-      return reply
-        .code(429)
-        .send({
-          error: { code: "RATE_LIMITED", message: "请求过于频繁，请稍后重试" },
-        });
+      return reply.code(429).send({
+        error: { code: "RATE_LIMITED", message: "请求过于频繁，请稍后重试" },
+      });
     if (error instanceof Error && "code" in error && error.code === "23505")
       return reply
         .code(409)
@@ -235,7 +234,7 @@ export function buildApp(deps: AppDependencies) {
             ),
             "learning.summary": summaryHandler(summaries),
           },
-          resourcesAvailable,
+          deps.canStartJobs ?? resourcesAvailable,
         );
         scoped.addHook("onReady", async () => runner.start());
         scoped.addHook("onClose", async () => runner.stop());

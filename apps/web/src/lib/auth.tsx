@@ -49,11 +49,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const entries = await api<StudentEntry[]>("/api/students");
       setStudents(entries);
       const stored = localStorage.getItem(`xy.student.${s.actor.userId}`);
-      setStudent(
-        entries.some((e) => e.id === stored)
-          ? stored!
-          : (s.studentId ?? entries[0]?.id ?? ""),
+      const chosen = entries.some((e) => e.id === stored)
+        ? stored!
+        : (s.studentId ?? entries[0]?.id ?? "");
+      setSelectedId(
+        chosen ? (localStorage.getItem(`xy.textbook.${chosen}`) ?? "") : "",
       );
+      setStudent(chosen);
     } catch (e) {
       if (!(e instanceof ApiError && e.status === 401))
         setError(errorMessage(e));
@@ -67,11 +69,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
-  useEffect(() => {
-    setSelectedId(
-      studentId ? (localStorage.getItem(`xy.textbook.${studentId}`) ?? "") : "",
-    );
-  }, [studentId]);
   const profile = useRemote<StudentProfile>(
     session && studentId ? `/api/students/${studentId}` : null,
   );
@@ -87,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   const setStudentId = (id: string) => {
     if (students.some((s) => s.id === id)) {
+      setSelectedId(localStorage.getItem(`xy.textbook.${id}`) ?? "");
       setStudent(id);
       if (session)
         localStorage.setItem(`xy.student.${session.actor.userId}`, id);
@@ -116,7 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStudentId,
         profile: profile.data,
         catalog: catalog.data ?? [],
-        catalogLoading: catalog.loading,
+        catalogLoading:
+          !!session && (catalog.loading || (!catalog.data && !catalog.error)),
         catalogError: catalog.error,
         selected: catalog.data?.find((r) => r.id === selectedId),
         selectRevision,

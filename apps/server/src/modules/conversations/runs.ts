@@ -33,6 +33,25 @@ export class RunService {
   ) {
     this.events = new EventStore(db, auth);
   }
+  async latest(
+    scope: StudentScope,
+    conversationId: string,
+  ): Promise<RunDTO | null> {
+    await this.auth.requireStudentAccess(scope.actor, scope.studentId);
+    z.uuid().parse(conversationId);
+    const c = await this.db.pool.query(
+      "SELECT id FROM conversations WHERE id=$1 AND student_id=$2",
+      [conversationId, scope.studentId],
+    );
+    if (!c.rowCount) throw new AppError("NOT_FOUND", 404, "会话不存在");
+    const row = (
+      await this.db.pool.query(
+        "SELECT id FROM agent_runs WHERE conversation_id=$1 ORDER BY created_at DESC LIMIT 1",
+        [conversationId],
+      )
+    ).rows[0];
+    return row ? this.get(scope, row.id) : null;
+  }
   async submit(
     scope: StudentScope,
     input: unknown,

@@ -27,6 +27,18 @@ export function useTutorRun(conversationId?: string) {
     if (!conversationId) return;
     void reload().catch((e) => setError(errorMessage(e)));
     const key = `xy.run.${conversationId}`;
+    void api<Run | null>(
+      a.scoped(`/api/conversations/${conversationId}/latest-run`),
+    )
+      .then((r) => {
+        if (r && ["queued", "running"].includes(r.status)) {
+          lastId.current = "0";
+          setRunId(r.id);
+          setStatus(r.status);
+          sessionStorage.setItem(key, r.id);
+        }
+      })
+      .catch(() => {});
     const old = sessionStorage.getItem(key);
     if (old)
       void api<Run>(a.scoped(`/api/runs/${old}`))
@@ -101,6 +113,18 @@ export function useTutorRun(conversationId?: string) {
   const submit = async (text: string, questionVersionId?: string) => {
     if (!conversationId) return false;
     setError("");
+    const pendingKey = `xy.pending.${conversationId}`;
+    const signature = JSON.stringify([text, questionVersionId]);
+    let pending: { signature: string; requestKey: string } | undefined;
+    try {
+      pending =
+        JSON.parse(sessionStorage.getItem(pendingKey) ?? "null") ?? undefined;
+    } catch {
+      /* discard invalid local state */
+    }
+    if (pending?.signature !== signature)
+      pending = { signature, requestKey: crypto.randomUUID() };
+    sessionStorage.setItem(pendingKey, JSON.stringify(pending));
     try {
       const result = await api<{ runId: string }>(
         a.scoped(`/api/conversations/${conversationId}/runs`),
@@ -108,7 +132,7 @@ export function useTutorRun(conversationId?: string) {
           method: "POST",
           ...jsonBody({
             message: text,
-            requestKey: crypto.randomUUID(),
+            requestKey: pending!.requestKey,
             questionVersionId,
           }),
         },
@@ -118,7 +142,8 @@ export function useTutorRun(conversationId?: string) {
       setStatus("queued");
       setRunId(result.runId);
       sessionStorage.setItem(`xy.run.${conversationId}`, result.runId);
-      await reload();
+      sessionStorage.removeItem(pendingKey);
+      void reload().catch((e) => setError(errorMessage(e)));
       return true;
     } catch (e) {
       setError(errorMessage(e));

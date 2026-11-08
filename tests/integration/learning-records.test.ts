@@ -128,3 +128,29 @@ it("allows only one versioned task transition per revision number", async () =>
       }),
     ).rejects.toMatchObject({ code: "CONFLICT" });
   }));
+it("pauses an incomplete daily practice rather than completing it", async () =>
+  withTestDb(async (db) => {
+    const f = await catalogFixture(db);
+    const r = await f.publish("人教版", "加法");
+    const s = new TaskService(db, f.auth, f.catalog);
+    const t = await s.create(f.scope, {
+      revisionId: r.id,
+      kind: "daily_practice",
+    });
+    await expect(
+      s.transition(f.scope, {
+        taskId: t.id,
+        expectedVersion: t.version,
+        status: "completed",
+      }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(
+      (
+        await s.transition(f.scope, {
+          taskId: t.id,
+          expectedVersion: t.version,
+          status: "paused",
+        })
+      ).status,
+    ).toBe("paused");
+  }));

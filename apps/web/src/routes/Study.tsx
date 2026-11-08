@@ -53,9 +53,15 @@ export function Study() {
   };
   const finish = async () => {
     try {
+      const complete =
+        data.kind !== "daily_practice" ||
+        (items.data?.filter((q) => q.status !== "pending").length ?? 0) >= 5;
       await api(a.scoped(`/api/tasks/${id}`), {
         method: "PATCH",
-        ...jsonBody({ expectedVersion: data.version, status: "completed" }),
+        ...jsonBody({
+          expectedVersion: data.version,
+          status: complete ? "completed" : "paused",
+        }),
       });
       task.reload();
       const saved = await api<{ content: SummaryContent } | null>(
@@ -93,7 +99,7 @@ export function Study() {
       )}
       {data.status === "paused" && (
         <div className="notice">
-          任务已暂停。
+          任务已暂停，学习进度已保存。
           <Button variant="ghost" onClick={() => void resume()}>
             恢复学习
           </Button>

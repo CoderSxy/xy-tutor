@@ -58,3 +58,8 @@ it("does not move on uncertainty and reactivates a mastered mistake on verified 
     ).to,
   ).toBe("corrected_pending_practice");
 });
+it("keeps a newly recorded wrong answer pending correction", () => {
+  expect(
+    decideTransition({ ...base, correctness: "incorrect" }, new Date()).to,
+  ).toBe("pending_correction");
+});
