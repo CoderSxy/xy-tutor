@@ -47,7 +47,7 @@ it("rejects fake MIME, oversize files and foreign object keys", async () =>
       s.create(admin, {
         purpose: "textbook",
         name: "large.pdf",
-        size: 31 * 1024 * 1024,
+        size: 50 * 1024 * 1024,
         contentType: "application/pdf",
       }),
     ).rejects.toMatchObject({ code: "VALIDATION" });
@@ -123,4 +123,42 @@ it("seals completed originals against reuse of a live upload URL", async () =>
     expect((await store.head(file.object_key)).prefix.toString()).toBe(
       "%PDF-1.7 original",
     );
+  }));
+it("accepts textbook PDFs below 50MiB but rejects 50MiB and keeps student PDFs at 30MiB", async () =>
+  withTestDb(async (db) => {
+    const auth = new AuthService(db);
+    const admin = await auth.createAdmin("size-admin", password);
+    const inv = await auth.invite(admin, { login: "size-student" });
+    const student = await auth.activate({
+      token: inv.activationToken,
+      password,
+    });
+    const service = new UploadService(db, auth, new MemoryFileStore());
+    const grant = await service.create(admin, {
+      purpose: "textbook",
+      name: "book.pdf",
+      size: 50 * 1024 ** 2 - 1,
+      contentType: "application/pdf",
+    });
+    expect(grant.fileId).toBeTruthy();
+    await expect(
+      service.create(admin, {
+        purpose: "textbook",
+        name: "limit.pdf",
+        size: 50 * 1024 ** 2,
+        contentType: "application/pdf",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(
+      service.create(
+        { userId: student.userId, role: "student" },
+        {
+          studentId: student.studentId,
+          purpose: "student_material",
+          name: "paper.pdf",
+          size: 31 * 1024 ** 2,
+          contentType: "application/pdf",
+        },
+      ),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
   }));

@@ -13,7 +13,7 @@
 1. 在 ECS 对应地域创建私有 bucket；关闭公共读写，不把题图设为公共文件。
 2. 为应用创建限该 bucket 的最小权限 RAM 身份。填写 `OSS_REGION`（如 oss-cn-hangzhou）、`OSS_BUCKET`、`OSS_ACCESS_KEY_ID`、`OSS_ACCESS_KEY_SECRET`。不使用阿里云主账号 Key。
 3. bucket CORS 仅允许实际 Web 域名（开发时单独允许本地前端来源），支持 PUT/GET/HEAD、Content-Type 请求头和需要的响应头。不要将任意来源和凭据访问组合开放。
-4. 学生端获取短期 PUT 签名后直接上传；上传完成调用 API 校验类型、实际大小和文件头。图片≤10MB，PDF≤30MB/100页。
+4. 学生端获取短期 PUT 签名后直接上传；上传完成调用 API 校验类型、实际大小和文件头。图片≤10MB；教材PDF<50MB、最多500页，学生试卷PDF≤30MB、最多100页。
 5. 下载签名有效期300秒；撤销访问后立即停止签发新链接，已有链接最多300秒过期。
 6. 使用 `pnpm smoke:oss` 验证上传、校验、下载；生产上线前再验证备份策略。不会因配置项非空就宣称真实连接可用。
 

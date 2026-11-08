@@ -1,3 +1,4 @@
+import { fileTooLarge } from "../../../../../packages/contracts/src/file-limits.js";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Actor } from "../../../../../packages/contracts/src/domain.js";
@@ -56,7 +57,7 @@ export class UploadService {
     if (!parsed.success)
       throw new AppError("VALIDATION", 422, "文件参数不正确");
     const v = parsed.data;
-    if (v.size > (v.contentType === "application/pdf" ? 30 : 10) * 1024 * 1024)
+    if (fileTooLarge(v.purpose, v.contentType, v.size))
       throw new AppError("VALIDATION", 422, "文件超过大小限制");
     if (v.purpose === "textbook") {
       requireAdmin(actor);

@@ -153,4 +153,70 @@ test("student grants and revokes explicit access", async ({ page }) => {
   await page.getByRole("button", { name: "撤销访问" }).click();
   await expect(page.getByText("teacher · 已授权")).toHaveCount(0);
 });
-test('opens original question source from mistake history',async({page})=>{await mockLearningApi(page);const id='70000000-0000-4000-8000-000000000001',versionId='71000000-0000-4000-8000-000000000001';await page.route(`**/api/mistakes/${id}**`,route=>route.fulfill({json:route.request().url().includes('/history')?[]:{id,questionId:id,questionVersionId:versionId,stem:'1+1=?',status:'pending_correction',dueAt:null,version:1,originalAttemptId:null}}));await page.route(`**/api/question-versions/${versionId}/sources**`,route=>route.fulfill({json:[{fileId:id,pageIndex:1,bbox:[.1,.1,.8,.8]}]}));await page.route(`**/api/files/${id}/download`,route=>route.fulfill({json:{url:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZUkAAAAASUVORK5CYII=',contentType:'image/png'}}));await page.goto(`/mistakes/${id}`);await login(page);await page.getByRole('button',{name:'查看原图 · 第2页'}).click();await expect(page.getByRole('dialog')).toContainText('原始资料 · 第2页');await expect(page.getByAltText('上传的原始题目资料')).toBeVisible();});
+test("opens original question source from mistake history", async ({
+  page,
+}) => {
+  await mockLearningApi(page);
+  const id = "70000000-0000-4000-8000-000000000001",
+    versionId = "71000000-0000-4000-8000-000000000001";
+  await page.route(`**/api/mistakes/${id}**`, (route) =>
+    route.fulfill({
+      json: route.request().url().includes("/history")
+        ? []
+        : {
+            id,
+            questionId: id,
+            questionVersionId: versionId,
+            stem: "1+1=?",
+            status: "pending_correction",
+            dueAt: null,
+            version: 1,
+            originalAttemptId: null,
+          },
+    }),
+  );
+  await page.route(`**/api/question-versions/${versionId}/sources**`, (route) =>
+    route.fulfill({
+      json: [{ fileId: id, pageIndex: 1, bbox: [0.1, 0.1, 0.8, 0.8] }],
+    }),
+  );
+  await page.route(`**/api/files/${id}/download`, (route) =>
+    route.fulfill({
+      json: {
+        url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jZUkAAAAASUVORK5CYII=",
+        contentType: "image/png",
+      },
+    }),
+  );
+  await page.goto(`/mistakes/${id}`);
+  await login(page);
+  await page.getByRole("button", { name: "查看原图 · 第2页" }).click();
+  await expect(page.getByRole("dialog")).toContainText("原始资料 · 第2页");
+  await expect(page.getByAltText("上传的原始题目资料")).toBeVisible();
+});
+test("explains the textbook page limit instead of only showing parsing failed", async ({
+  page,
+}) => {
+  await mockLearningApi(page, "admin");
+  await page.route(`**/api/catalog/textbooks/${revisionId}**`, (r) =>
+    r.fulfill({
+      json: r.request().url().includes("/pages")
+        ? []
+        : {
+            id: revisionId,
+            fileId: revisionId,
+            title: "长教材",
+            edition: "人教版",
+            grade: "高一",
+            subject: "数学",
+            term: "下册",
+            revisionNo: 1,
+            status: "failed",
+            parseErrorCode: "PDF_PAGE_LIMIT",
+          },
+    }),
+  );
+  await page.goto(`/admin/textbooks/${revisionId}`);
+  await login(page);
+  await expect(page.getByRole("alert")).toContainText("500页");
+});

@@ -1,3 +1,14 @@
+const safeErrorCodes = new Set([
+  "PDF_PAGE_LIMIT",
+  "FILE_SIZE_LIMIT",
+  "PDF_PARSE_FAILED",
+  "PARSE_OUTPUT_LIMIT",
+  "IMAGE_PIXEL_LIMIT",
+  "OCR_IMAGE_LIMIT",
+  "OCR_UNAVAILABLE",
+  "OSS_NOT_CONFIGURED",
+  "INVALID_TEXTBOOK_FILE",
+]);
 import { randomUUID } from "node:crypto";
 import type { JobQueue, Job } from "./queue.js";
 export type JobHandler = (job: Job, signal: AbortSignal) => Promise<unknown>;
@@ -40,11 +51,15 @@ export class JobRunner {
         if (!handler) throw Error("UNSUPPORTED_JOB");
         const result = await handler(job, controller.signal);
         await this.queue.finish(job.id, job.leaseToken, result);
-      } catch {
+      } catch (error) {
+        const code =
+          error instanceof Error && safeErrorCodes.has(error.message)
+            ? error.message
+            : "PROCESSING_FAILED";
         await this.queue.fail(
           job.id,
           job.leaseToken,
-          controller.signal.aborted ? "INTERRUPTED" : "PROCESSING_FAILED",
+          controller.signal.aborted ? "INTERRUPTED" : code,
         );
       } finally {
         clearInterval(heartbeat);

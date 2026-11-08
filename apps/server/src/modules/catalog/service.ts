@@ -17,7 +17,7 @@ import {
   type CatalogFilter,
   type RevisionDTO,
 } from "./contracts.js";
-const revisionQuery = `SELECT r.id,r.textbook_id AS "textbookId",r.file_id AS "fileId",r.revision_no AS "revisionNo",r.status,r.page_count AS "pageCount",t.title,e.name AS edition,g.name AS grade,s.name AS subject,t.term,t.publication_year AS "publicationYear" FROM textbook_revisions r JOIN textbooks t ON t.id=r.textbook_id JOIN curriculum_editions e ON e.id=t.edition_id JOIN grades g ON g.id=t.grade_id JOIN subjects s ON s.id=t.subject_id`;
+const revisionQuery = `SELECT r.id,r.textbook_id AS "textbookId",r.file_id AS "fileId",r.revision_no AS "revisionNo",r.status,r.page_count AS "pageCount",t.title,e.name AS edition,g.name AS grade,s.name AS subject,t.term,t.publication_year AS "publicationYear",(SELECT j.error_code FROM jobs j WHERE j.kind='textbook.parse' AND j.payload->>'revisionId'=r.id::text AND j.status='failed' ORDER BY j.created_at DESC LIMIT 1) AS "parseErrorCode" FROM textbook_revisions r JOIN textbooks t ON t.id=r.textbook_id JOIN curriculum_editions e ON e.id=t.edition_id JOIN grades g ON g.id=t.grade_id JOIN subjects s ON s.id=t.subject_id`;
 export class CatalogService {
   constructor(
     readonly db: Database,

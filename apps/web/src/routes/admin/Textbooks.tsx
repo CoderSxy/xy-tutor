@@ -16,6 +16,21 @@ export const textbookStatus: Record<string, string> = {
   disabled: "已停用",
   failed: "解析失败",
 };
+export function textbookParseError(code?: string | null): string {
+  const reasons: Record<string, string> = {
+    PDF_PAGE_LIMIT: "教材超过500页，请按册拆分后重新上传。",
+    FILE_SIZE_LIMIT: "教材PDF必须小于50MB，请压缩文件或按册拆分后重新上传。",
+    PDF_PARSE_FAILED: "无法读取该PDF，请检查文件是否损坏、加密或含异常页面。",
+    IMAGE_PIXEL_LIMIT: "教材中有尺寸过大的页面，请压缩页面后重试。",
+    OCR_IMAGE_LIMIT: "扫描页图片超过识别限制，请压缩页面后重试。",
+    OCR_UNAVAILABLE: "扫描页识别失败，请检查OCR权限、额度和网络后重试。",
+    PARSE_OUTPUT_LIMIT: "单页解析结果过大，请拆分或简化该页面后重试。",
+  };
+  return (
+    reasons[code ?? ""] ??
+    "教材解析未完成，请重试；若仍失败，请检查文件或联系管理员。"
+  );
+}
 export function Textbooks() {
   const a = useAuth(),
     navigate = useNavigate();
@@ -162,6 +177,11 @@ export function Textbooks() {
                 </p>
               </div>
               <span className="badge">{textbookStatus[r.status]}</span>
+              {r.status === "failed" && (
+                <p className="error-text text-small">
+                  {textbookParseError(r.parseErrorCode)}
+                </p>
+              )}
               <Button asChild variant="outline">
                 <Link to={`/admin/textbooks/${r.id}`}>检查与管理</Link>
               </Button>

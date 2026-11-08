@@ -1,3 +1,4 @@
+import { fileTooLarge } from "../../../../../packages/contracts/src/file-limits.js";
 import { useState, useRef, useEffect } from "react";
 import { Upload, RotateCw, FileText, Camera } from "lucide-react";
 import { useAuth } from "../../lib/auth";
@@ -70,8 +71,12 @@ export function UploadInput({
       setError("电子教材请上传 PDF 文件");
       return;
     }
-    if (f.size > (f.type === "application/pdf" ? 30 : 10) * 1024 ** 2) {
-      setError("文件超过限制：照片10MB，PDF30MB");
+    if (fileTooLarge(purpose, f.type, f.size)) {
+      setError(
+        purpose === "textbook"
+          ? "教材PDF必须小于50MB"
+          : "文件超过限制：照片10MB，PDF30MB",
+      );
       return;
     }
     if (preview) URL.revokeObjectURL(preview);
@@ -235,7 +240,11 @@ export function UploadInput({
               </Button>
             )}
           </div>
-          <small className="muted">照片≤10MB，PDF≤30MB、100页</small>
+          <small className="muted">
+            {purpose === "textbook"
+              ? "教材PDF<50MB、500页；扫描页会按页使用OCR"
+              : "照片≤10MB，PDF≤30MB、100页"}
+          </small>
         </>
       )}
       {error && (

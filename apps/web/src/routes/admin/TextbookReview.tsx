@@ -8,7 +8,7 @@ import { Button } from "../../components/ui/button";
 import { Field, Input, Textarea, Select } from "../../components/ui/field";
 import { StatusPanel } from "../../components/StatusPanel";
 import { DocumentViewer } from "../../features/uploads/DocumentViewer";
-import { textbookStatus } from "./Textbooks";
+import { textbookStatus, textbookParseError } from "./Textbooks";
 type PageRecord = {
   id: string;
   pageIndex: number;
@@ -125,6 +125,11 @@ export function TextbookReview() {
         </p>
       )}
       {status && <p role="status">{status}</p>}
+      {r.status === "failed" && (
+        <p className="notice error-text" role="alert">
+          {textbookParseError(r.parseErrorCode)}
+        </p>
+      )}
       {r.status === "processing" && (
         <StatusPanel state="queued" title="教材正在分批解析">
           可以稍后回来检查，已处理页面会逐步显示。

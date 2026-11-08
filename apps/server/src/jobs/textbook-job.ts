@@ -1,3 +1,7 @@
+import {
+  MAX_TEXTBOOK_PAGES,
+  MAX_TEXTBOOK_PDF_BYTES,
+} from "../../../../packages/contracts/src/file-limits.js";
 import type { JobHandler } from "./runner.js";
 import type { CatalogService } from "../modules/catalog/service.js";
 import { parseDocument } from "./parsers/pdf-process.js";
@@ -27,6 +31,8 @@ export function textbookHandler(
         contentType: row.content_type,
         signal,
         ocr,
+        maxPages: MAX_TEXTBOOK_PAGES,
+        maxBytes: MAX_TEXTBOOK_PDF_BYTES - 1,
       })) {
         signal.throwIfAborted();
         await catalog.saveParsedPage(id, page, lease);

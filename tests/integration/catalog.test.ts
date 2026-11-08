@@ -95,3 +95,32 @@ it("rejects non-admin publishing and deduplicates parsing requests", async () =>
       ).rows[0].n,
     ).toBe(1);
   }));
+it("allows review of textbook pages beyond the student paper page limit", async () =>
+  withTestDb(async (db) => {
+    const { admin, file, catalog } = await fixture(db);
+    const r = await catalog.createDraft(admin, {
+      title: "长教材",
+      edition: "人教版",
+      grade: "高一",
+      subject: "数学",
+      term: "下册",
+      publicationYear: 2024,
+      fileId: file.fileId,
+    });
+    await catalog.startProcessing(admin, r.id);
+    await catalog.saveParsedPage(r.id, {
+      pdfPageIndex: 281,
+      text: "教材末页",
+      status: "ready",
+    });
+    await catalog.finishProcessing(r.id);
+    await catalog.reviewPage(admin, {
+      revisionId: r.id,
+      pageIndex: 281,
+      printedPageLabel: "282",
+      text: "人工核对末页",
+    });
+    expect((await catalog.getPages(admin, r.id)).at(-1)?.text).toBe(
+      "人工核对末页",
+    );
+  }));

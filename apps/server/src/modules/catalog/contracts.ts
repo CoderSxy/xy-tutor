@@ -1,3 +1,4 @@
+import { MAX_TEXTBOOK_PAGES } from "../../../../../packages/contracts/src/file-limits.js";
 import { z } from "zod";
 export const draftInput = z
   .object({
@@ -13,7 +14,11 @@ export const draftInput = z
 export const reviewInput = z
   .object({
     revisionId: z.uuid(),
-    pageIndex: z.number().int().min(0).max(99),
+    pageIndex: z
+      .number()
+      .int()
+      .min(0)
+      .max(MAX_TEXTBOOK_PAGES - 1),
     text: z.string().max(200000).optional(),
     printedPageLabel: z.string().max(40).optional(),
     chapter: z.string().trim().min(1).max(100).optional(),
@@ -27,6 +32,7 @@ export type RevisionDTO = {
   revisionNo: number;
   status: string;
   pageCount: number | null;
+  parseErrorCode?: string | null;
   title: string;
   edition: string;
   grade: string;

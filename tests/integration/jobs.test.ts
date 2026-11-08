@@ -151,3 +151,24 @@ it("repairs a processing textbook after its final lease crashes", async () =>
     await q.claim("replacement", new Date());
     expect((await f.catalog.getRevision(f.admin, r.id)).status).toBe("failed");
   }));
+it("retains safe parser error codes instead of hiding the cause", async () =>
+  withTestDb(async (db) => {
+    const q = new JobQueue(db);
+    await q.enqueue(db.pool, {
+      kind: "parse",
+      dedupeKey: "page-limit",
+      payload: {},
+    });
+    await db.pool.query(
+      "UPDATE jobs SET available_at=now()-interval '1 second'",
+    );
+    const runner = new JobRunner(q, {
+      parse: async () => {
+        throw Error("PDF_PAGE_LIMIT");
+      },
+    });
+    await runner.tick();
+    expect(
+      (await db.pool.query("SELECT error_code FROM jobs")).rows[0].error_code,
+    ).toBe("PDF_PAGE_LIMIT");
+  }));

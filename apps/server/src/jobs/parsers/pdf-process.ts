@@ -1,3 +1,9 @@
+import {
+  MAX_TEXTBOOK_PAGES,
+  MAX_MATERIAL_PAGES,
+  MAX_TEXTBOOK_PDF_BYTES,
+  MAX_MATERIAL_PDF_BYTES,
+} from "../../../../../packages/contracts/src/file-limits.js";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -27,9 +33,17 @@ export async function* parseDocument(input: {
   contentType: string;
   signal: AbortSignal;
   ocr?: OcrProvider;
+  maxPages?: number;
+  maxBytes?: number;
 }): AsyncGenerator<ParsedPage> {
   input.signal.throwIfAborted();
-  if (input.bytes.length > 30 * 1024 * 1024) throw Error("FILE_SIZE_LIMIT");
+  const maxBytes = z
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_TEXTBOOK_PDF_BYTES - 1)
+    .parse(input.maxBytes ?? MAX_MATERIAL_PDF_BYTES);
+  if (input.bytes.length > maxBytes) throw Error("FILE_SIZE_LIMIT");
   if (input.contentType !== "application/pdf") {
     const dimensions = imageSize(input.bytes);
     if (
@@ -48,6 +62,12 @@ export async function* parseDocument(input: {
     };
     return;
   }
+  const maxPages = z
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_TEXTBOOK_PAGES)
+    .parse(input.maxPages ?? MAX_MATERIAL_PAGES);
   const dir = await mkdtemp(join(tmpdir(), "xy-tutor-parse-"));
   const path = join(dir, "document.pdf");
   await writeFile(path, input.bytes, { mode: 0o600 });
@@ -60,6 +80,7 @@ export async function* parseDocument(input: {
     script,
     path,
     input.ocr ? "render" : "text",
+    String(maxPages),
   ];
   const child = spawn(process.execPath, args, {
     stdio: ["ignore", "pipe", "pipe"],

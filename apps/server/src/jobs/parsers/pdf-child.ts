@@ -1,3 +1,7 @@
+import {
+  MAX_TEXTBOOK_PAGES,
+  MAX_MATERIAL_PAGES,
+} from "../../../../../packages/contracts/src/file-limits.js";
 import { readFile } from "node:fs/promises";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import { createCanvas } from "@napi-rs/canvas";
@@ -9,7 +13,14 @@ try {
     useSystemFonts: true,
   });
   const doc = await loadingTask.promise;
-  if (doc.numPages > 100) throw Error("PDF_PAGE_LIMIT");
+  const maxPages = Number(process.argv[4] ?? MAX_MATERIAL_PAGES);
+  if (
+    !Number.isInteger(maxPages) ||
+    maxPages < 1 ||
+    maxPages > MAX_TEXTBOOK_PAGES ||
+    doc.numPages > maxPages
+  )
+    throw Error("PDF_PAGE_LIMIT");
   const labels = await doc.getPageLabels();
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
