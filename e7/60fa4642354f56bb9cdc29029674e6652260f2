@@ -1,0 +1,37 @@
+infra/oss-cors.dev.json
+  s_b208eb8dae8dfc::t_70e5540c42414a 1-9
+scripts/smoke-oss.ts
+  s_b208eb8dae8dfc::t_a7307672f1a22e 3-34,36
+docs/runbooks/external-services.md
+  s_b208eb8dae8dfc::t_70e5540c42414a 3,51-55
+  s_b208eb8dae8dfc::t_42a7d2a85e3d32 56-59
+docs/qa/aliyun-ocr-acceptance.md
+  s_b208eb8dae8dfc::t_42a7d2a85e3d32 18-21
+  s_b208eb8dae8dfc::t_70e5540c42414a 12-17
+scripts/smoke-oss-browser.ts
+  s_131edf2402c6d5::t_9578fb9c185fca 1-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "e760fa4642354f56bb9cdc29029674e6652260f2",
+  "prompts": {},
+  "sessions": {
+    "s_131edf2402c6d5": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bb41-d70c-78d0-90ee-a4c7c1beb85a",
+        "model": "unknown"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
