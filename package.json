@@ -18,7 +18,8 @@
     "build": "tsc -p apps/server/tsconfig.build.json && vite build apps/web",
     "db:migrate": "tsx packages/db/src/migrate.ts",
     "smoke:provider": "tsx scripts/smoke-provider.ts",
-    "smoke:oss": "tsx scripts/smoke-oss.ts"
+    "smoke:oss": "tsx scripts/smoke-oss.ts",
+    "admin:create": "tsx scripts/create-admin.ts"
   },
   "dependencies": {
     "@earendil-works/pi-agent-core": "1.5.0",

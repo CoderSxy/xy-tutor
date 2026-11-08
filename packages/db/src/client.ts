@@ -7,3 +7,4 @@ export function createDb(url:string,schema='public') {
 }
 export type Database=ReturnType<typeof createDb>;
 export type Db=Database['db'];
+export async function inTransaction<T>(c:Database,run:(tx:pg.PoolClient)=>Promise<T>):Promise<T>{const tx=await c.pool.connect();try{await tx.query('BEGIN');const value=await run(tx);await tx.query('COMMIT');return value;}catch(error){await tx.query('ROLLBACK');throw error;}finally{tx.release();}}
