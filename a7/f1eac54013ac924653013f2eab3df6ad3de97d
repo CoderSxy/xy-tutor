@@ -1,0 +1,45 @@
+packages/db/migrations/meta/_journal.json
+  s_b208eb8dae8dfc::t_adcc6ce54b48f7 39-45
+apps/server/src/modules/conversations/runs.ts
+  s_b208eb8dae8dfc::t_adcc6ce54b48f7 1-4,6-10,12-15
+  s_b208eb8dae8dfc::t_88e9fab8f6bf3f 5
+  s_b208eb8dae8dfc::t_c5b69fc127d9a3 11
+apps/server/src/modules/conversations/sse.ts
+  s_b208eb8dae8dfc::t_adcc6ce54b48f7 1-2
+packages/db/src/schema/runs.ts
+  s_b208eb8dae8dfc::t_adcc6ce54b48f7 1-4
+packages/db/migrations/meta/0005_snapshot.json
+  s_b208eb8dae8dfc::t_adcc6ce54b48f7 1-2559
+packages/db/migrations/0005_natural_madelyne_pryor.sql
+  s_b208eb8dae8dfc::t_adcc6ce54b48f7 1-45
+tests/integration/runs.test.ts
+  s_b208eb8dae8dfc::t_a3ee2c6c4939bc 1-4
+apps/server/src/modules/conversations/events.ts
+  s_b208eb8dae8dfc::t_adcc6ce54b48f7 1-8
+apps/server/src/app.ts
+  s_83f356d25873c3::t_f09a57e91550a5 2-3,41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a7f1eac54013ac924653013f2eab3df6ad3de97d",
+  "prompts": {},
+  "sessions": {
+    "s_83f356d25873c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ba6c-8e92-7e61-b7f1-cb9ff98455ad",
+        "model": "unknown"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
