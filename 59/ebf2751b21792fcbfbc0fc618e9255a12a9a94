@@ -1,0 +1,55 @@
+packages/db/src/schema/learning.ts
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 1-3
+packages/db/migrations/meta/0004_snapshot.json
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 1-2203
+apps/server/src/modules/learning/contracts.ts
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 1-6
+packages/db/migrations/meta/_journal.json
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 32-38
+apps/server/src/modules/learning/tasks.ts
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 1-11
+apps/server/src/modules/conversations/messages.ts
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 1-9
+apps/server/src/modules/conversations/contracts.ts
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 1-2
+packages/db/src/schema/questions.ts
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 1-3
+packages/db/src/schema/conversations.ts
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 1-7
+packages/db/migrations/0004_many_thing.sql
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 1-122
+apps/server/src/modules/learning/attempts.ts
+  s_b208eb8dae8dfc::t_d7873f8dc96f68 1-6
+tests/integration/learning-records.test.ts
+  s_b208eb8dae8dfc::t_085192789a271a 1-5
+apps/server/src/app.ts
+  s_83f356d25873c3::t_b0ecb761b93d2f 2-6,39
+apps/server/src/modules/conversations/routes.ts
+  s_83f356d25873c3::t_4fcde5f6e42440 1-2
+apps/server/src/modules/learning/routes.ts
+  s_83f356d25873c3::t_618e6d23370468 1-3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59ebf2751b21792fcbfbc0fc618e9255a12a9a94",
+  "prompts": {},
+  "sessions": {
+    "s_83f356d25873c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ba6c-8e92-7e61-b7f1-cb9ff98455ad",
+        "model": "unknown"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
