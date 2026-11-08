@@ -1,0 +1,70 @@
+apps/web/src/vite-env.d.ts
+  s_b208eb8dae8dfc::t_54d8fe491bddb2 1
+apps/web/src/components/NextActions.tsx
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-2
+apps/web/src/components/Markdown.tsx
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-2
+  s_b208eb8dae8dfc::t_e00cf282f7a976 3
+playwright.config.ts
+  s_b208eb8dae8dfc::t_744334b0a6b1ef 2
+tests/e2e/design-system.spec.ts
+  s_b208eb8dae8dfc::t_54d8fe491bddb2 2
+  s_b208eb8dae8dfc::t_744334b0a6b1ef 1
+apps/web/src/main.tsx
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-2
+apps/web/vite.config.ts
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-2
+apps/web/src/components/ui/button.tsx
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-4
+apps/web/src/components/AppShell.tsx
+  s_b208eb8dae8dfc::t_54d8fe491bddb2 1,3
+  s_b208eb8dae8dfc::t_ebe808119a925b 2
+apps/web/src/components/StatusPanel.tsx
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-2
+apps/web/src/components/SourceLink.tsx
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-2
+docs/ui/style-directions.html
+  s_b208eb8dae8dfc::t_761f2848ca4ae9 1
+PRODUCT.md
+  s_b208eb8dae8dfc::t_719d186401db5d 1-51
+apps/web/src/components/DesignPreview.tsx
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-2
+apps/web/src/components/QuestionCard.tsx
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-2
+apps/web/src/components/ui/field.tsx
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-5
+apps/web/src/lib/utils.ts
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-2
+apps/web/src/styles/global.css
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-3
+apps/web/src/styles/tokens.css
+  s_b208eb8dae8dfc::t_ebe808119a925b 1
+DESIGN.md
+  s_b208eb8dae8dfc::t_ebe808119a925b 1-22
+apps/web/src/components/MarkdownRenderer.tsx
+  s_83f356d25873c3::t_f0c2d26e3ba2ea 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "17552cb5e63e4ab2ef52e1e455259e383c3afbbf",
+  "prompts": {},
+  "sessions": {
+    "s_83f356d25873c3": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1ba6c-8e92-7e61-b7f1-cb9ff98455ad",
+        "model": "unknown"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
