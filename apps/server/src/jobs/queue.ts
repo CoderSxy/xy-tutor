@@ -22,6 +22,20 @@ export class JobQueue {
     ).rows[0].id;
   }
   async claim(_workerId: string, now: Date): Promise<Job | null> {
+    // A crash on the final lease cannot be retried; repair processing projections atomically.
+    await this.db.pool.query(
+      `WITH exhausted AS (
+      UPDATE jobs SET status='failed',error_code='INTERRUPTED',lease_token=NULL,lease_expires_at=NULL
+      WHERE status='running' AND attempts>=3 AND lease_expires_at<$1 RETURNING kind,payload
+    ), textbooks AS (
+      UPDATE textbook_revisions r SET status='failed' FROM exhausted j
+      WHERE j.kind='textbook.parse' AND r.id::text=j.payload->>'revisionId' AND r.status='processing'
+    ), materials AS (
+      UPDATE materials m SET status='failed' FROM exhausted j
+      WHERE j.kind='material.parse' AND m.id::text=j.payload->>'materialId' AND m.status='processing'
+    ) SELECT count(*) FROM exhausted`,
+      [now],
+    );
     const token = randomUUID();
     const r = await this.db.pool.query(
       `WITH candidate AS (SELECT id FROM jobs WHERE attempts<3 AND ((status='queued' AND available_at<=$1) OR (status='running' AND lease_expires_at<$1)) ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE jobs j SET status='running',attempts=attempts+1,lease_token=$2,lease_expires_at=$1+interval '30 seconds' FROM candidate c WHERE j.id=c.id RETURNING j.id,j.kind,j.payload,j.attempts`,

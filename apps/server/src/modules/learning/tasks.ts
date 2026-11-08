@@ -138,6 +138,16 @@ export class TaskService {
       ).rows[0];
       if (task.status !== "active")
         throw new AppError("CONFLICT", 409, "请恢复任务后添加题目");
+      if (task.kind === "daily_practice") {
+        const count = (
+          await tx.query(
+            "SELECT count(*)::int AS n FROM task_items WHERE task_id=$1",
+            [taskId],
+          )
+        ).rows[0].n;
+        if (count >= 5)
+          throw new AppError("CONFLICT", 409, "本次每日5练已安排5题");
+      }
       const q = (
         await tx.query(
           "INSERT INTO questions(student_id,revision_id,source_type) VALUES($1,$2,'practice') RETURNING id",

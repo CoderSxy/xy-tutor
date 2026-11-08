@@ -3,6 +3,9 @@ import type { JobQueue, Job } from "./queue.js";
 export type JobHandler = (job: Job, signal: AbortSignal) => Promise<unknown>;
 export class JobRunner {
   private busy = false;
+  private stopping = false;
+  private drain?: Promise<void>;
+  private controller?: AbortController;
   private timer?: ReturnType<typeof setInterval>;
   private workerId = randomUUID();
   constructor(
@@ -11,13 +14,18 @@ export class JobRunner {
     private canStart: () => Promise<boolean> = async () => true,
   ) {}
   async tick(): Promise<void> {
-    if (this.busy) return;
+    if (this.busy || this.stopping) return;
     this.busy = true;
+    let drained!: () => void;
+    this.drain = new Promise<void>((resolve) => {
+      drained = resolve;
+    });
     try {
       if (!(await this.canStart())) return;
       const job = await this.queue.claim(this.workerId, new Date());
       if (!job) return;
       const controller = new AbortController();
+      this.controller = controller;
       const heartbeat = setInterval(() => {
         void this.queue
           .heartbeat(job.id, job.leaseToken)
@@ -43,6 +51,8 @@ export class JobRunner {
       }
     } finally {
       this.busy = false;
+      this.controller = undefined;
+      drained();
     }
   }
   start() {
@@ -51,7 +61,10 @@ export class JobRunner {
     }, 1000);
     this.timer.unref();
   }
-  stop() {
+  async stop() {
+    this.stopping = true;
     if (this.timer) clearInterval(this.timer);
+    this.controller?.abort();
+    await this.drain;
   }
 }

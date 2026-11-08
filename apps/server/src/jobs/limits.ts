@@ -15,7 +15,7 @@ export function canProcess(s: ResourceSnapshot): boolean {
   );
 }
 export async function resourcesAvailable(): Promise<boolean> {
-  const disk = await statfs(tmpdir());
+  const disk = await statfs(process.env.RESOURCE_DISK_PATH ?? tmpdir());
   let available = freemem();
   try {
     const [current, max] = await Promise.all([

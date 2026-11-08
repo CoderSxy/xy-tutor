@@ -1,0 +1,84 @@
+name: xy-tutor
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: xy_tutor
+      POSTGRES_DB: xy_tutor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    command: ["postgres", "-c", "shared_buffers=128MB", "-c", "work_mem=4MB", "-c", "max_connections=25", "-c", "maintenance_work_mem=32MB"]
+    volumes: ["pg_data:/var/lib/postgresql/data"]
+    networks: [private]
+    mem_limit: 512m
+    cpus: 0.75
+    logging: *logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xy_tutor -d xy_tutor"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  server:
+    image: ${SERVER_IMAGE:-xy-tutor-server:local}
+    restart: unless-stopped
+    init: true
+    env_file: ${APP_ENV_FILE:-../.env}
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3001
+      RESOURCE_DISK_PATH: /var/lib/xy-tutor
+      DATABASE_URL: ${DATABASE_URL:?Set internal PostgreSQL URL}
+      APP_ORIGIN: https://${APP_DOMAIN:?Set APP_DOMAIN}
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [private, egress]
+    mem_limit: 640m
+    cpus: 1.0
+    pids_limit: 100
+    stop_grace_period: 45s
+    read_only: true
+    volumes: ["resource_disk:/var/lib/xy-tutor:ro"]
+    tmpfs: ["/tmp:size=96m,mode=1777"]
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/api/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+  web:
+    image: ${WEB_IMAGE:-xy-tutor-web:local}
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes: ["caddy_data:/data", "caddy_config:/config"]
+    networks: [egress]
+    depends_on:
+      server: {condition: service_healthy}
+    mem_limit: 128m
+    cpus: 0.25
+    logging: *logging
+  ops:
+    image: ${OPS_IMAGE:-xy-tutor-ops:local}
+    profiles: [ops]
+    env_file: ${APP_ENV_FILE:-../.env}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set internal PostgreSQL URL}
+    networks: [private, egress]
+    volumes: ["backup_work:/work"]
+    mem_limit: 256m
+    logging: *logging
+
+volumes:
+  resource_disk:
+  backup_work:
+  pg_data:
+  caddy_data:
+  caddy_config:
+networks:
+  private: {internal: true}
+  egress:

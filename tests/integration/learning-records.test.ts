@@ -154,3 +154,20 @@ it("pauses an incomplete daily practice rather than completing it", async () =>
       ).status,
     ).toBe("paused");
   }));
+it("keeps daily practice at five items under concurrent proposals", async () =>
+  withTestDb(async (db) => {
+    const f = await catalogFixture(db);
+    const r = await f.publish("人教版", "并发练习");
+    const s = new TaskService(db, f.auth, f.catalog);
+    const task = await s.create(f.scope, {
+      revisionId: r.id,
+      kind: "daily_practice",
+    });
+    const results = await Promise.allSettled(
+      Array.from({ length: 6 }, (_, n) =>
+        s.addQuestion(f.scope, task.id, { stem: `${n}+1=?`, role: "original" }),
+      ),
+    );
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(5);
+    expect(await s.items(f.scope, task.id)).toHaveLength(5);
+  }));
