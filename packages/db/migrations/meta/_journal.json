@@ -22,6 +22,13 @@
       "when": 1794123652053,
       "tag": "0002_lovely_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794129250167,
+      "tag": "0003_fast_moira_mactaggert",
+      "breakpoints": true
     }
   ]
 }
