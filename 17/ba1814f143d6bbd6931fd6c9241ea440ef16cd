@@ -1,0 +1,21 @@
+docs/superpowers/plans/2026-11-08-xy-tutor-mvp.md
+  s_b208eb8dae8dfc::t_3e5cf0b2132f0d 1-342
+docs/superpowers/specs/2026-11-08-xy-tutor-mvp-design.md
+  s_b208eb8dae8dfc::t_f9fe6567149730 1-442
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "17ba1814f143d6bbd6931fd6c9241ea440ef16cd",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
