@@ -1,0 +1,241 @@
+packages/db/src/schema/entries.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-27
+packages/db/migrations/meta/0011_snapshot.json
+  s_b208eb8dae8dfc::t_63244c605960e4 1-4183
+apps/server/src/modules/uploads/routes.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-22
+tests/unit/config.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-17
+apps/server/src/infra/logging.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-14
+apps/server/src/modules/learning/attempts.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-15,17-99
+tests/helpers/files.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-35
+apps/server/src/agent/bootstrap.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-10,12-72
+apps/server/src/modules/learning/verifier.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-64,66-108
+apps/server/src/modules/uploads/service.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-37,39-145,147-152
+packages/db/src/migrations.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-9
+apps/server/src/jobs/runner.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-3,5-56
+apps/server/src/modules/materials/contracts.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-57
+packages/db/src/index.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1
+tests/integration/textbook-search.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-43
+apps/server/src/modules/conversations/routes.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-16
+tests/integration/jobs.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-77
+tests/unit/provider.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-93
+scripts/create-admin.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-20
+apps/server/src/infra/oss.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-37,39-73
+packages/db/src/schema/assessments.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-40
+apps/server/src/modules/auth/routes.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-118
+apps/server/src/jobs/parsers/pdf-child.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-51,53-65
+packages/db/src/schema/runs.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-81
+packages/db/src/schema/auth.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-64
+apps/server/src/jobs/limits.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-36
+tests/integration/health.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-12
+apps/server/src/modules/auth/policy.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-6
+apps/server/src/modules/catalog/citations.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-9
+apps/server/src/modules/catalog/contracts.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-41
+apps/server/src/modules/learning/summaries.ts
+  s_b208eb8dae8dfc::t_63244c605960e4 22,173
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-21,23-172
+apps/server/src/modules/learning/tasks.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-16,18-152
+packages/db/migrations/meta/_journal.json
+  s_b208eb8dae8dfc::t_63244c605960e4 81-87
+apps/server/src/modules/conversations/events.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-27,29-81
+tests/unit/verifier.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-52
+apps/server/src/modules/learning/mistake-routes.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-43
+apps/server/src/modules/materials/service.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-17,19-364
+packages/db/src/schema/materials.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-106
+apps/server/src/infra/clock.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-4
+tests/helpers/catalog.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-55
+apps/server/src/modules/conversations/sse.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-89
+apps/server/src/modules/conversations/messages.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-9,11-194
+apps/server/src/modules/learning/routes.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-58
+packages/db/src/schema/mistakes.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-86
+apps/server/src/modules/learning/review.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-10
+apps/server/src/agent/model-budget.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-8,10-60
+package.json
+  s_b208eb8dae8dfc::t_0f06a08090a9b2 30-32,34-35,39-40,45-51,57,62
+  s_b208eb8dae8dfc::t_35f3362445edee 66
+tests/integration/catalog.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-97
+apps/server/src/agent/provider.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-65,68-139
+packages/db/src/schema/questions.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-41
+apps/server/src/modules/catalog/routes.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-48
+tests/integration/runs.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-109
+apps/server/src/jobs/textbook-job.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-46
+apps/server/src/modules/learning/assessments.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-18,20-230
+apps/server/src/agent/prompts.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1,8-15
+apps/server/src/modules/materials/routes.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-49
+packages/db/src/schema/conversations.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-110
+tests/integration/assessments.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-129
+packages/contracts/src/domain.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 3-5
+apps/server/src/jobs/parsers/ocr.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-72
+tests/integration/uploads.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-126
+apps/server/src/modules/learning/mistakes.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-23,25-281
+apps/server/src/agent/capabilities.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-15
+tests/unit/parsers.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-50
+packages/contracts/src/api.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-17
+tests/helpers/database.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-35
+apps/server/src/modules/auth/service.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-29,31-342
+packages/db/src/migrate.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-10
+apps/server/src/jobs/material-job.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-115
+apps/server/src/modules/learning/state-rules.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-89
+packages/db/src/schema/learning.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-49
+apps/server/src/modules/learning/practice.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-50,52-212
+tests/integration/materials.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-154
+apps/server/src/agent/context.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-146
+apps/server/src/modules/conversations/contracts.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-11
+packages/db/src/schema/jobs.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-26
+apps/server/src/main.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-30
+tests/integration/learning-memory.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-80
+apps/server/src/app.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-86,88-96,98-244
+apps/server/src/modules/learning/corrections.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-27
+apps/server/src/modules/learning/contracts.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-34
+packages/db/src/client.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-30
+apps/server/src/modules/learning/knowledge.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-76
+tests/integration/learning-records.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-130
+packages/db/src/schema/catalog.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-115
+apps/server/src/modules/auth/contracts.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-26
+packages/db/src/schema/files.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-18
+tests/unit/resource-limits.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-36
+apps/server/src/agent/tutor.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-15,17-216
+apps/server/src/modules/auth/passwords.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-26
+apps/server/src/modules/conversations/runs.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-21,23-252
+scripts/smoke-oss.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-25
+tests/integration/mistakes.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-76
+tests/integration/tutor.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-165
+tests/integration/auth.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-131
+apps/server/src/jobs/parsers/pdf-process.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-118
+apps/server/src/infra/db.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-2
+apps/server/src/modules/uploads/contracts.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-22
+apps/server/src/agent/tools.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-186
+packages/db/src/schema/knowledge.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-84
+packages/contracts/src/agent.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-22
+tests/unit/state-rules.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-60
+apps/server/src/config.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1,3-10,12-39
+scripts/smoke-provider.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-22
+apps/server/src/modules/catalog/service.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-20,22-345
+apps/server/src/modules/catalog/search.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-26,28-76
+tests/integration/database.test.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-44
+packages/db/migrations/0011_messy_brother_voodoo.sql
+  s_b208eb8dae8dfc::t_63244c605960e4 1-50
+apps/server/src/jobs/queue.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-10,12-63
+apps/server/src/jobs/summary-job.ts
+  s_b208eb8dae8dfc::t_cfe37bde343d6f 1-10
+pnpm-lock.yaml
+  s_b208eb8dae8dfc::t_50f12dff15b854 26-34,38-43,53-58,71-91,102-104,117-119,125,129-131,140,143,146,815-820,963-1124,1255-1347,1354-1356,1363-1365,1369-1371,1375-1383,1401-1406,1466-1484,1549-1552,1564-1566,1607-1609,1614-1643,1648-1651,1685-1687,1707-1712,1833-1840,1878-1881,1920-1922,2034-2037,2064-2066,2079-2105,2112-2114,2154-2156,2165-2170,2174-2176,2189-2195,2208-2211,2243-2250,2345-2356,2360-2362,2367-2368,2370-2371,2373-2374,2376-2377,2379-2380,2382-2383,2385-2386,2388-2389,2391-2392,2394-2395,2397-2398,2400-2401,2403-2553,2623-2628,2738-2742,2749-2751,2788-2840,2851-2868,2935-2937,2979-2981,3006-3021,3055-3060,3104-3124,3137-3156,3164-3172,3257-3259,3316-3318,3804,3806,3898-3907,4010-4147,4236,4238-4244,4246-4247,4249-4250,4252-4253,4255-4337,4359-4363,4366,4368-4369,4371,4379,4386,4409,4413,4415,4438,4440,4444,4454-4461,4468,4541-4544,4554-4555,4594-4595,4598-4617,4620-4621,4644-4647,4660-4665,4698-4704,4802-4803,4815,4817,4847-4848,4868-4869,5012-5013,5044-5045,5056-5128,5133-5134,5178-5179,5184-5190,5193-5194,5203-5206,5219-5220,5255-5262,5336-5343,5348-5349,5352-5520,5523-5729,5816-5829,5936-5937,5942-5943,5983-6041,6056-6108,6168-6169,6219-6220,6246-6260,6288-6291,6312,6314-6315,6317-6318,6331-6368,6388-6402,6413-6428,6439,6442,6445,6456,6463-6464,6495-6496
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c6e6d5ddbff4a5533bb6f4cc1bd3cd9a31caa73c",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
