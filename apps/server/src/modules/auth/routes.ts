@@ -70,6 +70,9 @@ export async function registerAuth(
     const body = z.object({ userId: z.uuid() }).strict().parse(req.body);
     return s.issuePasswordReset(requireSession(req).actor, body);
   });
+  app.get("/api/students", async (req) =>
+    s.listStudents(requireSession(req).actor),
+  );
   app.get("/api/students/:id", async (req) =>
     s.getProfile(
       await s.requireStudentAccess(

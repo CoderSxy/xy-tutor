@@ -288,9 +288,7 @@ export class AuthService {
       );
     });
   }
-  async getProfile(
-    scope: StudentScope,
-  ): Promise<{
+  async getProfile(scope: StudentScope): Promise<{
     id: string;
     displayName: string;
     timezone: string;
@@ -337,6 +335,16 @@ export class AuthService {
       await this.c.pool.query(
         'SELECT u.id AS "userId",u.login,a.permission FROM student_access a JOIN users u ON u.id=a.user_id WHERE a.student_id=$1',
         [scope.studentId],
+      )
+    ).rows;
+  }
+  async listStudents(
+    actor: Actor,
+  ): Promise<{ id: string; displayName: string; permission: string }[]> {
+    return (
+      await this.c.pool.query(
+        'SELECT p.id,p.display_name AS "displayName",a.permission FROM student_profiles p JOIN student_access a ON a.student_id=p.id WHERE a.user_id=$1 ORDER BY p.created_at',
+        [actor.userId],
       )
     ).rows;
   }

@@ -1,2 +1,34 @@
-import {test,expect} from '@playwright/test';
-test('provides keyboard-operable shared components without horizontal overflow',async({page})=>{await page.goto('/ui-preview');await expect(page.getByRole('heading',{name:'今天，从哪里开始？'})).toBeVisible();const button=page.getByRole('button',{name:'开始每日5练'});await button.focus();await expect(button).toBeFocused();await button.press('Enter');await expect(page.getByText('正在准备练习')).toBeVisible();for(const width of [360,768,1440]){await page.setViewportSize({width,height:900});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth)).toBe(true);await page.evaluate(()=>{window.scrollTo(0,0);return new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve())));});expect(await page.locator('.app-shell').count()).toBe(1);await expect(page.locator('.katex').first()).toBeVisible();await page.screenshot({path:`.impeccable/review/ui-${width}.png`,fullPage:true});}});
+import { test, expect } from "@playwright/test";
+test("provides keyboard-operable shared components without horizontal overflow", async ({
+  page,
+}) => {
+  await page.goto("/ui-preview");
+  await expect(
+    page.getByRole("heading", { name: "今天，从哪里开始？" }),
+  ).toBeVisible();
+  const button = page.getByRole("button", { name: "开始每日5练" });
+  await button.focus();
+  await expect(button).toBeFocused();
+  await button.press("Enter");
+  await expect(page.getByText("正在准备练习")).toBeVisible();
+  for (const width of [360, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await page.evaluate(() => {
+      window.scrollTo(0, 0);
+      return new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      );
+    });
+    expect(await page.locator(".app-shell").count()).toBe(1);
+    await expect(page.locator(".katex").first()).toBeVisible();
+    await page.screenshot({
+      path: `.impeccable/review/ui-${width}.png`,
+      fullPage: true,
+    });
+  }
+});

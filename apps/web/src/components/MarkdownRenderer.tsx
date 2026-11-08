@@ -1,2 +1,25 @@
-import ReactMarkdown from 'react-markdown';import remarkGfm from 'remark-gfm';import remarkMath from 'remark-math';import rehypeKatex from 'rehype-katex';import 'katex/dist/katex.min.css';
-export default function MarkdownRenderer({children}:{children:string}){return <div className="markdown"><ReactMarkdown remarkPlugins={[remarkGfm,remarkMath]} rehypePlugins={[[rehypeKatex,{strict:'ignore',trust:false}]]} skipHtml components={{a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer">{children}</a>}}>{children}</ReactMarkdown></div>;}
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
+export default function MarkdownRenderer({ children }: { children: string }) {
+  return (
+    <div className="markdown">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkMath]}
+        rehypePlugins={[[rehypeKatex, { strict: "ignore", trust: false }]]}
+        skipHtml
+        components={{
+          a: ({ href, children }) => (
+            <a href={href} target="_blank" rel="noopener noreferrer">
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {children}
+      </ReactMarkdown>
+    </div>
+  );
+}

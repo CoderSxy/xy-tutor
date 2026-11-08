@@ -129,3 +129,4 @@ it("rejects cross-origin writes and rate limits repeated login failures", async 
       await app.close();
     }
   }));
+it('lists only students explicitly accessible to the current account',async()=>withTestDb(async db=>{const s=new AuthService(db);const admin=await s.createAdmin('admin',password);const invite=await s.invite(admin,{login:'student'});const student=await s.activate({token:invite.activationToken,password});expect(await s.listStudents(admin)).toEqual([]);expect(await s.listStudents({userId:student.userId,role:'student'})).toMatchObject([{id:student.studentId,permission:'owner'}]);}));
