@@ -71,6 +71,13 @@
       "when": 1794130702751,
       "tag": "0009_greedy_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794131052813,
+      "tag": "0010_premium_giant_girl",
+      "breakpoints": true
     }
   ]
 }
