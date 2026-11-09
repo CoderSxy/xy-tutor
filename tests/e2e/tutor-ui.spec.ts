@@ -11,6 +11,9 @@ test("requires textbook selection and keeps entry actions when model is unavaila
   await expect(
     page.getByRole("heading", { name: "选择你的教材" }),
   ).toBeVisible();
+  await page
+    .getByRole("button", { name: "选择年级和科目", exact: true })
+    .click();
   await page.getByLabel("教材版本").selectOption("人教版");
   await page.getByLabel("年级", { exact: true }).selectOption("五年级");
   await page.getByLabel("科目", { exact: true }).selectOption("数学");

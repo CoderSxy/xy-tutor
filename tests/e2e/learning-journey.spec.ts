@@ -25,13 +25,11 @@ test("real API and PostgreSQL: publish, tutor, correct, import and authorize", a
   await login(page, "e2e-admin");
   await page.getByRole("button", { name: "上传电子教材" }).click();
   await page.getByLabel("教材名称").fill("端到端数学教材");
-  await page
-    .getByLabel("选择上传文件")
-    .setInputFiles({
-      name: "textbook.pdf",
-      mimeType: "application/pdf",
-      buffer: await pdf(),
-    });
+  await page.getByLabel("选择上传文件").setInputFiles({
+    name: "textbook.pdf",
+    mimeType: "application/pdf",
+    buffer: await pdf(),
+  });
   await page.getByRole("button", { name: "确认上传", exact: true }).click();
   await expect(
     page.getByText("教材原文件已上传并封存，可以创建教材并解析。"),
@@ -46,6 +44,9 @@ test("real API and PostgreSQL: publish, tutor, correct, import and authorize", a
   const student = await context.newPage();
   await student.goto("http://localhost:5175/");
   await login(student, "e2e-student");
+  await student
+    .getByRole("button", { name: "选择年级和科目", exact: true })
+    .click();
   await student.getByLabel("教材版本").selectOption("人教版");
   await student.getByLabel("年级", { exact: true }).selectOption("五年级");
   await student.getByLabel("科目", { exact: true }).selectOption("数学");
@@ -104,13 +105,11 @@ test("real API and PostgreSQL: publish, tutor, correct, import and authorize", a
     student.getByText("本次学习已保存。", { exact: false }),
   ).toBeVisible();
   await student.goto("http://localhost:5175/materials");
-  await student
-    .getByLabel("选择上传文件")
-    .setInputFiles({
-      name: "paper.pdf",
-      mimeType: "application/pdf",
-      buffer: await pdf(),
-    });
+  await student.getByLabel("选择上传文件").setInputFiles({
+    name: "paper.pdf",
+    mimeType: "application/pdf",
+    buffer: await pdf(),
+  });
   await student.getByRole("button", { name: "确认上传", exact: true }).click();
   await expect(student.getByLabel("第1题题干")).toBeVisible({ timeout: 20000 });
   await student.getByLabel("第1题题干").fill("只填最终数值：1+1=?");

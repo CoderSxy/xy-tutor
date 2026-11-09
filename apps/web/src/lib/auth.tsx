@@ -1,12 +1,14 @@
+import type { SelectionDTO } from "../../../server/src/modules/learning/selections";
 import {
   createContext,
   useContext,
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from "react";
-import { api, ApiError, errorMessage } from "./api";
+import { api, ApiError, errorMessage, jsonBody } from "./api";
 import type {
   Session,
   StudentEntry,
@@ -29,7 +31,10 @@ type AuthState = {
   catalogLoading: boolean;
   catalogError: string;
   selected?: RevisionDTO;
-  selectRevision: (r: RevisionDTO) => void;
+  selectRevision: (r: RevisionDTO) => Promise<void>;
+  selectionHistory: SelectionDTO[];
+  historyLoading: boolean;
+  historyError: string;
   capabilities?: Capabilities;
   scoped: (path: string) => string;
 };
@@ -76,6 +81,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session ? "/api/catalog/textbooks" : null,
   );
   const caps = useRemote<Capabilities>(session ? "/api/capabilities" : null);
+  const scopeKey = `${session?.actor.userId ?? ""}:${studentId}`;
+  const activeScope = useRef(scopeKey);
+  const historyVersion = useRef(0);
+  activeScope.current = scopeKey;
+  const [history, setHistory] = useState<{
+    scope: string;
+    items: SelectionDTO[];
+    loading: boolean;
+    error: string;
+  }>({ scope: "", items: [], loading: false, error: "" });
+  useEffect(() => {
+    if (!session || !studentId || !catalog.data) return;
+    const controller = new AbortController();
+    const version = ++historyVersion.current;
+    const current = () =>
+      !controller.signal.aborted && version === historyVersion.current;
+    const path = `/api/learning/selections?studentId=${encodeURIComponent(studentId)}`;
+    setHistory({ scope: scopeKey, items: [], loading: true, error: "" });
+    void (async () => {
+      try {
+        let items = await api<SelectionDTO[]>(path, {
+          signal: controller.signal,
+        });
+        if (!current()) return;
+        const stored = localStorage.getItem(`xy.textbook.${studentId}`);
+        if (
+          !items.length &&
+          catalog.data?.some((r) => r.id === stored && r.status === "published")
+        ) {
+          items = await api<SelectionDTO[]>(path, {
+            method: "POST",
+            signal: controller.signal,
+            ...jsonBody({ revisionId: stored }),
+          });
+        }
+        if (current())
+          setHistory({ scope: scopeKey, items, loading: false, error: "" });
+      } catch (e) {
+        if (current())
+          setHistory({
+            scope: scopeKey,
+            items: [],
+            loading: false,
+            error: errorMessage(e),
+          });
+      }
+    })();
+    return () => controller.abort();
+  }, [session?.actor.userId, studentId, catalog.data]);
   const logout = async () => {
     await api("/api/auth/logout", { method: "POST" });
     setSession(null);
@@ -90,7 +144,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(`xy.student.${session.actor.userId}`, id);
     }
   };
-  const selectRevision = (r: RevisionDTO) => {
+  const selectRevision = async (r: RevisionDTO) => {
+    historyVersion.current++;
+    setHistory((old) =>
+      old.scope === scopeKey
+        ? { ...old, loading: false, error: "" }
+        : { scope: scopeKey, items: [], loading: false, error: "" },
+    );
+    const items = await api<SelectionDTO[]>(
+      `/api/learning/selections?studentId=${encodeURIComponent(studentId)}`,
+      { method: "POST", ...jsonBody({ revisionId: r.id }) },
+    );
+    if (activeScope.current !== scopeKey)
+      throw Error("学生档案已切换，请重新选择");
+    setHistory({ scope: scopeKey, items, loading: false, error: "" });
     setSelectedId(r.id);
     localStorage.setItem(`xy.textbook.${studentId}`, r.id);
   };
@@ -119,6 +186,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         catalogError: catalog.error,
         selected: catalog.data?.find((r) => r.id === selectedId),
         selectRevision,
+        selectionHistory: history.scope === scopeKey ? history.items : [],
+        historyLoading:
+          !!studentId && (history.scope !== scopeKey || history.loading),
+        historyError: history.scope === scopeKey ? history.error : "",
         capabilities: caps.data,
         scoped,
       }}

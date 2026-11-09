@@ -9,6 +9,9 @@ for (const width of [360, 390, 768, 1024, 1280, 1440])
     await page.getByLabel("账号", { exact: true }).fill("student");
     await page.getByLabel("密码", { exact: true }).fill("long-password");
     await page.getByRole("button", { name: "登录", exact: true }).click();
+    await page
+      .getByRole("button", { name: "选择年级和科目", exact: true })
+      .click();
     await page.getByLabel("教材版本").selectOption("人教版");
     await page.getByLabel("年级", { exact: true }).selectOption("五年级");
     await page.getByLabel("科目", { exact: true }).selectOption("数学");

@@ -9,6 +9,7 @@ export async function mockLearningApi(
 ) {
   let signedIn = false;
   let tasks: unknown[] = [];
+  let selections: unknown[] = [];
   await page.route("**/api/**", async (route) => {
     const request = route.request(),
       url = new URL(request.url());
@@ -52,7 +53,24 @@ export async function mockLearningApi(
           revisionNo: 1,
         },
       ];
-    else if (path === "/api/tasks" && request.method() === "POST") {
+    else if (path === "/api/learning/selections") {
+      if (request.method() === "POST")
+        selections = [
+          {
+            revisionId,
+            grade: "五年级",
+            subject: "数学",
+            edition: "人教版",
+            term: "下册",
+            title: "五年级数学",
+            publicationYear: 2024,
+            revisionNo: 1,
+            status: "published",
+            selectedAt: new Date().toISOString(),
+          },
+        ];
+      body = selections;
+    } else if (path === "/api/tasks" && request.method() === "POST") {
       body = {
         id: taskId,
         studentId,
