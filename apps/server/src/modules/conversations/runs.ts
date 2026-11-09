@@ -138,6 +138,14 @@ export class RunService {
           valid.id,
         ]);
       }
+      if (v.mode === "reply" && c.task_id)
+        await tx.query(
+          "UPDATE learning_tasks SET title=COALESCE(title,$1),updated_at=now() WHERE id=$2",
+          [
+            [...v.message.replace(/\s+/g, " ").trim()].slice(0, 40).join(""),
+            c.task_id,
+          ],
+        );
       const r = (
         await tx.query(
           "INSERT INTO agent_runs(student_id,actor_id,conversation_id,request_key,input_text,input_version_id,mode,question_version_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",

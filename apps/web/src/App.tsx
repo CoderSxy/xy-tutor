@@ -26,11 +26,6 @@ function Layout() {
     <AppShell
       mode={a.session.actor.role}
       name={a.profile?.displayName ?? "管理员"}
-      context={
-        a.selected
-          ? `${a.selected.edition} · ${a.selected.grade} · ${a.selected.subject} · ${a.selected.term}`
-          : undefined
-      }
       onLogout={() => void a.logout()}
     >
       <Outlet />

@@ -20,9 +20,23 @@ export function registerLearning(
   deps: { auth: AuthService; tasks: TaskService; attempts: AttemptService },
 ) {
   const id = z.object({ id: z.uuid() });
-  app.get("/api/tasks", async (req) =>
-    deps.tasks.list(await scopeForRequest(deps.auth, req)),
-  );
+  app.get("/api/tasks", async (req) => {
+    const query = z
+      .object({
+        revisionId: z.uuid().optional(),
+        q: z.string().trim().max(80).optional(),
+        limit: z.coerce.number().int().min(1).max(50).default(20),
+        offset: z.coerce.number().int().min(0).default(0),
+      })
+      .passthrough()
+      .parse(req.query);
+    return deps.tasks.list(await scopeForRequest(deps.auth, req), {
+      revisionId: query.revisionId,
+      q: query.q || undefined,
+      limit: query.limit,
+      offset: query.offset,
+    });
+  });
   app.post("/api/tasks", async (req) =>
     deps.tasks.create(await scopeForRequest(deps.auth, req), req.body),
   );
@@ -44,6 +58,20 @@ export function registerLearning(
       taskId: id.parse(req.params).id,
     }),
   );
+  app.patch("/api/tasks/:id/title", async (req) =>
+    deps.tasks.rename(
+      await scopeForRequest(deps.auth, req),
+      id.parse(req.params).id,
+      req.body,
+    ),
+  );
+  app.delete("/api/tasks/:id", async (req) => {
+    await deps.tasks.remove(
+      await scopeForRequest(deps.auth, req),
+      id.parse(req.params).id,
+    );
+    return { ok: true };
+  });
   app.post("/api/tasks/:id/skip", async (req) => {
     await deps.tasks.skip(
       await scopeForRequest(deps.auth, req),

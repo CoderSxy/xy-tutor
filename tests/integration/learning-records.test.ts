@@ -171,3 +171,23 @@ it("keeps daily practice at five items under concurrent proposals", async () =>
     expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(5);
     expect(await s.items(f.scope, task.id)).toHaveLength(5);
   }));
+it("changes the paging version after rename and deletion", async () =>
+  withTestDb(async (db) => {
+    const f = await catalogFixture(db);
+    const r = await f.publish("人教版", "分页");
+    const s = new TaskService(db, f.auth, f.catalog);
+    const task = await s.create(f.scope, {
+      revisionId: r.id,
+      kind: "free_question",
+    });
+    const opts = { limit: 10, offset: 0 };
+    const before = await s.list(f.scope, opts);
+    expect(before.pageVersion).toBeTruthy();
+    await s.rename(f.scope, task.id, { title: "新标题" });
+    const renamed = await s.list(f.scope, opts);
+    expect(renamed.pageVersion).not.toBe(before.pageVersion);
+    await s.remove(f.scope, task.id);
+    const removed = await s.list(f.scope, opts);
+    expect(removed.pageVersion).not.toBe(renamed.pageVersion);
+    expect(removed.items).toEqual([]);
+  }));

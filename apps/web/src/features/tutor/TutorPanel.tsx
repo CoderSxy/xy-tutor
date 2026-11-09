@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, ArrowDown } from "lucide-react";
+import { BookOpen, ArrowDown, Check } from "lucide-react";
 import { Markdown } from "../../components/Markdown";
 import { Button } from "../../components/ui/button";
 import type { MessageHistory } from "../../lib/types";
+const busyStates = ["queued", "running", "reconnecting"];
 export function TutorPanel({
   messages,
   stream,
@@ -13,13 +14,28 @@ export function TutorPanel({
   status: string;
 }) {
   const container = useRef<HTMLDivElement>(null),
-    follow = useRef(true);
-  const [newContent, setNewContent] = useState(false);
+    follow = useRef(true),
+    wasBusy = useRef(false);
+  const [newContent, setNewContent] = useState(false),
+    [finishedAt, setFinishedAt] = useState("");
+  const busy = busyStates.includes(status);
+  useEffect(() => {
+    if (wasBusy.current && !busy && status === "idle")
+      setFinishedAt(
+        new Date().toLocaleTimeString("zh-CN", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        }),
+      );
+    if (busy) setFinishedAt("");
+    wasBusy.current = busy;
+  }, [busy, status]);
   useEffect(() => {
     if (follow.current && container.current)
       container.current.scrollTop = container.current.scrollHeight;
     else setNewContent(true);
-  }, [messages, stream]);
+  }, [messages, stream, status]);
   const bottom = () => {
     follow.current = true;
     setNewContent(false);
@@ -56,27 +72,57 @@ export function TutorPanel({
           .filter((m) => m.role !== "system")
           .map((m) => (
             <article className={`message message-${m.role}`} key={m.id}>
-              <div className="message-author">
-                {m.role === "assistant" ? "学习老师" : "你"}
-                {m.versionNo > 1 && <span> · 已编辑</span>}
-              </div>
+              {m.role === "assistant" && (
+                <div className="message-author">
+                  学习老师
+                  {m.versionNo > 1 && <span> · 已编辑</span>}
+                </div>
+              )}
               <Markdown>{m.content}</Markdown>
             </article>
           ))}
         {stream && (
-          <article className="message message-assistant">
-            <div className="message-author">学习老师 · 正在回答</div>
+          <article className="message message-assistant is-streaming">
+            <div className="message-author">
+              学习老师 · 正在回答
+              <span className="stream-dots" aria-hidden>
+                <i />
+                <i />
+                <i />
+              </span>
+            </div>
             <Markdown>{stream}</Markdown>
           </article>
         )}
         {status === "queued" && (
-          <p className="muted" role="status">
+          <p className="tutor-status" role="status">
+            <span className="stream-dots" aria-hidden>
+              <i />
+              <i />
+              <i />
+            </span>
             正在排队准备回答…
           </p>
         )}
+        {status === "running" && !stream && (
+          <p className="tutor-status" role="status">
+            <span className="stream-dots" aria-hidden>
+              <i />
+              <i />
+              <i />
+            </span>
+            学习老师正在思考…
+          </p>
+        )}
         {status === "reconnecting" && (
-          <p className="muted" role="status">
+          <p className="tutor-status" role="status">
             连接恢复中，已提交内容会保留…
+          </p>
+        )}
+        {finishedAt && !busy && (
+          <p className="tutor-status is-done" role="status">
+            <Check size={14} />
+            回答已完成 · {finishedAt}
           </p>
         )}
       </div>

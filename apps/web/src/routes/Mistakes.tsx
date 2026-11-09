@@ -6,7 +6,6 @@ import { api, jsonBody, errorMessage } from "../lib/api";
 import type { MistakeDTO, TaskDTO } from "../lib/types";
 import { stateLabels } from "../lib/types";
 import { Button } from "../components/ui/button";
-import { Select } from "../components/ui/field";
 import { StatusPanel } from "../components/StatusPanel";
 import { Markdown } from "../components/Markdown";
 export function Mistakes() {
@@ -43,6 +42,10 @@ export function Mistakes() {
     }
   };
   const rows = list.data?.filter((m) => !state || m.status === state);
+  const stateOptions: [string, string][] = [
+    ["", "全部状态"],
+    ...Object.entries(stateLabels),
+  ];
   return (
     <>
       <div className="page-heading">
@@ -58,17 +61,21 @@ export function Mistakes() {
           />
           包含已掌握归档
         </label>
-        <label className="filter-select">
-          学习状态
-          <Select value={state} onChange={(e) => setState(e.target.value)}>
-            <option value="">全部状态</option>
-            {Object.entries(stateLabels).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </label>
+        <div className="filter-radios" role="group" aria-label="学习状态">
+          <span className="filter-label">学习状态</span>
+          {stateOptions.map(([value, label]) => (
+            <label className="radio-option" key={value || "all"}>
+              <input
+                type="radio"
+                name="mistake-state"
+                value={value}
+                checked={state === value}
+                onChange={() => setState(value)}
+              />
+              {label}
+            </label>
+          ))}
+        </div>
       </div>
       {error && (
         <p role="alert" className="error-text">

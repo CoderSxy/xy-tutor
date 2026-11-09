@@ -1,103 +1,119 @@
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  ArrowRight,
-  NotebookPen,
-  Files,
-  Target,
-  MessageCircle,
-  Play,
-} from "lucide-react";
+import { MessageCircle, NotebookPen, Sparkles, Target } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { api, jsonBody, errorMessage } from "../lib/api";
-import { useRemote } from "../lib/useRemote";
 import type { TaskDTO, TaskKind } from "../lib/types";
-import { kindLabels } from "../lib/types";
 import { Button } from "../components/ui/button";
-import { StatusPanel } from "../components/StatusPanel";
-import { NextActions } from "../components/NextActions";
+import { SessionRail } from "../components/SessionRail";
+import { sessionStarter } from "../lib/sessionStart";
+import { Composer } from "../features/tutor/Composer";
+
+const quickStarts: {
+  kind: TaskKind;
+  label: string;
+  description: string;
+  icon: typeof Target;
+}[] = [
+  {
+    kind: "daily_practice",
+    label: "每日5练",
+    description: "按当前教材练5题",
+    icon: Sparkles,
+  },
+  {
+    kind: "knowledge_consolidation",
+    label: "知识点巩固",
+    description: "先诊断，再针对性练习",
+    icon: Target,
+  },
+  {
+    kind: "mistake_review",
+    label: "错题回顾",
+    description: "从待订正的错题开始",
+    icon: NotebookPen,
+  },
+  {
+    kind: "free_question",
+    label: "自由提问",
+    description: "把没想明白的直接问出来",
+    icon: MessageCircle,
+  },
+];
+
 export function Home() {
   const a = useAuth(),
     navigate = useNavigate();
-  const tasks = useRemote<TaskDTO[]>(
-    a.studentId ? a.scoped("/api/tasks") : null,
-  );
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [greeting, setGreeting] = useState(""),
-    [openingRun, setOpeningRun] = useState<string>();
-  useEffect(() => {
-    if (!a.selected || !a.studentId) return;
-    const keyName = `xy.entry.${a.studentId}.${a.selected.id}`;
-    let entryKey = sessionStorage.getItem(keyName);
-    if (!entryKey) {
-      entryKey = crypto.randomUUID();
-      sessionStorage.setItem(keyName, entryKey);
-    }
-    let alive = true;
-    void api<{ fallback: string; runId?: string }>(
-      a.scoped("/api/learning/bootstrap"),
-      { method: "POST", ...jsonBody({ revisionId: a.selected.id, entryKey }) },
-    )
-      .then((r) => {
-        if (alive) {
-          setGreeting(r.fallback);
-          setOpeningRun(r.runId);
-        }
-      })
-      .catch(() => {
-        if (alive) setGreeting("今天想从哪里开始？");
-      });
-    return () => {
-      alive = false;
-    };
-  }, [a.selected?.id, a.studentId]);
-  useEffect(() => {
-    if (!openingRun) return;
-    const events = new EventSource(a.scoped(`/api/runs/${openingRun}/events`));
-    let text = "";
-    const delta = (e: MessageEvent) => {
-      const v = JSON.parse(e.data);
-      text += v.data.text;
-      setGreeting(text);
-    };
-    events.addEventListener("text_delta", delta);
-    events.addEventListener("message_completed", (e) => {
-      const v = JSON.parse((e as MessageEvent).data);
-      setGreeting(v.data.content);
-    });
-    events.addEventListener("done", () => events.close());
-    events.addEventListener("failed", () => events.close());
-    return () => events.close();
-  }, [openingRun, a.studentId]);
-  const latest = tasks.data?.find(
-    (t) => t.status === "active" || t.status === "paused",
-  );
-  const start = async (id: string) => {
-    if (id === "material_tutoring") {
-      navigate("/materials");
+    [draft, setDraft] = useState("");
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const firstMessage = useRef<ReturnType<typeof sessionStarter> | null>(null);
+  if (!firstMessage.current)
+    firstMessage.current = sessionStarter(
+      async (scope) => {
+        const [studentId, revisionId] = scope.split(":");
+        return api<TaskDTO>(
+          `/api/tasks?studentId=${encodeURIComponent(studentId!)}`,
+          {
+            method: "POST",
+            ...jsonBody({ revisionId, kind: "free_question" }),
+          },
+        );
+      },
+      (conversationId, message, requestKey, scope) =>
+        api(
+          `/api/conversations/${conversationId}/runs?studentId=${encodeURIComponent(scope.split(":")[0]!)}`,
+          {
+            method: "POST",
+            ...jsonBody({ message, requestKey }),
+          },
+        ),
+    );
+  const createSession = async (kind: TaskKind, message?: string) => {
+    if (!a.selected) return;
+    if (message) {
+      const id = await firstMessage.current!(
+        `${a.studentId}:${a.selected.id}`,
+        message,
+      );
+      navigate(`/study/${id}`);
       return;
     }
-    if (id === "mistake_review") {
+    const t = await api<TaskDTO>(a.scoped("/api/tasks"), {
+      method: "POST",
+      ...jsonBody({ revisionId: a.selected.id, kind }),
+    });
+    navigate(`/study/${t.id}`);
+  };
+  const quickStart = async (kind: TaskKind) => {
+    if (kind === "mistake_review") {
       navigate("/mistakes");
       return;
     }
-    if (id === "resume") {
-      if (latest) navigate(`/study/${latest.id}`);
-      else navigate("/history");
-      return;
-    }
-    if (!a.selected) return;
     setBusy(true);
     setError("");
     try {
-      const t = await api<TaskDTO>(a.scoped("/api/tasks"), {
-        method: "POST",
-        ...jsonBody({ revisionId: a.selected.id, kind: id as TaskKind }),
-      });
-      navigate(`/study/${t.id}`);
+      await createSession(kind);
     } catch (e) {
       setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const prepareFreeQuestion = () => {
+    setDraft("我想自由提问：");
+    requestAnimationFrame(() => composerRef.current?.focus());
+  };
+  const sendFreeQuestion = async (text: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      await createSession("free_question", text);
+      return true;
+    } catch (e) {
+      setError(errorMessage(e));
+      return false;
     } finally {
       setBusy(false);
     }
@@ -116,12 +132,8 @@ export function Home() {
     );
   return (
     <>
-      <div className="page-heading">
-        <h1>今天，从哪里开始？</h1>
-        <p>{greeting || "选一个小目标，一步一步学明白。"}</p>
-      </div>
       {error && (
-        <p role="alert" className="error-text">
+        <p role="alert" className="notice error-text">
           {error}
         </p>
       )}
@@ -133,106 +145,55 @@ export function Home() {
           </span>
         </div>
       )}
-      <div className="welcome-layout">
-        <section>
-          <div className="start-panel">
-            <h2>每天一点，学得更扎实。</h2>
-            <p>按照当前教材逐题练习，通过提问和反馈，把不确定的地方弄明白。</p>
-            <Button
-              disabled={busy}
-              onClick={() => void start("daily_practice")}
-            >
-              开始每日5练
-              <ArrowRight size={18} />
-            </Button>
+      <div className="home-layout">
+        <SessionRail />
+        <section className="chat-landing">
+          <div className="chat-landing-body">
+            <div className="chat-hero">
+              <span className="chat-eyebrow">
+                <Sparkles size={15} />
+                今天，从哪里开始？
+              </span>
+              <h1 className="chat-title">选一个方向，或者直接说出来。</h1>
+              <p className="chat-lede">
+                左边可以接着之前的学习；也可以在下面开始新的练习、巩固，或者把没想明白的直接问出来。
+              </p>
+            </div>
           </div>
-          <div className="study-ways">
-            <h2>换一种方式学</h2>
-            <div className="action-list">
-              {[
-                {
-                  id: "knowledge_consolidation",
-                  label: "知识点巩固",
-                  description: "聚焦一个知识点，先诊断，再练习。",
-                  icon: Target,
-                },
-                {
-                  id: "mistake_review",
-                  label: "错题回顾",
-                  description: "从待订正、待巩固和到期复习的题开始。",
-                  icon: NotebookPen,
-                },
-                {
-                  id: "material_tutoring",
-                  label: "上传题目 / 试卷",
-                  description: "把照片或文件变成可以一起讨论的题目。",
-                  icon: Files,
-                },
-                {
-                  id: "free_question",
-                  label: "自由提问",
-                  description: "有哪里没想明白，直接问一问。",
-                  icon: MessageCircle,
-                },
-              ].map(({ id, label, description, icon: Icon }) => (
+          <div className="composer-dock">
+            <div className="quick-chips" aria-label="快捷开始">
+              {quickStarts.map(({ kind, label, description, icon: Icon }) => (
                 <button
-                  key={id}
-                  className="action-row"
+                  key={kind}
+                  type="button"
+                  className="quick-chip"
                   disabled={busy}
-                  onClick={() => void start(id)}
+                  title={description}
+                  onClick={() => {
+                    if (kind === "free_question") prepareFreeQuestion();
+                    else void quickStart(kind);
+                  }}
                 >
-                  <Icon className="action-icon" size={22} />
-                  <span>
-                    <strong>{label}</strong>
-                    <small>{description}</small>
-                  </span>
-                  <ArrowRight size={18} />
+                  <Icon size={16} />
+                  {label}
                 </button>
               ))}
             </div>
+            <Composer
+              busy={false}
+              hasQuestion={false}
+              value={draft}
+              onValueChange={setDraft}
+              inputRef={composerRef}
+              placeholder="想学什么、哪里没懂，直接说…"
+              onSubmit={sendFreeQuestion}
+              onCancel={async () => {}}
+            />
+            <p className="composer-note">
+              发送后会开启一个新的自由提问会话，左边随时可以找回。
+            </p>
           </div>
         </section>
-        <aside className="panel">
-          <h2>接着上次学</h2>
-          {tasks.loading ? (
-            <StatusPanel state="loading" title="正在读取进度" />
-          ) : latest ? (
-            <>
-              <span className="badge">{kindLabels[latest.kind]}</span>
-              <p className="muted" style={{ marginTop: 16 }}>
-                上次的题目与对话已保存，可以接着往下学。
-              </p>
-              <Button onClick={() => void start("resume")}>
-                <Play size={18} />
-                继续上次学习
-              </Button>
-            </>
-          ) : (
-            <StatusPanel title="从第一个小目标开始">
-              完成一次学习后，这里会保留你的任务进度。
-            </StatusPanel>
-          )}
-          <div className="section-spacer">
-            <h3>你的教材</h3>
-            <p className="muted">
-              {a.selected?.title}
-              <br />
-              {a.selected?.edition} · {a.selected?.term}
-            </p>
-            <Button asChild variant="ghost">
-              <Link to="/select">
-                更换教材
-                <ArrowRight size={16} />
-              </Link>
-            </Button>
-          </div>
-        </aside>
-      </div>
-      <div className="mobile-next">
-        <NextActions
-          actions={[{ id: "resume", label: "继续上次学习" }]}
-          onSelect={(id) => void start(id)}
-        />
       </div>
     </>
   );

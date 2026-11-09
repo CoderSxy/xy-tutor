@@ -12,7 +12,9 @@ import {
   taskInput,
   questionInput,
   taskSelect,
+  taskTitleInput,
   type TaskDTO,
+  type TaskPage,
 } from "./contracts.js";
 export class TaskService {
   constructor(
@@ -56,22 +58,61 @@ export class TaskService {
     z.uuid().parse(id);
     const task = (
       await this.db.pool.query<TaskDTO>(
-        taskSelect + " WHERE t.id=$1 AND t.student_id=$2",
+        taskSelect +
+          " WHERE t.id=$1 AND t.student_id=$2 AND t.deleted_at IS NULL",
         [id, scope.studentId],
       )
     ).rows[0];
     if (!task) throw new AppError("NOT_FOUND", 404, "任务不存在");
     return task;
   }
-  async list(scope: StudentScope): Promise<TaskDTO[]> {
+  async list(
+    scope: StudentScope,
+    opts: { revisionId?: string; q?: string; limit: number; offset: number },
+  ): Promise<TaskPage> {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);
-    return (
-      await this.db.pool.query<TaskDTO>(
-        taskSelect +
-          " WHERE t.student_id=$1 ORDER BY t.updated_at DESC LIMIT 100",
-        [scope.studentId],
-      )
-    ).rows;
+    const pattern = opts.q ? `%${opts.q.replace(/[\\%_]/g, "\\$&")}%` : null;
+    const where = `WHERE t.student_id=$1 AND t.deleted_at IS NULL AND ($2::uuid IS NULL OR t.revision_id=$2) AND ($3::text IS NULL OR (t.title ILIKE $3 OR EXISTS (SELECT 1 FROM message_versions mv JOIN messages m ON m.id=mv.message_id JOIN conversations c ON c.id=m.conversation_id WHERE c.task_id=t.id AND mv.content ILIKE $3)))`;
+    const params = [scope.studentId, opts.revisionId ?? null, pattern];
+    return inTransaction(this.db, async (tx) => {
+      await tx.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
+      const [list, count] = await Promise.all([
+        tx.query<TaskDTO>(
+          taskSelect +
+            ` ${where} ORDER BY t.updated_at DESC,t.id DESC LIMIT $4 OFFSET $5`,
+          [...params, opts.limit, opts.offset],
+        ),
+        tx.query<{ total: number; pageVersion: string }>(
+          `SELECT count(*)::int AS total, md5(COALESCE(string_agg(t.id::text || t.updated_at::text || t.version::text || COALESCE(t.title,''), ',' ORDER BY t.id),'')) AS "pageVersion" FROM learning_tasks t ${where}`,
+          params,
+        ),
+      ]);
+      return {
+        items: list.rows,
+        total: count.rows[0]?.total ?? 0,
+        pageVersion: count.rows[0]!.pageVersion,
+      };
+    });
+  }
+  async rename(
+    scope: StudentScope,
+    taskId: string,
+    input: unknown,
+  ): Promise<TaskDTO> {
+    const v = taskTitleInput.parse(input);
+    await this.resume(scope, taskId);
+    await this.db.pool.query(
+      "UPDATE learning_tasks SET title=$1 WHERE id=$2 AND student_id=$3 AND deleted_at IS NULL",
+      [v.title, taskId, scope.studentId],
+    );
+    return this.resume(scope, taskId);
+  }
+  async remove(scope: StudentScope, taskId: string): Promise<void> {
+    await this.resume(scope, taskId);
+    await this.db.pool.query(
+      "UPDATE learning_tasks SET deleted_at=now(),version=version+1 WHERE id=$1 AND student_id=$2 AND deleted_at IS NULL",
+      [taskId, scope.studentId],
+    );
   }
   async transition(scope: StudentScope, input: unknown): Promise<TaskDTO> {
     const v = z

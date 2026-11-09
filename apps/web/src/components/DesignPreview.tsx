@@ -7,7 +7,7 @@ import { QuestionCard } from "./QuestionCard";
 export function DesignPreview() {
   const [working, setWorking] = useState(false);
   return (
-    <AppShell context="人教版 · 五年级 · 数学 · 下册">
+    <AppShell>
       <p className="preview-note">组件预览（非学习记录）</p>
       <div className="page-heading">
         <h1>今天，从哪里开始？</h1>

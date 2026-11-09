@@ -8,7 +8,6 @@ import {
   History,
   Settings,
   Menu,
-  ChevronDown,
   ShieldCheck,
   LogOut,
 } from "lucide-react";
@@ -24,13 +23,11 @@ export function AppShell({
   children,
   mode = "student",
   name = "同学",
-  context,
   onLogout,
 }: {
   children: ReactNode;
   mode?: "student" | "admin";
   name?: string;
-  context?: string;
   onLogout?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -99,7 +96,7 @@ export function AppShell({
         />
       )}
       <div className="workspace">
-        <header className="topbar">
+        <header className="mobile-bar">
           <Button
             className="menu-button"
             variant="ghost"
@@ -109,11 +106,7 @@ export function AppShell({
           >
             <Menu size={22} />
           </Button>
-          <span className="topbar-label">学习空间</span>
-          <Link className="context-link" to="/select">
-            {context ?? "选择教材版本、年级和科目"}
-            <ChevronDown size={16} aria-hidden />
-          </Link>
+          <span className="mobile-bar-title">XY Tutor</span>
         </header>
         <main id="main-content" className="page-content">
           {children}

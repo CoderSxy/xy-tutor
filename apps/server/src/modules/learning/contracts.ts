@@ -18,12 +18,19 @@ export type TaskDTO = {
   studentId: string;
   revisionId: string;
   kind: TaskKind;
+  title: string | null;
   status: "active" | "paused" | "completed" | "abandoned";
   version: number;
   conversationId: string;
   chapterId: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
-export const taskSelect = `SELECT t.id,t.student_id AS "studentId",t.revision_id AS "revisionId",t.kind,t.status,t.version,t.chapter_id AS "chapterId",(SELECT id FROM conversations WHERE task_id=t.id ORDER BY created_at DESC LIMIT 1) AS "conversationId" FROM learning_tasks t`;
+export type TaskPage = { items: TaskDTO[]; total: number; pageVersion: string };
+export const taskSelect = `SELECT t.id,t.student_id AS "studentId",t.revision_id AS "revisionId",t.kind,t.title,t.status,t.version,t.chapter_id AS "chapterId",t.created_at AS "createdAt",t.updated_at AS "updatedAt",(SELECT id FROM conversations WHERE task_id=t.id ORDER BY created_at DESC LIMIT 1) AS "conversationId" FROM learning_tasks t`;
+export const taskTitleInput = z
+  .object({ title: z.string().trim().min(1).max(80) })
+  .strict();
 export const questionInput = z
   .object({
     stem: z.string().trim().min(1).max(20000),

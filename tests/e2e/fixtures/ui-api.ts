@@ -81,7 +81,8 @@ export async function mockLearningApi(
         conversationId,
       };
       tasks = [body];
-    } else if (path === "/api/tasks") body = tasks;
+    } else if (path === "/api/tasks")
+      body = { items: tasks, total: tasks.length };
     else if (path === `/api/tasks/${taskId}`) body = tasks[0];
     else if (path === `/api/tasks/${taskId}/items`) body = [];
     else if (path === "/api/learning/bootstrap")

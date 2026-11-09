@@ -18,9 +18,11 @@ export const learningTasks = pgTable("learning_tasks", {
     .notNull()
     .references(() => revisions.id),
   kind: text().notNull(),
+  title: text(),
   status: text().notNull().default("active"),
   version: integer().notNull().default(1),
   chapterId: uuid("chapter_id"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
