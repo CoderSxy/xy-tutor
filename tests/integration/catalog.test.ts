@@ -124,3 +124,94 @@ it("allows review of textbook pages beyond the student paper page limit", async 
       "人工核对末页",
     );
   }));
+it("automatically excludes successful empty pages without hiding OCR failures", async () =>
+  withTestDb(async (db) => {
+    const { admin, file, catalog } = await fixture(db);
+    const r = await catalog.createDraft(admin, {
+      title: "自动排除",
+      edition: "人教版",
+      grade: "高一",
+      subject: "数学",
+      term: "下册",
+      publicationYear: 2024,
+      fileId: file.fileId,
+    });
+    await catalog.startProcessing(admin, r.id);
+    for (const [pdfPageIndex, text, status] of [
+      [0, "有效教材文字", "ready"],
+      [1, " \n\t　", "ready"],
+      [2, "", "needs_ocr"],
+    ] as const)
+      await catalog.saveParsedPage(r.id, { pdfPageIndex, text, status });
+    await catalog.finishProcessing(r.id);
+    const pages = await catalog.getPages(admin, r.id);
+    expect(pages[1]?.excluded).toBe(true);
+    expect(pages[2]?.excluded).toBe(false);
+    await expect(catalog.publish(admin, r.id)).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+    await catalog.reviewPage(admin, {
+      revisionId: r.id,
+      pageIndex: 2,
+      excluded: true,
+    });
+    await catalog.publish(admin, r.id);
+    expect((await catalog.getRevision(admin, r.id)).status).toBe("published");
+    expect(
+      (
+        await db.pool.query(
+          "SELECT count(*)::int AS n FROM audit_events WHERE action='textbook.auto_exclude_empty'",
+        )
+      ).rows[0].n,
+    ).toBe(1);
+  }));
+it("handles existing review drafts automatically at publication and keeps empty books unpublished", async () =>
+  withTestDb(async (db) => {
+    const { admin, file, catalog } = await fixture(db);
+    const r = await catalog.createDraft(admin, {
+      title: "旧草稿",
+      edition: "人教版",
+      grade: "高一",
+      subject: "数学",
+      term: "下册",
+      publicationYear: 2024,
+      fileId: file.fileId,
+    });
+    await catalog.startProcessing(admin, r.id);
+    await catalog.saveParsedPage(r.id, {
+      pdfPageIndex: 0,
+      text: "教学正文",
+      status: "ready",
+    });
+    await catalog.saveParsedPage(r.id, {
+      pdfPageIndex: 1,
+      text: "",
+      status: "ready",
+    });
+    await catalog.finishProcessing(r.id);
+    await db.pool.query(
+      "UPDATE textbook_pages SET excluded=false WHERE revision_id=$1",
+      [r.id],
+    );
+    await catalog.publish(admin, r.id);
+    expect((await catalog.getPages(admin, r.id))[1]?.excluded).toBe(true);
+    const empty = await catalog.createDraft(admin, {
+      title: "全空",
+      edition: "苏教版",
+      grade: "高一",
+      subject: "数学",
+      term: "下册",
+      publicationYear: 2024,
+      fileId: file.fileId,
+    });
+    await catalog.startProcessing(admin, empty.id);
+    await catalog.saveParsedPage(empty.id, {
+      pdfPageIndex: 0,
+      text: "",
+      status: "ready",
+    });
+    await catalog.finishProcessing(empty.id);
+    await expect(catalog.publish(admin, empty.id)).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+  }));

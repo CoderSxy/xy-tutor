@@ -220,3 +220,50 @@ test("explains the textbook page limit instead of only showing parsing failed", 
   await login(page);
   await expect(page.getByRole("alert")).toContainText("500页");
 });
+test("shows empty textbook pages already excluded without manual checkbox work", async ({
+  page,
+}) => {
+  await mockLearningApi(page, "admin");
+  await page.route(`**/api/catalog/textbooks/${revisionId}**`, (r) =>
+    r.fulfill({
+      json: r.request().url().includes("/pages")
+        ? [
+            {
+              id: "p1",
+              pageIndex: 0,
+              text: "有效正文",
+              status: "ready",
+              excluded: false,
+            },
+            {
+              id: "p2",
+              pageIndex: 1,
+              text: "",
+              status: "ready",
+              excluded: true,
+            },
+          ]
+        : {
+            id: revisionId,
+            fileId: revisionId,
+            title: "自动排除教材",
+            edition: "人教版",
+            grade: "高一",
+            subject: "数学",
+            term: "下册",
+            revisionNo: 1,
+            status: "review",
+          },
+    }),
+  );
+  await page.goto(`/admin/textbooks/${revisionId}`);
+  await login(page);
+  await expect(
+    page.getByText("已自动排除 1 个未识别出文字的页面，无需逐页勾选。"),
+  ).toBeVisible();
+  await page.getByLabel("PDF 页面").selectOption("1");
+  await expect(page.getByRole("checkbox")).toBeChecked();
+  await expect(
+    page.getByRole("button", { name: "发布教材", exact: true }),
+  ).toBeEnabled();
+});

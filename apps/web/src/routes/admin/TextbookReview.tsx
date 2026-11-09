@@ -58,6 +58,10 @@ export function TextbookReview() {
   if (revision.error || !revision.data)
     return <StatusPanel state="error" title={revision.error || "教材不存在"} />;
   const r = revision.data;
+  const autoExcludedCount =
+    pages.data?.filter(
+      (p) => p.excluded && p.status === "ready" && !p.text.trim(),
+    ).length ?? 0;
   const action = async (kind: "publish" | "disable" | "process") => {
     setError("");
     try {
@@ -125,6 +129,11 @@ export function TextbookReview() {
         </p>
       )}
       {status && <p role="status">{status}</p>}
+      {autoExcludedCount > 0 && (
+        <p className="notice" role="status">
+          已自动排除 {autoExcludedCount} 个未识别出文字的页面，无需逐页勾选。
+        </p>
+      )}
       {r.status === "failed" && (
         <p className="notice error-text" role="alert">
           {textbookParseError(r.parseErrorCode)}
@@ -147,7 +156,9 @@ export function TextbookReview() {
                   <option key={p.id} value={p.pageIndex}>
                     第{p.pageIndex + 1}页 ·{" "}
                     {p.excluded
-                      ? "已排除"
+                      ? p.status === "ready" && !p.text.trim()
+                        ? "已自动排除（无文字）"
+                        : "已排除"
                       : p.status === "ready"
                         ? "可用"
                         : "需处理"}
@@ -188,7 +199,7 @@ export function TextbookReview() {
               checked={excluded}
               onChange={(e) => setExcluded(e.target.checked)}
             />
-            明确排除此页（不会用于教学检索）
+            排除此页（不会用于教学检索）
           </label>
           <Button disabled={r.status !== "review"} onClick={() => void save()}>
             保存本页检查

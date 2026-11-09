@@ -169,6 +169,51 @@ export class CatalogService {
       await this.replaceChunks(tx, id, p.id, page.text);
     });
   }
+  private async excludeEmptyPages(
+    tx: PoolClient,
+    id: string,
+    actor?: Actor,
+  ): Promise<number> {
+    const pages = (
+      await tx.query(
+        "UPDATE textbook_pages SET excluded=true WHERE revision_id=$1 AND status='ready' AND NOT excluded AND text ~ '^[[:space:]]*$' RETURNING id,page_index",
+        [id],
+      )
+    ).rows;
+    if (!pages.length) return 0;
+    await tx.query(
+      "DELETE FROM textbook_chunks WHERE page_id=ANY($1::uuid[])",
+      [pages.map((p) => p.id)],
+    );
+    await tx.query(
+      "INSERT INTO audit_events(actor_id,action,details) VALUES($1,'textbook.auto_exclude_empty',$2)",
+      [
+        actor?.userId ?? null,
+        JSON.stringify({
+          revisionId: id,
+          pageIndexes: pages.map((p) => p.page_index),
+          ruleVersion: "empty-text-v1",
+          reason: "解析成功但没有识别出文字，自动排除",
+        }),
+      ],
+    );
+    return pages.length;
+  }
+  async excludeEmptyReviewPages(actor: Actor, id: string): Promise<number> {
+    requireAdmin(actor);
+    z.uuid().parse(id);
+    return inTransaction(this.db, async (tx) => {
+      const r = (
+        await tx.query(
+          "SELECT status FROM textbook_revisions WHERE id=$1 FOR UPDATE",
+          [id],
+        )
+      ).rows[0];
+      if (r?.status !== "review")
+        throw new AppError("CONFLICT", 409, "仅待检查教材可自动排除页面");
+      return this.excludeEmptyPages(tx, id, actor);
+    });
+  }
   async finishProcessing(
     id: string,
     lease?: { jobId: string; token: string },
@@ -184,6 +229,14 @@ export class CatalogService {
         ).rowCount
       )
         throw Error("STALE_JOB");
+      const revision = (
+        await tx.query(
+          "SELECT status FROM textbook_revisions WHERE id=$1 FOR UPDATE",
+          [id],
+        )
+      ).rows[0];
+      if (revision?.status !== "processing") return;
+      await this.excludeEmptyPages(tx, id);
       await tx.query(
         "UPDATE textbook_revisions SET status='review',page_count=(SELECT count(*) FROM textbook_pages WHERE revision_id=$1) WHERE id=$1 AND status='processing'",
         [id],
@@ -237,6 +290,7 @@ export class CatalogService {
       ).rows[0];
       if (r?.status !== "review")
         throw new AppError("CONFLICT", 409, "教材尚不可发布");
+      await this.excludeEmptyPages(tx, id, actor);
       const pages = (
         await tx.query(
           "SELECT * FROM textbook_pages WHERE revision_id=$1 ORDER BY page_index",
