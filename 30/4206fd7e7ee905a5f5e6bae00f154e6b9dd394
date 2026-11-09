@@ -1,0 +1,29 @@
+tests/e2e/content-ui.spec.ts
+  s_b208eb8dae8dfc::t_4caa569a6d00c9 223-269
+docs/qa/auto-exclude-empty-pages.md
+  s_b208eb8dae8dfc::t_6e19e238bf5b05 1-11
+docs/runbooks/external-services.md
+  s_b208eb8dae8dfc::t_6e19e238bf5b05 60-61
+apps/server/src/modules/catalog/service.ts
+  s_b208eb8dae8dfc::t_e29ed6fb763904 172-216,232-239,293
+tests/integration/catalog.test.ts
+  s_b208eb8dae8dfc::t_e29ed6fb763904 127-217
+apps/web/src/routes/admin/TextbookReview.tsx
+  s_b208eb8dae8dfc::t_fcb7a0dd79f834 61-64,132-136,159-161,202
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "304206fd7e7ee905a5f5e6bae00f154e6b9dd394",
+  "prompts": {},
+  "sessions": {
+    "s_b208eb8dae8dfc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1b9d0-494f-71e0-be01-0a25039db132",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
