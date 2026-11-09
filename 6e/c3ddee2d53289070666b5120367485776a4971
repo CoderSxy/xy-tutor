@@ -1,0 +1,181 @@
+tests/unit/session-start.test.ts
+  s_1664b47eeb9ef0::t_029ea4ac64f444 1-5,16-19
+  s_1664b47eeb9ef0::t_1bd01ee29e28d3 6-15
+apps/web/src/routes/Home.tsx
+  s_2fbda46bc07370::t_5a2356dfc19bfb 10-42,50,73-74,83-90,94-101,103-108,112-113,116,136,148,150-156,161,163-165,167-169,171-175,177-178,182,184-193,196
+  s_1664b47eeb9ef0::t_1bd01ee29e28d3 52-56,58-72,76-79
+  s_1664b47eeb9ef0::t_d97464d054be71 57
+  s_2fbda46bc07370::t_dbc115e72dc00a 157-160
+  s_2fbda46bc07370::t_ecc8e422182140 3
+  s_2fbda46bc07370::t_7b71bf3c41131f 183
+  s_1664b47eeb9ef0::t_72cdc53b56a2f5 9,51,75,80
+  s_2fbda46bc07370::t_e9a863086c96f1 1
+  s_2fbda46bc07370::t_dd27496a159a0f 8,43,49,149
+apps/web/src/routes/Mistakes.tsx
+  s_2fbda46bc07370::t_41203eb8c00256 64-65,67-78
+  s_2fbda46bc07370::t_346bac70d256a8 66
+  s_2fbda46bc07370::t_053e79ae0d1880 45-48
+apps/web/src/lib/usePaged.ts
+  s_1664b47eeb9ef0::t_1bd01ee29e28d3 4,14,34-39,67-69,91-92
+  s_2fbda46bc07370::t_3c221432e74500 57-64,77-78
+  s_2fbda46bc07370::t_83afbd71b02d93 1-3,5-13,15-33,40-56,65-66,70-76,79-90,93-111
+apps/web/src/components/DesignPreview.tsx
+  s_2fbda46bc07370::t_9db886335fb9ee 10
+docs/superpowers/specs/2026-11-09-chat-image-attachments-design.md
+  s_1664b47eeb9ef0::t_a239edf855fe04 1-2,5-94,99-142,155-180
+  s_1664b47eeb9ef0::t_0cf73aaad85bcd 95-98
+  s_1664b47eeb9ef0::t_77d1417cd280d7 3-4,181-206
+  s_1664b47eeb9ef0::t_9d9027372ade8d 143-154
+apps/server/src/modules/learning/tasks.ts
+  s_2fbda46bc07370::t_2203e6b6c839ea 17
+  s_2fbda46bc07370::t_5dbbed9c3f2229 69-72,75-76
+  s_2fbda46bc07370::t_073ebee2563cad 15
+  s_1664b47eeb9ef0::t_72cdc53b56a2f5 77,95
+  s_2fbda46bc07370::t_c3dbf02b102adf 61-62,96-115
+  s_1664b47eeb9ef0::t_1bd01ee29e28d3 74,78-94
+packages/db/migrations/meta/0013_snapshot.json
+  s_2fbda46bc07370::t_9f3878d6671831 1-4327
+apps/web/src/styles/global.css
+  s_2fbda46bc07370::t_fec3053cf7f949 1114-1124,1126-1128
+  s_2fbda46bc07370::t_b4f5b4551b720b 1359,1557,1628,1816,1820,1826,1829-1835,1838-1846,1848-1861
+  s_2fbda46bc07370::t_ac49afaa931678 1075-1077,1079-1085
+  s_2fbda46bc07370::t_7bdbb597f3e2bd 1078
+  s_2fbda46bc07370::t_b7bcda6cdd9087 1506,1511-1515,1520
+  s_2fbda46bc07370::t_c0974deb0efc77 948
+  s_2fbda46bc07370::t_f942376e36eb42 1510,1558-1580,1582-1588,1590-1593,1597,1599-1601,1603-1627
+  s_2fbda46bc07370::t_3db57f3bf25b48 1657
+  s_2fbda46bc07370::t_635aff37085e1f 1287,1289-1291
+  s_2fbda46bc07370::t_27e7f9eee04991 1371-1400
+  s_2fbda46bc07370::t_51d33c6f2b37ff 1137-1139
+  s_2fbda46bc07370::t_bb37c02a932959 829
+  s_2fbda46bc07370::t_cf7c072b3c2ac8 1319,1329-1347,1349-1353,1357-1358,1836
+  s_2fbda46bc07370::t_d078489128f485 1532-1533
+  s_2fbda46bc07370::t_45f7b9fbc8d5ae 1718,1979-1983
+  s_2fbda46bc07370::t_1f896466c7d48d 1505,1507-1509,1521,1531,1534-1556
+  s_2fbda46bc07370::t_b20ee91f55f9ed 1433-1491
+  s_2fbda46bc07370::t_f9db94da15c02b 1144-1159,1161-1165,1171-1186
+  s_2fbda46bc07370::t_ed405595b35b33 1497
+  s_2fbda46bc07370::t_c488873b5cd670 1516
+  s_2fbda46bc07370::t_c3537fbd482d03 1523-1524
+  s_2fbda46bc07370::t_59f356490a7d6d 1368
+  s_2fbda46bc07370::t_8de18f56e7e8c0 1348,1354-1356
+  s_2fbda46bc07370::t_f4b59bdbba2349 692-712
+  s_2fbda46bc07370::t_0d8d83e52ef039 1692-1699,1701-1702,1705
+  s_2fbda46bc07370::t_214d18bd2610d3 1423-1425
+  s_2fbda46bc07370::t_dd5b410bdd2616 1517-1519
+  s_2fbda46bc07370::t_a0e313314a286f 1720
+  s_2fbda46bc07370::t_fee8b0f6cf94b0 507
+  s_2fbda46bc07370::t_5d60db889cbcf9 521,530-531
+  s_2fbda46bc07370::t_5cab076e2650ac 828,830-841,843-848
+  s_2fbda46bc07370::t_2ae3c0b0779334 866,868-947,949-969
+  s_2fbda46bc07370::t_b0166c34de2d88 1629-1634,1637-1639,1642
+  s_2fbda46bc07370::t_86ad7354deedfa 1687
+  s_2fbda46bc07370::t_3937c6f6916d59 313-314,323-324
+  s_2fbda46bc07370::t_42f8fc80bdb1f3 1160
+  s_2fbda46bc07370::t_19f39b1f0ff4f6 1522,1525-1530
+  s_2fbda46bc07370::t_04db05e4cd4c5c 322,325
+  s_2fbda46bc07370::t_40773ef83d61c8 1708,1710-1711,1713,1716-1717
+  s_2fbda46bc07370::t_7435d1a73f4a80 1323-1324
+  s_2fbda46bc07370::t_6131e176f9bfc1 543,545,552
+  s_2fbda46bc07370::t_87bea3b03d0bcd 842
+  s_2fbda46bc07370::t_70df8e31f26228 1700,1703-1704
+  s_2fbda46bc07370::t_ce3c6a565cdc18 753-758,760-765
+  s_2fbda46bc07370::t_22f1a3b473ffda 1296-1301
+  s_2fbda46bc07370::t_3182b7adae664b 1974,1976
+  s_2fbda46bc07370::t_dc24b8e7de788b 534-538
+  s_2fbda46bc07370::t_a2ae1341b417fc 503-506,508-520,522-529,532-533,539-542,544,546-551,553-691,713-752,759,766-804
+  s_2fbda46bc07370::t_162aa9331fa783 1166-1170
+  s_2fbda46bc07370::t_6b27d7ada7f3b1 849-865,867
+  s_2fbda46bc07370::t_4847f33ca70bda 1501-1502
+  s_2fbda46bc07370::t_75dc268d3473fb 1808-1809,1812,1815,1817-1819,1821,1825,1827-1828,1837,1847
+  s_2fbda46bc07370::t_0144980f9cd312 1133-1136
+  s_2fbda46bc07370::t_5b3f4445817f75 1707
+apps/web/src/lib/taskFormat.ts
+  s_2fbda46bc07370::t_7c98f80b52560a 1-44
+apps/server/src/modules/learning/contracts.ts
+  s_2fbda46bc07370::t_25a7552bc103c4 21,26-27,30-33
+  s_1664b47eeb9ef0::t_72cdc53b56a2f5 29
+apps/web/src/lib/sessionStart.ts
+  s_1664b47eeb9ef0::t_72cdc53b56a2f5 1-3,10,19-24,26-29
+  s_1664b47eeb9ef0::t_1bd01ee29e28d3 4-9,11-18,25
+docs/superpowers/plans/2026-11-09-chat-image-attachments.md
+  s_1664b47eeb9ef0::t_9fa250392e347b 11-12,105,138,204
+  s_1664b47eeb9ef0::t_77d1417cd280d7 1-10,13-104,106-137,139-203,205-219
+apps/server/src/modules/learning/routes.ts
+  s_2fbda46bc07370::t_4e9a47ed85a459 61-74
+  s_2fbda46bc07370::t_d345883b911ae7 23-24,31-32,39
+  s_2fbda46bc07370::t_09be7a43b5e457 25-30,33-38
+apps/web/src/routes/TaskHistory.tsx
+  s_2fbda46bc07370::t_ab6b460e17242a 44,91-92,94-101,128,130-135,138-145,153-154,162,164
+  s_2fbda46bc07370::t_bf64ede8ea825a 1,3,5,19-30,32,34-35,37-42,45-89,146-152,155-161,163,165-166
+  s_2fbda46bc07370::t_0066dbb1968e4e 116-118
+  s_2fbda46bc07370::t_13bf397836446d 31,33
+  s_2fbda46bc07370::t_3d48e8edddfba1 8-13,16,36,102-115,119-125,127
+apps/server/src/modules/conversations/runs.ts
+  s_2fbda46bc07370::t_6c4910577e6c19 141-148
+packages/db/migrations/meta/_journal.json
+  s_2fbda46bc07370::t_9f3878d6671831 95-101
+packages/db/src/schema/learning.ts
+  s_2fbda46bc07370::t_36a2a204c7079d 21,25
+apps/web/src/features/tutor/Composer.tsx
+  s_2fbda46bc07370::t_b37fb9068ebbd6 1-7,9,15-18,23-27,29,31-45,49,54-57,59-122
+apps/web/src/routes/Study.tsx
+  s_1664b47eeb9ef0::t_1bd01ee29e28d3 30,44-46
+  s_2fbda46bc07370::t_6d6b8665cf86f9 47
+  s_2fbda46bc07370::t_bce5e5c4fb8277 174-186
+  s_2fbda46bc07370::t_9abae17e512173 158-168
+  s_1664b47eeb9ef0::t_224552ae563a80 36-40,87-91
+  s_2fbda46bc07370::t_9ec0c504935f6e 33,35,41-43,48-50
+  s_2fbda46bc07370::t_22417adfdf28ef 3,12,86,92-95,97-152,154-157,169-173,188-198,200-212,215-218
+apps/web/src/components/AppShell.tsx
+  s_2fbda46bc07370::t_737866e7f4f93a 99,109
+apps/web/src/features/tutor/TutorPanel.tsx
+  s_2fbda46bc07370::t_a94d23e3da10f3 75-80
+  s_2fbda46bc07370::t_51401883e4f295 85-93,98-103,107-116,118,122-127
+  s_2fbda46bc07370::t_3484aa5d2207ca 2,6,17-33,38
+apps/web/src/components/SessionRail.tsx
+  s_2fbda46bc07370::t_f69872dea41092 9
+  s_2fbda46bc07370::t_415d84a3e889ba 124-128
+  s_2fbda46bc07370::t_43b23c74fb08f6 146-147
+  s_2fbda46bc07370::t_5a26eacf874c63 122-123,129
+  s_1664b47eeb9ef0::t_1bd01ee29e28d3 12-14,16-18,20,33-35,74,77,148-157,160-185,188-189,191-196,198-200,203-209,211,213-219,221-238,240-241,243
+  s_2fbda46bc07370::t_e9c79d6f50bf6a 242,244-247
+  s_2fbda46bc07370::t_0bd2e9c1175dcb 255-261,263
+  s_2fbda46bc07370::t_7ef7f7b8bb8ca9 2-5,7-8,10-11,21-22,32,36-40,71-73,75-76,78,81-121,130-135,137-138,140-145,158-159,186-187,190,197,201-202,210,212,220,239,248-254,262,264-269
+  s_1664b47eeb9ef0::t_224552ae563a80 15,19,79-80
+  s_2fbda46bc07370::t_6070d7a07bffc2 44
+  s_2fbda46bc07370::t_d44f51cbaab6ab 45-46,48-60
+  s_2fbda46bc07370::t_5fa9bd9c7727af 1,6,23,31,41-43,47,61-70
+  s_2fbda46bc07370::t_dc5ee83859aa41 136,139
+  s_2fbda46bc07370::t_6c627b5843c96f 24-30
+tests/e2e/fixtures/ui-api.ts
+  s_2fbda46bc07370::t_d1b66760713048 84-85
+tests/integration/learning-records.test.ts
+  s_1664b47eeb9ef0::t_1bd01ee29e28d3 174-193
+packages/db/migrations/0013_brave_groot.sql
+  s_2fbda46bc07370::t_9f3878d6671831 1-2
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6ec3ddee2d53289070666b5120367485776a4971",
+  "prompts": {},
+  "sessions": {
+    "s_1664b47eeb9ef0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1bf43-9e71-79f2-960b-563d1bb5c811",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_2fbda46bc07370": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3efbd87a-1d95-402a-8853-c92dce14c8c7",
+        "model": "unknown"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
