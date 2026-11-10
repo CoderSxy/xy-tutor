@@ -1,0 +1,44 @@
+package.json
+  s_7ddd7bcc8c3bb9::t_d59906a9988623 25
+tests/e2e/admin-student-insights.spec.ts
+  s_7ddd7bcc8c3bb9::t_e680b90f0ace38 460-463
+  s_7ddd7bcc8c3bb9::t_d9a8aa3c596f52 474-477
+docs/qa/admin-student-insights-acceptance.md
+  s_7ddd7bcc8c3bb9::t_7a4e91db61efa6 172
+  s_7ddd7bcc8c3bb9::t_bf7b184722146f 1-171,173-209,211-220
+  s_7ddd7bcc8c3bb9::t_83919f78f5a278 210
+tests/helpers/database.ts
+  s_7ddd7bcc8c3bb9::t_a2284c02d8d81d 6-18,20-22,25-31
+README.md
+  s_7ddd7bcc8c3bb9::t_3a0ba61a463b13 24-36,41
+apps/server/src/modules/student-insights/snapshot.ts
+  s_7ddd7bcc8c3bb9::t_6ec27bcbb3bfa8 208
+  s_7ddd7bcc8c3bb9::t_3f54fcd0aff59a 122
+tests/integration/student-insight-reports.test.ts
+  s_7ddd7bcc8c3bb9::t_bef1ef92f8e0a1 331-376
+scripts/benchmark-student-insights.ts
+  s_7ddd7bcc8c3bb9::t_275e9ca6fe43c8 253
+  s_7ddd7bcc8c3bb9::t_5f853d4d933175 1-5,7-63,65-252,254-415
+  s_7ddd7bcc8c3bb9::t_ea14407f4f1747 6
+  s_7ddd7bcc8c3bb9::t_39aa5dd3442c6a 64
+tests/unit/student-insight-benchmark.test.ts
+  s_7ddd7bcc8c3bb9::t_3cc8d33ede34cf 1-46
+packages/db/migrations/0018_student_insights.sql
+  s_7ddd7bcc8c3bb9::t_9c792a9c13ea04 21,85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "76e6f8d71ffdd9ad6c000d8877569e3cb4c46a5a",
+  "prompts": {},
+  "sessions": {
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "unknown"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
