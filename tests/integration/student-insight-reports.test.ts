@@ -328,3 +328,49 @@ it("drops soft-deleted task evidence and yields a new snapshot", async () =>
     expect(second.reused).toBe(false);
     expect(second.reportId).not.toBe(first.reportId);
   }));
+
+it("keeps taskless attempts and chats out of the navigable evidence catalog", () =>
+  withTestDb(async (db) => {
+    const fixture = await studentInsightsFixture(db);
+    const seed = await seedInsightFacts(fixture);
+    const studentId = fixture.studentA.studentId;
+    const tasklessAttempt = (
+      await db.pool.query<{ id: string }>(
+        `INSERT INTO attempts(student_id,task_id,question_version_id,request_key,answer)
+         VALUES($1,NULL,$2,gen_random_uuid()::text,'自由练习') RETURNING id`,
+        [studentId, seed.questionVersionA],
+      )
+    ).rows[0]!.id;
+    const conversationId = (
+      await db.pool.query<{ id: string }>(
+        "INSERT INTO conversations(student_id,revision_id) VALUES($1,$2) RETURNING id",
+        [studentId, seed.revisionA],
+      )
+    ).rows[0]!.id;
+    const messageId = (
+      await db.pool.query<{ id: string }>(
+        "INSERT INTO messages(conversation_id,role) VALUES($1,'user') RETURNING id",
+        [conversationId],
+      )
+    ).rows[0]!.id;
+    const tasklessVersion = (
+      await db.pool.query<{ id: string }>(
+        `INSERT INTO message_versions(message_id,version_no,content)
+         VALUES($1,1,'自由提问') RETURNING id`,
+        [messageId],
+      )
+    ).rows[0]!.id;
+
+    const reports = service(fixture);
+    const created = await reports.create(scopeOf(fixture), rangeOf(seed));
+    const catalog = (
+      await db.pool.query<{ evidence: { key: string }[] }>(
+        "SELECT evidence_catalog AS evidence FROM student_insight_reports WHERE id=$1",
+        [created.reportId],
+      )
+    ).rows[0]!.evidence;
+    const keys = catalog.map((item) => item.key);
+    expect(keys).not.toContain(`attempt:${tasklessAttempt}`);
+    expect(keys).not.toContain(`message_version:${tasklessVersion}`);
+    expect(keys.some((key) => key.startsWith("attempt:"))).toBe(true);
+  }));

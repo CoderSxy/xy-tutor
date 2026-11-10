@@ -18,7 +18,7 @@ CREATE TABLE "student_learning_events" (
 ALTER TABLE "student_learning_events" ADD CONSTRAINT "student_learning_events_student_id_student_profiles_id_fk" FOREIGN KEY ("student_id") REFERENCES "student_profiles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "student_learning_events" ADD CONSTRAINT "student_learning_events_actor_id_users_id_fk" FOREIGN KEY ("actor_id") REFERENCES "users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "student_learning_events" ADD CONSTRAINT "student_learning_events_task_id_learning_tasks_id_fk" FOREIGN KEY ("task_id") REFERENCES "learning_tasks"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "student_learning_events" ADD CONSTRAINT "student_learning_events_revision_id_revisions_id_fk" FOREIGN KEY ("revision_id") REFERENCES "revisions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "student_learning_events" ADD CONSTRAINT "student_learning_events_revision_id_textbook_revisions_id_fk" FOREIGN KEY ("revision_id") REFERENCES "textbook_revisions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "student_learning_events_source_unique" ON "student_learning_events" USING btree ("student_id","event_type","source_type","source_id");--> statement-breakpoint
 CREATE INDEX "student_learning_events_student_time" ON "student_learning_events" USING btree ("student_id","occurred_at" DESC NULLS LAST);--> statement-breakpoint
 CREATE INDEX "student_learning_events_time_student" ON "student_learning_events" USING btree ("occurred_at","student_id");--> statement-breakpoint
@@ -82,7 +82,7 @@ CREATE TABLE "student_insight_reports" (
 --> statement-breakpoint
 ALTER TABLE "student_insight_reports" ADD CONSTRAINT "student_insight_reports_student_id_student_profiles_id_fk" FOREIGN KEY ("student_id") REFERENCES "student_profiles"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "student_insight_reports" ADD CONSTRAINT "student_insight_reports_requested_by_users_id_fk" FOREIGN KEY ("requested_by") REFERENCES "users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "student_insight_reports" ADD CONSTRAINT "student_insight_reports_revision_id_revisions_id_fk" FOREIGN KEY ("revision_id") REFERENCES "revisions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "student_insight_reports" ADD CONSTRAINT "student_insight_reports_revision_id_textbook_revisions_id_fk" FOREIGN KEY ("revision_id") REFERENCES "textbook_revisions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "student_insight_reports" ADD CONSTRAINT "student_insight_reports_job_id_jobs_id_fk" FOREIGN KEY ("job_id") REFERENCES "jobs"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "student_insight_reports_history" ON "student_insight_reports" USING btree ("student_id","created_at" DESC NULLS LAST,"id");--> statement-breakpoint
 CREATE INDEX "student_insight_reports_active" ON "student_insight_reports" USING btree ("student_id","status");--> statement-breakpoint

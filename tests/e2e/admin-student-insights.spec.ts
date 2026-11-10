@@ -457,6 +457,10 @@ for (const width of [360, 768, 1280]) {
         ),
       )
       .toBe(true);
+    await page.screenshot({
+      path: `docs/qa/screenshots/admin-students-${width}.png`,
+      fullPage: true,
+    });
     await page.goto(`/admin/students/${STUDENT_A}/overview`);
     await expect(page.getByRole("heading", { name: "李明" })).toBeVisible();
     await expect(page.getByRole("link", { name: "学习记录" })).toBeVisible();
@@ -467,5 +471,9 @@ for (const width of [360, 768, 1280]) {
         ),
       )
       .toBe(true);
+    await page.screenshot({
+      path: `docs/qa/screenshots/admin-student-overview-${width}.png`,
+      fullPage: true,
+    });
   });
 }

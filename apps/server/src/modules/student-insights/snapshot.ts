@@ -119,7 +119,7 @@ async function readAttemptEvidence(
        ${LATEST_ASSESSMENT}
        WHERE a.student_id = $1
          AND a.created_at >= $2 AND a.created_at < $3
-         AND (a.task_id IS NULL OR t.deleted_at IS NULL)
+         AND a.task_id IS NOT NULL AND t.deleted_at IS NULL
          AND ($4::uuid IS NULL OR q.revision_id = $4)
          AND ${VALID_ATTEMPT}
        ORDER BY mistaken DESC, a.created_at DESC, a.id
@@ -205,7 +205,7 @@ async function readMessageEvidence(
        LEFT JOIN learning_tasks t ON t.id = c.task_id
        WHERE c.student_id = $1 AND m.role = 'user'
          AND m.created_at >= $2 AND m.created_at < $3
-         AND (c.task_id IS NULL OR t.deleted_at IS NULL)
+         AND c.task_id IS NOT NULL AND t.deleted_at IS NULL
          AND ($4::uuid IS NULL OR c.revision_id = $4)
          AND NOT EXISTS (
            SELECT 1 FROM evidence_invalidations i

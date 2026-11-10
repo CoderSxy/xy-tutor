@@ -3,17 +3,32 @@ import pg from "pg";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { fileURLToPath } from "node:url";
 import { createDb, type Database } from "../../packages/db/src/client.js";
+
+export const DEFAULT_TEST_DATABASE_URL =
+  "postgres://xy_tutor@127.0.0.1:55432/xy_tutor_test";
+
+/** Rejects any URL that could point at real data. */
+export function resolveTestDatabaseUrl(env: NodeJS.ProcessEnv): string {
+  const url = env.TEST_DATABASE_URL ?? DEFAULT_TEST_DATABASE_URL;
+  let pathname: string;
+  try {
+    pathname = new URL(url).pathname;
+  } catch {
+    throw Error("Refusing unsafe test database");
+  }
+  if (
+    env.NODE_ENV === "production" ||
+    url === env.DATABASE_URL ||
+    !pathname.endsWith("_test")
+  )
+    throw Error("Refusing unsafe test database");
+  return url;
+}
+
 export async function withTestDb(
   run: (c: Database) => Promise<void>,
 ): Promise<void> {
-  const url =
-    process.env.TEST_DATABASE_URL ??
-    "postgres://xy_tutor@127.0.0.1:55432/xy_tutor_test";
-  if (
-    url === process.env.DATABASE_URL ||
-    !new URL(url).pathname.endsWith("_test")
-  )
-    throw Error("Refusing unsafe test database");
+  const url = resolveTestDatabaseUrl(process.env);
   const schema = "test_" + randomUUID().replaceAll("-", "");
   const admin = new pg.Pool({ connectionString: url, max: 1 });
   await admin.query(`CREATE SCHEMA "${schema}"`);
