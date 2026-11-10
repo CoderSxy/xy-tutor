@@ -127,6 +127,13 @@
       "when": 1794205800000,
       "tag": "0017_chat_image_cleanup",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1794209400000,
+      "tag": "0018_student_insights",
+      "breakpoints": true
     }
   ]
 }
