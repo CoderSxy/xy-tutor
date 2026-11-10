@@ -1,0 +1,60 @@
+apps/server/src/modules/student-insights/routes.ts
+  s_7ddd7bcc8c3bb9::t_00c99458f5f722 19
+  s_7ddd7bcc8c3bb9::t_b1d429b631b4b6 77
+  s_7ddd7bcc8c3bb9::t_f2f335234b39ac 110-119
+  s_7ddd7bcc8c3bb9::t_05905a7b17941c 107-109
+apps/web/src/features/student-insights/useStudentVisit.ts
+  s_7ddd7bcc8c3bb9::t_7b4dbc756c0525 1-31
+apps/server/src/modules/conversations/runs.ts
+  s_7ddd7bcc8c3bb9::t_299d46d85f0510 151-161
+  s_7ddd7bcc8c3bb9::t_afae4e2799f34a 173-185,189-199
+  s_7ddd7bcc8c3bb9::t_3e09b1dcab555c 15
+apps/web/src/lib/auth.tsx
+  s_7ddd7bcc8c3bb9::t_73f74605a8184a 20
+  s_7ddd7bcc8c3bb9::t_4aef7214b6f6cb 78
+apps/server/src/modules/conversations/messages.ts
+  s_7ddd7bcc8c3bb9::t_72222fe66fcf83 9
+  s_7ddd7bcc8c3bb9::t_e019d63aaf7120 82-93
+  s_7ddd7bcc8c3bb9::t_73a3b792c8603c 46-51
+apps/server/src/modules/materials/service.ts
+  s_7ddd7bcc8c3bb9::t_a174af3dbae528 10
+  s_7ddd7bcc8c3bb9::t_154be3ca436fbc 68-77
+apps/server/src/app.ts
+  s_7ddd7bcc8c3bb9::t_c7c54a1d1e93f4 30
+  s_7ddd7bcc8c3bb9::t_a8bc5a54fa0b76 104-105,107
+tests/integration/student-insight-activity.test.ts
+  s_7ddd7bcc8c3bb9::t_1aca218bb09a0c 405
+  s_7ddd7bcc8c3bb9::t_4e5a2074841030 409
+  s_7ddd7bcc8c3bb9::t_68425e98df008c 1-35,37-120,126-404,406-408,410-455
+  s_7ddd7bcc8c3bb9::t_1fe488b134c196 36
+  s_7ddd7bcc8c3bb9::t_2dc25c264beecd 121-125
+apps/server/src/modules/student-insights/activity.ts
+  s_7ddd7bcc8c3bb9::t_b37fae1217e3e9 13
+  s_7ddd7bcc8c3bb9::t_d36df41310941e 21
+  s_7ddd7bcc8c3bb9::t_3e14fd54c3ee90 140-143
+  s_7ddd7bcc8c3bb9::t_e44790b4faf08d 11
+  s_7ddd7bcc8c3bb9::t_d343042662df35 117-131
+  s_7ddd7bcc8c3bb9::t_ad9c84c9274ea0 1,3
+  s_7ddd7bcc8c3bb9::t_9113c126d89982 149
+  s_7ddd7bcc8c3bb9::t_adb565ce876704 216-220
+  s_7ddd7bcc8c3bb9::t_28d5a8ff33e313 2,4-10,12,14-20,22-116,132-139,144-148,150-215,221-223
+apps/server/src/modules/learning/attempts.ts
+  s_7ddd7bcc8c3bb9::t_9481a247cef2fe 9
+  s_7ddd7bcc8c3bb9::t_e46acd60f52ff9 92-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ffb9adf7ac00178fb0c63bd4dc82c1a071176053",
+  "prompts": {},
+  "sessions": {
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
