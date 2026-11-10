@@ -1,0 +1,30 @@
+apps/server/src/modules/student-insights/policy.ts
+  s_7ddd7bcc8c3bb9::t_18c0c1ff0bccad 1-34
+tests/integration/admin-student-insight-auth.test.ts
+  s_7ddd7bcc8c3bb9::t_26e4af03d5db71 1-151
+tests/helpers/student-insights.ts
+  s_7ddd7bcc8c3bb9::t_44fc470a093301 1-85
+apps/server/src/modules/student-insights/routes.ts
+  s_7ddd7bcc8c3bb9::t_76c28aaff9c78f 27-28
+  s_7ddd7bcc8c3bb9::t_2425e9870532af 1-14,16,22-26,30-50,52
+  s_7ddd7bcc8c3bb9::t_76fefda737f2e9 15,17-21,29,51
+apps/server/src/app.ts
+  s_7ddd7bcc8c3bb9::t_573b85e5a2c6f4 117
+  s_7ddd7bcc8c3bb9::t_bef4334453beeb 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "69939147f3ee5941961760051955026ca87cd5dd",
+  "prompts": {},
+  "sessions": {
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
