@@ -22,12 +22,14 @@ import { resolveInsightRange } from "./metrics.js";
 import { requireAdminInsightScope } from "./policy.js";
 import { InsightQueryService } from "./queries.js";
 import { InsightRecordService } from "./records.js";
+import { InsightReportService } from "./reports.js";
 
 export const STUDENT_INSIGHT_PREFIX = "/api/admin/student-insights";
 
 export type StudentInsightDependencies = {
   database: Database;
   fileStore?: FileStore;
+  gatewayConfigured?: boolean;
 };
 
 export type InsightRouteEntry = {
@@ -75,6 +77,10 @@ function registerRoutes(
   const records = new InsightRecordService(deps.database);
   const files = new InsightFileService(deps.database, deps.fileStore);
   const activity = new InsightActivityService(deps.database);
+  const reports = new InsightReportService(
+    deps.database,
+    deps.gatewayConfigured ?? false,
+  );
 
   adminInsightRoute(app, "GET", "/students", async (request) => {
     const actor = requireSession(request).actor;
@@ -259,6 +265,65 @@ function registerRoutes(
       const scope = await scopeOf(request, deps.database);
       const fileId = idOf(request, "fileId");
       return files.download(scope, fileId, request.id);
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "POST",
+    "/students/:studentId/reports",
+    async (request, reply) => {
+      const scope = await scopeOf(request, deps.database);
+      const input = insightFilterInputSchema.parse(request.body ?? {});
+      const range = resolveInsightRange(input);
+      const result = await reports.create(scope, {
+        from: range.from,
+        to: range.to,
+        revisionId: input.revisionId,
+      });
+      return reply.code(result.reused ? 200 : 202).send(result);
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/reports",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      return reports.list(scope, pageQuerySchema.parse(request.query));
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/reports/:reportId",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      return reports.get(scope, idOf(request, "reportId"));
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "POST",
+    "/students/:studentId/reports/:reportId/retry",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      return reports.retry(scope, idOf(request, "reportId"));
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/reports/:reportId/evidence/:evidenceKey",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      const reportId = idOf(request, "reportId");
+      const { evidenceKey } = request.params as { evidenceKey: string };
+      return reports.resolveEvidence(scope, reportId, evidenceKey);
     },
   );
 }

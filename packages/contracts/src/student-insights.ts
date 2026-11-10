@@ -169,6 +169,40 @@ export type InsightSnapshot = {
 
 export type ReportStatus = "queued" | "running" | "completed" | "failed";
 
+export type ReportSummary = {
+  id: string;
+  studentId: string;
+  status: ReportStatus;
+  filter: InsightFilter;
+  dataAsOf: string;
+  generation: number;
+  attempts: number;
+  model: string | null;
+  errorCode: string | null;
+  evidenceCount: number;
+  createdAt: string;
+  completedAt: string | null;
+};
+
+export type ReportHistory = { items: ReportSummary[]; total: number };
+
+export type ReportCreateResult = {
+  reportId: string;
+  status: ReportStatus;
+  reused: boolean;
+};
+
+export type ReportRetryResult = {
+  reportId: string;
+  status: ReportStatus;
+  generation: number;
+};
+
+export type InsightEvidenceDetail = {
+  href: string;
+  detail: InsightEvidence;
+};
+
 export type ReportDTO = {
   id: string;
   studentId: string;

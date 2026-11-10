@@ -497,168 +497,12 @@ export class InsightQueryService {
     scope: AdminInsightScope,
     filter: InsightFilter,
   ): Promise<StudentOverviewResponse> {
-    const now = this.now();
-    const range = resolveInsightRange(filter, now);
-    const normalized: QueryWindow = {
-      ...range,
-      revisionId: filter.revisionId,
-    };
     const client = await this.database.pool.connect();
     try {
       await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
-      const [profile, facts, currentMistakes, knowledge, materialRows, lastLearningAt, coverage] =
-        await Promise.all([
-          client.query<{ displayName: string }>(
-            `SELECT display_name AS "displayName"
-             FROM student_profiles WHERE id = $1`,
-            [scope.studentId],
-          ),
-          readInsightFacts(client, scope.studentId, normalized),
-          client.query<{ status: string }>(
-            `SELECT m.status
-             FROM student_mistakes m
-             JOIN questions q ON q.id = m.question_id
-             WHERE m.student_id = $1
-               AND ($2::uuid IS NULL OR q.revision_id = $2)`,
-            [scope.studentId, normalized.revisionId ?? null],
-          ),
-          client.query<{
-            knowledgePoint: string;
-            attempts: number;
-            verified: number;
-            correct: number;
-            hintDependency: string;
-          }>(
-            `SELECT COALESCE(v.knowledge_point, '未标注') AS "knowledgePoint",
-               count(*)::int AS attempts,
-               count(*) FILTER (WHERE s.verification = 'verified')::int AS verified,
-               count(*) FILTER (
-                 WHERE s.verification = 'verified' AND s.correctness = 'correct'
-               )::int AS correct,
-               COALESCE(s.hint_dependency, 'none') AS "hintDependency"
-             FROM attempts a
-             JOIN question_versions v ON v.id = a.question_version_id
-             JOIN questions q ON q.id = v.question_id
-             LEFT JOIN learning_tasks t ON t.id = a.task_id
-             ${LATEST_ASSESSMENT}
-             WHERE a.student_id = $1
-               AND a.created_at >= $2 AND a.created_at < $3
-               AND (a.task_id IS NULL OR t.deleted_at IS NULL)
-               AND ($4::uuid IS NULL OR q.revision_id = $4)
-               AND ${VALID_ATTEMPT}
-             GROUP BY 1, "hintDependency"
-             ORDER BY 1`,
-            [
-              scope.studentId,
-              range.start,
-              range.endExclusive,
-              normalized.revisionId ?? null,
-            ],
-          ),
-          client.query<{
-            materialId: string;
-            name: string;
-            contentType: string;
-            type: string;
-            status: string;
-            questionId: string | null;
-          }>(
-            `SELECT m.id AS "materialId", f.name, f.content_type AS "contentType",
-               m.type, m.status, v.question_id AS "questionId"
-             FROM materials m
-             JOIN files f ON f.id = m.file_id
-             LEFT JOIN extractions e ON e.material_id = m.id
-             LEFT JOIN question_sources src ON src.extraction_id = e.id
-             LEFT JOIN question_versions v ON v.id = src.question_version_id
-             WHERE m.student_id = $1
-               AND m.created_at >= $2 AND m.created_at < $3
-               AND ($4::uuid IS NULL OR m.revision_id = $4)
-             ORDER BY m.created_at, m.id, src.question_version_id`,
-            [
-              scope.studentId,
-              range.start,
-              range.endExclusive,
-              normalized.revisionId ?? null,
-            ],
-          ),
-          readLastLearningAt(
-            client,
-            scope.studentId,
-            normalized.revisionId ?? null,
-          ),
-          readCoverage(client, normalized),
-        ]);
-
-      const correct = facts.firstAttempts.filter(
-        (row) =>
-          row.assessment?.verification === "verified" &&
-          row.assessment.correctness === "correct",
-      ).length;
-      const verified = facts.firstAttempts.filter(
-        (row) =>
-          row.assessment?.verification === "verified" &&
-          ["correct", "incorrect"].includes(row.assessment.correctness),
-      ).length;
-      const firstPending = facts.firstAttempts.filter(
-        (row) =>
-          !row.assessment ||
-          row.assessment.verification !== "verified" ||
-          !["correct", "incorrect"].includes(row.assessment.correctness),
-      ).length;
-
-      const statuses: MistakeCounts = {
-        pending_correction: 0,
-        correcting: 0,
-        corrected_pending_practice: 0,
-        consolidated_pending_review: 0,
-        mastered: 0,
-      };
-      for (const row of currentMistakes.rows)
-        if (row.status in statuses)
-          statuses[row.status as keyof MistakeCounts] += 1;
-
-      const daily = buildDaily(facts);
-      const eventDays = facts.events.map((event) => dayOf(event.occurredAt));
-      const activeDays = new Set(eventDays).size;
-      const streak = streaks(eventDays, shanghaiToday(now));
-      const knowledgeSummary = mergeKnowledge(knowledge.rows);
-      const materials = materialCoverage(materialRows.rows, facts.attempts);
-      const newMistakes = new Set(
-        facts.mistakes
-          .filter(
-            (row) =>
-              row.createdAt >= range.start && row.createdAt < range.endExclusive,
-          )
-          .map((row) => row.questionId),
-      ).size;
-      const completedTasks = facts.tasks.filter(
-        (task) => task.status === "completed",
-      ).length;
-
-      const overview: StudentOverviewDTO = {
-        studentId: scope.studentId,
-        displayName: profile.rows[0]!.displayName,
-        counts: {
-          attempts: facts.attempts.length,
-          questions: new Set(facts.attempts.map((row) => row.questionId)).size,
-          newMistakes,
-          tasks: facts.tasks.length,
-          completedTasks,
-          activeDays,
-          currentStreak: streak.current,
-          longestStreak: streak.longest,
-          firstAttemptPending: firstPending,
-          mistakes: statuses,
-        },
-        firstAttemptAccuracy: toRate(correct, verified),
-        taskCompletion: toRate(completedTasks, facts.tasks.length),
-        daily,
-        knowledge: knowledgeSummary,
-        materials,
-        lastLearningAt: lastLearningAt?.toISOString() ?? null,
-      };
+      const result = await readStudentOverview(client, scope, filter, this.now());
       await client.query("COMMIT");
-      return { overview, meta: metaFor(normalized, now, coverage) };
+      return result;
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
@@ -666,6 +510,171 @@ export class InsightQueryService {
       client.release();
     }
   }
+}
+
+export async function readStudentOverview(
+  client: PoolClient,
+  scope: AdminInsightScope,
+  filter: InsightFilter,
+  now: Date,
+): Promise<StudentOverviewResponse> {
+  const range = resolveInsightRange(filter, now);
+  const normalized: QueryWindow = {
+    ...range,
+    revisionId: filter.revisionId,
+  };
+  const [profile, facts, currentMistakes, knowledge, materialRows, lastLearningAt, coverage] =
+    await Promise.all([
+      client.query<{ displayName: string }>(
+        `SELECT display_name AS "displayName"
+         FROM student_profiles WHERE id = $1`,
+        [scope.studentId],
+      ),
+      readInsightFacts(client, scope.studentId, normalized),
+      client.query<{ status: string }>(
+        `SELECT m.status
+         FROM student_mistakes m
+         JOIN questions q ON q.id = m.question_id
+         WHERE m.student_id = $1
+           AND ($2::uuid IS NULL OR q.revision_id = $2)`,
+        [scope.studentId, normalized.revisionId ?? null],
+      ),
+      client.query<{
+        knowledgePoint: string;
+        attempts: number;
+        verified: number;
+        correct: number;
+        hintDependency: string;
+      }>(
+        `SELECT COALESCE(v.knowledge_point, '未标注') AS "knowledgePoint",
+           count(*)::int AS attempts,
+           count(*) FILTER (WHERE s.verification = 'verified')::int AS verified,
+           count(*) FILTER (
+             WHERE s.verification = 'verified' AND s.correctness = 'correct'
+           )::int AS correct,
+           COALESCE(s.hint_dependency, 'none') AS "hintDependency"
+         FROM attempts a
+         JOIN question_versions v ON v.id = a.question_version_id
+         JOIN questions q ON q.id = v.question_id
+         LEFT JOIN learning_tasks t ON t.id = a.task_id
+         ${LATEST_ASSESSMENT}
+         WHERE a.student_id = $1
+           AND a.created_at >= $2 AND a.created_at < $3
+           AND (a.task_id IS NULL OR t.deleted_at IS NULL)
+           AND ($4::uuid IS NULL OR q.revision_id = $4)
+           AND ${VALID_ATTEMPT}
+         GROUP BY 1, "hintDependency"
+         ORDER BY 1`,
+        [
+          scope.studentId,
+          range.start,
+          range.endExclusive,
+          normalized.revisionId ?? null,
+        ],
+      ),
+      client.query<{
+        materialId: string;
+        name: string;
+        contentType: string;
+        type: string;
+        status: string;
+        questionId: string | null;
+      }>(
+        `SELECT m.id AS "materialId", f.name, f.content_type AS "contentType",
+           m.type, m.status, v.question_id AS "questionId"
+         FROM materials m
+         JOIN files f ON f.id = m.file_id
+         LEFT JOIN extractions e ON e.material_id = m.id
+         LEFT JOIN question_sources src ON src.extraction_id = e.id
+         LEFT JOIN question_versions v ON v.id = src.question_version_id
+         WHERE m.student_id = $1
+           AND m.created_at >= $2 AND m.created_at < $3
+           AND ($4::uuid IS NULL OR m.revision_id = $4)
+         ORDER BY m.created_at, m.id, src.question_version_id`,
+        [
+          scope.studentId,
+          range.start,
+          range.endExclusive,
+          normalized.revisionId ?? null,
+        ],
+      ),
+      readLastLearningAt(
+        client,
+        scope.studentId,
+        normalized.revisionId ?? null,
+      ),
+      readCoverage(client, normalized),
+    ]);
+
+  const correct = facts.firstAttempts.filter(
+    (row) =>
+      row.assessment?.verification === "verified" &&
+      row.assessment.correctness === "correct",
+  ).length;
+  const verified = facts.firstAttempts.filter(
+    (row) =>
+      row.assessment?.verification === "verified" &&
+      ["correct", "incorrect"].includes(row.assessment.correctness),
+  ).length;
+  const firstPending = facts.firstAttempts.filter(
+    (row) =>
+      !row.assessment ||
+      row.assessment.verification !== "verified" ||
+      !["correct", "incorrect"].includes(row.assessment.correctness),
+  ).length;
+
+  const statuses: MistakeCounts = {
+    pending_correction: 0,
+    correcting: 0,
+    corrected_pending_practice: 0,
+    consolidated_pending_review: 0,
+    mastered: 0,
+  };
+  for (const row of currentMistakes.rows)
+    if (row.status in statuses)
+      statuses[row.status as keyof MistakeCounts] += 1;
+
+  const daily = buildDaily(facts);
+  const eventDays = facts.events.map((event) => dayOf(event.occurredAt));
+  const activeDays = new Set(eventDays).size;
+  const streak = streaks(eventDays, shanghaiToday(now));
+  const knowledgeSummary = mergeKnowledge(knowledge.rows);
+  const materials = materialCoverage(materialRows.rows, facts.attempts);
+  const newMistakes = new Set(
+    facts.mistakes
+      .filter(
+        (row) =>
+          row.createdAt >= range.start && row.createdAt < range.endExclusive,
+      )
+      .map((row) => row.questionId),
+  ).size;
+  const completedTasks = facts.tasks.filter(
+    (task) => task.status === "completed",
+  ).length;
+
+  const overview: StudentOverviewDTO = {
+    studentId: scope.studentId,
+    displayName: profile.rows[0]!.displayName,
+    counts: {
+      attempts: facts.attempts.length,
+      questions: new Set(facts.attempts.map((row) => row.questionId)).size,
+      newMistakes,
+      tasks: facts.tasks.length,
+      completedTasks,
+      activeDays,
+      currentStreak: streak.current,
+      longestStreak: streak.longest,
+      firstAttemptPending: firstPending,
+      mistakes: statuses,
+    },
+    firstAttemptAccuracy: toRate(correct, verified),
+    taskCompletion: toRate(completedTasks, facts.tasks.length),
+    daily,
+    knowledge: knowledgeSummary,
+    materials,
+    lastLearningAt: lastLearningAt?.toISOString() ?? null,
+  };
+  return { overview, meta: metaFor(normalized, now, coverage) };
 }
 
 function buildDaily(

@@ -63,7 +63,13 @@ export function buildApp(deps: AppDependencies) {
     if (error instanceof AppError)
       return reply
         .code(error.status)
-        .send({ error: { code: error.code, message: error.message } });
+        .send({
+          error: {
+            code: error.code,
+            message: error.message,
+            ...(error.details ? { details: error.details } : {}),
+          },
+        });
     if (
       error instanceof Error &&
       "statusCode" in error &&
@@ -121,6 +127,7 @@ export function buildApp(deps: AppDependencies) {
       registerStudentInsights(scoped, {
         database: deps.database!,
         fileStore: deps.fileStore,
+        gatewayConfigured: !!deps.gateway,
       });
       const selections = new SelectionService(deps.database!, auth);
       scoped.get("/api/learning/selections", async (req) =>
