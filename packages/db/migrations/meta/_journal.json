@@ -134,6 +134,13 @@
       "when": 1794209400000,
       "tag": "0018_student_insights",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1794213000000,
+      "tag": "0019_insight_fact_indexes",
+      "breakpoints": true
     }
   ]
 }
