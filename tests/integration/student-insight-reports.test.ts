@@ -2,9 +2,7 @@ import { expect, it } from "vitest";
 import { buildApp } from "../../apps/server/src/app.js";
 import { loadConfig } from "../../apps/server/src/config.js";
 import type { ModelGateway } from "../../apps/server/src/agent/provider.js";
-import {
-  InsightReportService,
-} from "../../apps/server/src/modules/student-insights/reports.js";
+import { InsightReportService } from "../../apps/server/src/modules/student-insights/reports.js";
 import { addDays } from "../../apps/server/src/modules/student-insights/metrics.js";
 import type {
   AdminInsightScope,
@@ -62,7 +60,9 @@ it("creates one report and one job for concurrent identical requests", async () 
     const reports = service(fixture);
     const filter = rangeOf(seed);
     const results = await Promise.all(
-      Array.from({ length: 10 }, () => reports.create(scopeOf(fixture), filter)),
+      Array.from({ length: 10 }, () =>
+        reports.create(scopeOf(fixture), filter),
+      ),
     );
     expect(new Set(results.map((item) => item.reportId)).size).toBe(1);
     expect(results.filter((item) => !item.reused)).toHaveLength(1);
@@ -105,9 +105,9 @@ it("reuses a failed snapshot without enqueueing or spending quota", async () =>
     });
     expect(await jobCount(fixture)).toBe(1);
     // 创建 + 一次重试仍在额度内，说明复用没有占额度。
-    await expect(reports.retry(scopeOf(fixture), first.reportId)).resolves.toMatchObject(
-      { status: "queued", generation: 2 },
-    );
+    await expect(
+      reports.retry(scopeOf(fixture), first.reportId),
+    ).resolves.toMatchObject({ status: "queued", generation: 2 });
   }));
 
 it("allows three generations per minute and rejects the fourth", async () =>
@@ -193,7 +193,10 @@ it("serves history, report detail and evidence links over the admin API", async 
     const created = await server.inject({
       method: "POST",
       url: `${url}/reports`,
-      headers: adminInsightCookie(fixture),
+      headers: {
+        ...adminInsightCookie(fixture),
+        origin: loadConfig({ NODE_ENV: "test" }).origin,
+      },
       payload: rangeOf(seed),
     });
     expect(created.statusCode).toBe(202);
@@ -207,7 +210,10 @@ it("serves history, report detail and evidence links over the admin API", async 
     const reused = await server.inject({
       method: "POST",
       url: `${url}/reports`,
-      headers: adminInsightCookie(fixture),
+      headers: {
+        ...adminInsightCookie(fixture),
+        origin: loadConfig({ NODE_ENV: "test" }).origin,
+      },
       payload: rangeOf(seed),
     });
     expect(reused.statusCode).toBe(200);
@@ -219,7 +225,10 @@ it("serves history, report detail and evidence links over the admin API", async 
     const history = await server.inject({
       method: "GET",
       url: `${url}/reports?limit=10&offset=0`,
-      headers: adminInsightCookie(fixture),
+      headers: {
+        ...adminInsightCookie(fixture),
+        origin: loadConfig({ NODE_ENV: "test" }).origin,
+      },
     });
     expect(history.statusCode).toBe(200);
     expect(history.json()).toMatchObject({
@@ -230,7 +239,10 @@ it("serves history, report detail and evidence links over the admin API", async 
     const detail = await server.inject({
       method: "GET",
       url: `${url}/reports/${createdBody.reportId}`,
-      headers: adminInsightCookie(fixture),
+      headers: {
+        ...adminInsightCookie(fixture),
+        origin: loadConfig({ NODE_ENV: "test" }).origin,
+      },
     });
     expect(detail.statusCode).toBe(200);
     const report = detail.json() as {
@@ -243,7 +255,10 @@ it("serves history, report detail and evidence links over the admin API", async 
     const resolved = await server.inject({
       method: "GET",
       url: `${url}/reports/${createdBody.reportId}/evidence/${encodeURIComponent(attempt!.key)}`,
-      headers: adminInsightCookie(fixture),
+      headers: {
+        ...adminInsightCookie(fixture),
+        origin: loadConfig({ NODE_ENV: "test" }).origin,
+      },
     });
     expect(resolved.statusCode).toBe(200);
     expect(resolved.json()).toMatchObject({
@@ -254,14 +269,20 @@ it("serves history, report detail and evidence links over the admin API", async 
     const foreign = await server.inject({
       method: "GET",
       url: `/api/admin/student-insights/students/${fixture.studentB.studentId}/reports/${createdBody.reportId}`,
-      headers: adminInsightCookie(fixture),
+      headers: {
+        ...adminInsightCookie(fixture),
+        origin: loadConfig({ NODE_ENV: "test" }).origin,
+      },
     });
     expect(foreign.statusCode).toBe(404);
 
     const retryActive = await server.inject({
       method: "POST",
       url: `${url}/reports/${createdBody.reportId}/retry`,
-      headers: adminInsightCookie(fixture),
+      headers: {
+        ...adminInsightCookie(fixture),
+        origin: loadConfig({ NODE_ENV: "test" }).origin,
+      },
     });
     expect(retryActive.statusCode).toBe(409);
   }));

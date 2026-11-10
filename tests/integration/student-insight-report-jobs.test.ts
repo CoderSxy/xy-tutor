@@ -75,7 +75,14 @@ async function prepare(fixture: StudentInsightsFixture): Promise<Setup> {
   const queue = new JobQueue(fixture.db);
   const job = await queue.claim("worker-a", new Date());
   expect(job).toMatchObject({ kind: "student.insight" });
-  return { fixture, scope, reports, queue, reportId: created.reportId, job: job! };
+  return {
+    fixture,
+    scope,
+    reports,
+    queue,
+    reportId: created.reportId,
+    job: job!,
+  };
 }
 
 async function reportRow(fixture: StudentInsightsFixture, id: string) {
@@ -116,11 +123,7 @@ async function expireLease(fixture: StudentInsightsFixture, id: string) {
   );
 }
 
-function generatorFor(
-  setup: Setup,
-  gw: ModelGateway,
-  timeoutMs?: number,
-) {
+function generatorFor(setup: Setup, gw: ModelGateway, timeoutMs?: number) {
   return new InsightReportGenerator(setup.fixture.db, gw, {
     ...(timeoutMs ? { timeoutMs } : {}),
   });
@@ -136,7 +139,10 @@ it("保存合法响应并把报告与任务一起标记完成", async () =>
       calls += 1;
       return gw.complete(request, signal);
     });
-    await generatorFor(setup, spy).generate(setup.job, new AbortController().signal);
+    await generatorFor(setup, spy).generate(
+      setup.job,
+      new AbortController().signal,
+    );
     const report = await reportRow(fixture, setup.reportId);
     expect(report).toMatchObject({
       status: "completed",
@@ -159,7 +165,7 @@ it("非法 JSON 记为 INVALID_OUTPUT 并保留可重试状态", async () =>
     const setup = await prepare(fixture);
     await expect(
       generatorFor(setup, gw).generate(setup.job, new AbortController().signal),
-    ).rejects.toThrow("INVALID_OUTPUT");
+    ).rejects.toMatchObject({ name: "ReportOutputError" });
     expect(await reportRow(fixture, setup.reportId)).toMatchObject({
       status: "queued",
       error_code: "INVALID_OUTPUT",
@@ -340,9 +346,9 @@ it("提交完成后重启不会重复调用模型也不降级完成状态", asyn
       setup.job,
       new AbortController().signal,
     );
-    expect(await setup.queue.finish(setup.job.id, setup.job.leaseToken, {})).toBe(
-      false,
-    );
+    expect(
+      await setup.queue.finish(setup.job.id, setup.job.leaseToken, {}),
+    ).toBe(false);
     await generatorFor(setup, gw).generate(
       setup.job,
       new AbortController().signal,

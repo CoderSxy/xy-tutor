@@ -2,13 +2,7 @@ import type { PoolClient } from "pg";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { Database } from "../../../../../packages/db/src/client.js";
 import { inTransaction } from "../../../../../packages/db/src/client.js";
-import {
-  addDays,
-  dayNumber,
-  dayOf,
-  dayStartUtc,
-  parseDay,
-} from "./metrics.js";
+import { addDays, dayNumber, dayOf, dayStartUtc, parseDay } from "./metrics.js";
 
 export type BackfillOptions = {
   from: string;
@@ -39,7 +33,8 @@ type SourceRow = {
 
 type Source = {
   kind: SourceKind;
-  eventType: "answer_submitted" | "learning_message_sent" | "material_submitted";
+  eventType:
+    "answer_submitted" | "learning_message_sent" | "material_submitted";
   sql: string;
 };
 
@@ -162,7 +157,7 @@ export async function backfillStudentInsights(
   if (dayNumber(to) - dayNumber(from) + 1 > 366)
     throw new AppError("VALIDATION", 422, "回填范围不能超过366天");
 
-  const version = `student-insights-backfill-v1:${from}:${to}`;
+  const version = `student-insights-backfill-v2:${from}:${to}`;
   const lockClient = await db.pool.connect();
   let locked = false;
   try {
@@ -186,14 +181,12 @@ export async function backfillStudentInsights(
     const endExclusive =
       userEnd.getTime() < hardEnd.getTime() ? userEnd : hardEnd;
     const cutoffDay = dayOf(new Date(endExclusive.getTime() - 1));
-    const effectiveTo =
-      endExclusive.getTime() >= dayStartUtc(addDays(cutoffDay, 1)).getTime()
-        ? cutoffDay
-        : addDays(cutoffDay, -1);
-    // 只声明整天都被覆盖的范围，避免把切换当天说成完整。
-    if (effectiveTo < from)
-      throw new AppError("VALIDATION", 422, "没有可回填的完整历史日期");
-    const scanEnd = dayStartUtc(addDays(effectiveTo, 1));
+    // Scan to the actual switch instant, including its partial calendar day.
+    // The remaining part of that day is covered by live collection.
+    const effectiveTo = cutoffDay;
+    if (endExclusive <= fromStart)
+      throw new AppError("VALIDATION", 422, "没有可回填的历史记录范围");
+    const scanEnd = endExclusive;
 
     const existing = await lockClient.query<{
       status: string;
@@ -246,13 +239,7 @@ export async function backfillStudentInsights(
             rows.map((row) => row.id),
           );
         else
-          inserted += await writeBatch(
-            db,
-            version,
-            source,
-            rows,
-            nextCursor,
-          );
+          inserted += await writeBatch(db, version, source, rows, nextCursor);
         cursor = nextCursor;
         if (rows.length < batchSize) break;
       }
@@ -279,10 +266,10 @@ export async function backfillStudentInsights(
   } finally {
     if (locked)
       await lockClient
-        .query(
-          "SELECT pg_advisory_unlock(hashtext($1), hashtext($2))",
-          ["student_insight_backfill", version],
-        )
+        .query("SELECT pg_advisory_unlock(hashtext($1), hashtext($2))", [
+          "student_insight_backfill",
+          version,
+        ])
         .catch(() => undefined);
     lockClient.release();
   }

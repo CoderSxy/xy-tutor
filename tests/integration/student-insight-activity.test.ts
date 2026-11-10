@@ -149,14 +149,22 @@ it("skips events from admins and viewers instead of treating them as the student
     const messages = new MessageService(db, f.auth);
     await messages.append(
       { actor: f.admin, studentId: f.scope.studentId },
-      { conversationId: task.conversationId, role: "user", content: "管理员代发" },
+      {
+        conversationId: task.conversationId,
+        role: "user",
+        content: "管理员代发",
+      },
     );
     await messages.append(
       {
         actor: { userId: viewer.userId, role: "student" },
         studentId: f.scope.studentId,
       },
-      { conversationId: task.conversationId, role: "user", content: "查看者代发" },
+      {
+        conversationId: task.conversationId,
+        role: "user",
+        content: "查看者代发",
+      },
     );
     expect(await eventCount(db)).toBe(0);
     await messages.append(f.scope, {
@@ -252,10 +260,7 @@ it("records a material event only when the material is created", async () =>
 it("records one visit per student and Shanghai calendar day", async () =>
   withTestDb(async (db) => {
     const f = await catalogFixture(db);
-    await initializeInsightCollection(
-      db,
-      new Date("2026-11-10T00:00:00.000Z"),
-    );
+    await initializeInsightCollection(db, new Date("2026-11-10T00:00:00.000Z"));
     const now = new Date("2026-11-10T04:00:00.000Z");
     await recordStudentVisit(db, f.scope.actor, now);
     await recordStudentVisit(
@@ -302,7 +307,10 @@ it("refuses visit payloads that forge the student or the time", async () =>
       database: db,
       config: loadConfig({ NODE_ENV: "test" }),
     });
-    const headers = { cookie: `xy_session=${session.sessionToken}` };
+    const headers = {
+      cookie: `xy_session=${session.sessionToken}`,
+      origin: loadConfig({ NODE_ENV: "test" }).origin,
+    };
     const post = (payload: Record<string, unknown>) =>
       app.inject({
         method: "POST",
@@ -310,12 +318,12 @@ it("refuses visit payloads that forge the student or the time", async () =>
         headers,
         payload,
       });
-    expect(
-      (await post({ studentId: crypto.randomUUID() })).statusCode,
-    ).toBe(422);
-    expect((await post({ occurredAt: "2020-01-01T00:00:00Z" })).statusCode).toBe(
+    expect((await post({ studentId: crypto.randomUUID() })).statusCode).toBe(
       422,
     );
+    expect(
+      (await post({ occurredAt: "2020-01-01T00:00:00Z" })).statusCode,
+    ).toBe(422);
     const ok = await post({});
     expect(ok.statusCode).toBe(200);
     expect(ok.json()).toEqual({ ok: true });
@@ -329,10 +337,7 @@ it("aggregates daily activity with visits coverage and streaks", async () =>
   withTestDb(async (db) => {
     const f = await catalogFixture(db);
     const revision = await f.publish("人教版", "分数");
-    await initializeInsightCollection(
-      db,
-      new Date("2026-11-08T01:00:00.000Z"),
-    );
+    await initializeInsightCollection(db, new Date("2026-11-08T01:00:00.000Z"));
     const task = (
       await db.pool.query<{ id: string }>(
         `INSERT INTO learning_tasks(student_id,revision_id,kind,title,status,created_at,updated_at)
@@ -371,21 +376,9 @@ it("aggregates daily activity with visits coverage and streaks", async () =>
     await insertEvent("2026-11-10", 10, task);
     // 软删除任务上的事件不计入活跃
     await insertEvent("2026-11-10", 11, deleted);
-    await recordStudentVisit(
-      db,
-      f.scope.actor,
-      at("2026-11-08", 12),
-    );
-    await recordStudentVisit(
-      db,
-      f.scope.actor,
-      at("2026-11-09", 12),
-    );
-    await recordStudentVisit(
-      db,
-      f.scope.actor,
-      at("2026-11-10", 12),
-    );
+    await recordStudentVisit(db, f.scope.actor, at("2026-11-08", 12));
+    await recordStudentVisit(db, f.scope.actor, at("2026-11-09", 12));
+    await recordStudentVisit(db, f.scope.actor, at("2026-11-10", 12));
     const now = at("2026-11-10", 13);
     const activity = await new InsightActivityService(db, () => now).get(
       { actor: f.admin, studentId: f.scope.studentId },
@@ -397,11 +390,7 @@ it("aggregates daily activity with visits coverage and streaks", async () =>
       "2026-11-10",
     ]);
     expect(activity.days.map((day) => day.events)).toEqual([0, 2, 1]);
-    expect(activity.days.map((day) => day.active)).toEqual([
-      false,
-      true,
-      true,
-    ]);
+    expect(activity.days.map((day) => day.active)).toEqual([false, true, true]);
     expect(activity.days.map((day) => day.visits)).toEqual([1, 1, 1]);
     expect(activity.activeDays).toBe(2);
     expect(activity.currentStreak).toBe(2);
@@ -441,10 +430,9 @@ it("counts a chat message plus an answer on one day as a single active day", asy
       questionVersionId: question.questionVersionId,
       mode: "reply",
     });
-    expect((await events(db, f.scope.studentId)).map((e) => e.event_type).sort()).toEqual([
-      "answer_submitted",
-      "learning_message_sent",
-    ]);
+    expect(
+      (await events(db, f.scope.studentId)).map((e) => e.event_type).sort(),
+    ).toEqual(["answer_submitted", "learning_message_sent"]);
     const today = shanghaiToday(new Date());
     const activity = await new InsightActivityService(db).get(
       { actor: f.admin, studentId: f.scope.studentId },

@@ -27,9 +27,7 @@ export {
 } from "./backfill.js";
 
 export type LearningEventType =
-  | "answer_submitted"
-  | "learning_message_sent"
-  | "material_submitted";
+  "answer_submitted" | "learning_message_sent" | "material_submitted";
 
 export type LearningEventSourceType = "attempt" | "message" | "material";
 
@@ -46,12 +44,10 @@ export type LearningEventInput = {
 };
 
 // 只采集学生本人（owner）的提交事实：管理员、viewer 及非学生角色一律不记。
-const OWNER_ACTOR = `EXISTS (
-  SELECT 1 FROM student_access sa
+const OWNER_ACTOR = `SELECT 1 FROM student_access sa
   JOIN users u ON u.id = sa.user_id
   WHERE sa.student_id = $1 AND sa.user_id = $2
-    AND sa.permission = 'owner' AND u.role = 'student'
-)`;
+    AND sa.permission = 'owner' AND u.role = 'student'`;
 
 export async function recordLearningEvent(
   tx: PoolClient,
@@ -69,7 +65,7 @@ export async function recordLearningEvent(
        SELECT 1 FROM student_learning_events
        WHERE student_id = $1 AND event_type = $3
          AND source_type = $4 AND source_id = $5
-     )`,
+     ) ON CONFLICT (student_id,event_type,source_type,source_id) DO NOTHING`,
     [
       input.studentId,
       input.actorId,
@@ -165,8 +161,16 @@ export class InsightActivityService {
            WHERE e.student_id = $1
              AND e.occurred_at >= $2 AND e.occurred_at < $3
              AND (e.task_id IS NULL OR t.deleted_at IS NULL)
+             AND ($5::uuid IS NULL OR e.revision_id = $5)
+
            GROUP BY 1`,
-          [scope.studentId, range.start, range.endExclusive, INSIGHT_TIMEZONE],
+          [
+            scope.studentId,
+            range.start,
+            range.endExclusive,
+            INSIGHT_TIMEZONE,
+            filter.revisionId ?? null,
+          ],
         )
       ).rows;
       visits = (
@@ -200,16 +204,18 @@ export class InsightActivityService {
     const visitsStartedDay = coverage.visitsStartedAt
       ? dayOf(new Date(coverage.visitsStartedAt))
       : null;
-    const days: ActivityDay[] = inclusiveDays(range.from, range.to).map((date) => {
-      const eventsOnDay = eventCounts.get(date) ?? 0;
-      const collected = visitsStartedDay !== null && date >= visitsStartedDay;
-      return {
-        date,
-        events: eventsOnDay,
-        active: eventsOnDay > 0,
-        visits: collected ? (visitCounts.get(date) ?? 0) : null,
-      };
-    });
+    const days: ActivityDay[] = inclusiveDays(range.from, range.to).map(
+      (date) => {
+        const eventsOnDay = eventCounts.get(date) ?? 0;
+        const collected = visitsStartedDay !== null && date >= visitsStartedDay;
+        return {
+          date,
+          events: eventsOnDay,
+          active: eventsOnDay > 0,
+          visits: collected ? (visitCounts.get(date) ?? 0) : null,
+        };
+      },
+    );
     const activeDays = days.filter((day) => day.active).map((day) => day.date);
     const visitedDays = days.filter((day) => (day.visits ?? 0) > 0).length;
     const { current, longest } = streaks(activeDays, shanghaiToday(now));

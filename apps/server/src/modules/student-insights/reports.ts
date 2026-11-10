@@ -47,7 +47,10 @@ type ReportRow = {
   completedAt: Date | null;
 };
 
-type ReportSummaryRow = Omit<ReportRow, "content" | "dataAsOf" | "evidenceCatalog"> & {
+type ReportSummaryRow = Omit<
+  ReportRow,
+  "content" | "dataAsOf" | "evidenceCatalog"
+> & {
   dataAsOf: string;
   evidenceCount: number;
 };
@@ -65,7 +68,11 @@ const REPORT_SELECT = `
   FROM student_insight_reports r
   LEFT JOIN jobs j ON j.id = r.job_id`;
 
-function filterOf(row: { from: string; to: string; revisionId: string | null }): InsightFilter {
+function filterOf(row: {
+  from: string;
+  to: string;
+  revisionId: string | null;
+}): InsightFilter {
   return {
     from: row.from,
     to: row.to,
@@ -117,7 +124,10 @@ async function availableByKind(
 ): Promise<Map<string, Availability>> {
   const result = new Map<string, Availability>();
   const keysOf = (kind: InsightEvidence["kind"], field: "id" | "versionId") =>
-    evidence.filter((item) => item.kind === kind).map((item) => item[field]!).filter(Boolean);
+    evidence
+      .filter((item) => item.kind === kind)
+      .map((item) => item[field]!)
+      .filter(Boolean);
   const attempts = keysOf("attempt", "id");
   if (attempts.length)
     for (const row of (
@@ -176,7 +186,10 @@ async function availableByKind(
         [events, studentId],
       )
     ).rows)
-      result.set(`mistake_event:${row.id}`, { taskId: null, mistakeId: row.mistakeId });
+      result.set(`mistake_event:${row.id}`, {
+        taskId: null,
+        mistakeId: row.mistakeId,
+      });
   return result;
 }
 
@@ -227,35 +240,74 @@ export class InsightReportService {
       );
   }
 
-  private async transaction<T>(fn: (tx: PoolClient) => Promise<T>): Promise<T> {
+  private async transaction<T>(
+    scope: AdminInsightScope,
+    fn: (tx: PoolClient) => Promise<T>,
+  ): Promise<T> {
     const client = await this.database.pool.connect();
+    let actorLocked = false;
+    let studentLocked = false;
+    let destroy = false;
     try {
-      // 写入事务必须用 READ COMMITTED：REPEATABLE READ 的取景发生在等待
-      // advisory lock 之前，等锁结束后看不到前一个事务刚提交的报告。
-      await client.query("BEGIN ISOLATION LEVEL READ COMMITTED");
+      // Acquire session locks BEFORE BEGIN so waiting requests take a fresh
+      // repeatable-read snapshot after the previous creator has committed.
+      await client.query(
+        "SELECT pg_advisory_lock(hashtext('student_insight_report_quota'), hashtext($1))",
+        [scope.actor.userId],
+      );
+      actorLocked = true;
+      await client.query(
+        "SELECT pg_advisory_lock(hashtext('student_insight_report'), hashtext($1))",
+        [scope.studentId],
+      );
+      studentLocked = true;
+      await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ");
       const result = await fn(client);
       await client.query("COMMIT");
       return result;
     } catch (error) {
-      await client.query("ROLLBACK");
+      await client.query("ROLLBACK").catch(() => {
+        destroy = true;
+      });
       throw error;
     } finally {
-      client.release();
+      try {
+        if (studentLocked)
+          await client.query(
+            "SELECT pg_advisory_unlock(hashtext('student_insight_report'), hashtext($1))",
+            [scope.studentId],
+          );
+        if (actorLocked)
+          await client.query(
+            "SELECT pg_advisory_unlock(hashtext('student_insight_report_quota'), hashtext($1))",
+            [scope.actor.userId],
+          );
+      } catch {
+        // Never return a connection holding session locks to the pool.
+        destroy = true;
+      }
+      client.release(destroy);
     }
   }
 
-  private async lockActor(tx: PoolClient, actorId: string): Promise<void> {
-    await tx.query(
-      "SELECT pg_advisory_xact_lock(hashtext('student_insight_report_quota'), hashtext($1))",
-      [actorId],
-    );
-  }
-
-  private async lockStudent(tx: PoolClient, studentId: string): Promise<void> {
-    await tx.query(
-      "SELECT pg_advisory_xact_lock(hashtext('student_insight_report'), hashtext($1))",
-      [studentId],
-    );
+  private async assertNoActiveReport(
+    tx: PoolClient,
+    studentId: string,
+  ): Promise<void> {
+    const active = (
+      await tx.query<{ id: string }>(
+        `SELECT id FROM student_insight_reports
+       WHERE student_id=$1 AND status IN ('queued','running') LIMIT 1`,
+        [studentId],
+      )
+    ).rows[0];
+    if (active)
+      throw new AppError(
+        "CONFLICT",
+        409,
+        "该学生已有正在生成的报告，请等待完成后再生成",
+        { reportId: active.id },
+      );
   }
 
   private async assertQuota(
@@ -272,11 +324,7 @@ export class InsightReportService {
       )
     ).rows[0]!.n;
     if (used >= QUOTA_LIMIT)
-      throw new AppError(
-        "RATE_LIMITED",
-        429,
-        "报告生成过于频繁，请稍后重试",
-      );
+      throw new AppError("RATE_LIMITED", 429, "报告生成过于频繁，请稍后重试");
   }
 
   async create(
@@ -285,9 +333,7 @@ export class InsightReportService {
   ): Promise<ReportCreateResult> {
     this.requireGateway();
     const now = this.now();
-    return this.transaction(async (tx) => {
-      await this.lockActor(tx, scope.actor.userId);
-      await this.lockStudent(tx, scope.studentId);
+    return this.transaction(scope, async (tx) => {
       const snapshot = await buildInsightSnapshot(tx, scope, filter, now);
       if (!snapshot.evidence.length)
         throw new AppError(
@@ -319,24 +365,14 @@ export class InsightReportService {
           status: existing.status,
           reused: true,
         };
-      const active = (
-        await tx.query<{ id: string }>(
-          `SELECT id FROM student_insight_reports
-           WHERE student_id = $1 AND status IN ('queued','running')
-           LIMIT 1`,
-          [scope.studentId],
-        )
-      ).rows[0];
-      if (active)
-        throw new AppError(
-          "CONFLICT",
-          409,
-          "该学生已有正在生成的报告，请等待完成后再生成",
-          { reportId: active.id },
-        );
+      await this.assertNoActiveReport(tx, scope.studentId);
       await this.assertQuota(tx, scope.actor.userId, now);
       const created = (
-        await tx.query<{ id: string; status: ReportStatus; generation: number }>(
+        await tx.query<{
+          id: string;
+          status: ReportStatus;
+          generation: number;
+        }>(
           `INSERT INTO student_insight_reports(
              student_id, requested_by, from_date, to_date, timezone, revision_id,
              metric_version, prompt_version, snapshot_hash, snapshot, evidence_catalog
@@ -458,9 +494,7 @@ export class InsightReportService {
     this.requireGateway();
     z.uuid().parse(reportId);
     const now = this.now();
-    return this.transaction(async (tx) => {
-      await this.lockActor(tx, scope.actor.userId);
-      await this.lockStudent(tx, scope.studentId);
+    return this.transaction(scope, async (tx) => {
       const row = (
         await tx.query<{ status: ReportStatus; generation: number }>(
           `SELECT status, generation FROM student_insight_reports
@@ -472,6 +506,7 @@ export class InsightReportService {
       if (row.status !== "failed")
         throw new AppError("CONFLICT", 409, "只有失败的报告可以重试");
       await this.assertQuota(tx, scope.actor.userId, now);
+      await this.assertNoActiveReport(tx, scope.studentId);
       const generation = row.generation + 1;
       const jobId = await this.queue.enqueue(tx, {
         kind: REPORT_KIND,
@@ -519,7 +554,12 @@ export class InsightReportService {
         evidence,
       ]);
       const entry = available.get(evidence.key);
-      if (!entry || (evidence.kind !== "material" && evidence.kind !== "mistake_event" && !entry.taskId))
+      if (
+        !entry ||
+        (evidence.kind !== "material" &&
+          evidence.kind !== "mistake_event" &&
+          !entry.taskId)
+      )
         throw new AppError("NOT_FOUND", 404, "证据已删除或失效");
       await client.query("COMMIT");
       return {

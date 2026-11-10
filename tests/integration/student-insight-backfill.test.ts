@@ -11,7 +11,7 @@ import { dayStartUtc } from "../../apps/server/src/modules/student-insights/metr
 import { catalogFixture } from "../helpers/catalog.js";
 import { withTestDb } from "../helpers/database.js";
 
-const VERSION = "student-insights-backfill-v1:2026-10-01:2026-11-10";
+const VERSION = "student-insights-backfill-v2:2026-10-01:2026-11-10";
 const startedAt = dayStartUtc("2026-11-01");
 const historicalAt = new Date("2026-10-20T02:00:00.000Z");
 
@@ -50,10 +50,10 @@ async function seedHistory(
     "UPDATE learning_tasks SET created_at=$2, updated_at=$2 WHERE id=$1",
     [task.id, historicalAt],
   );
-  await db.pool.query(
-    "UPDATE conversations SET created_at=$2 WHERE id=$1",
-    [task.conversationId, historicalAt],
-  );
+  await db.pool.query("UPDATE conversations SET created_at=$2 WHERE id=$1", [
+    task.conversationId,
+    historicalAt,
+  ]);
   await db.pool.query("UPDATE messages SET created_at=$2 WHERE id=$1", [
     sent.id,
     historicalAt,
@@ -91,10 +91,7 @@ async function seedHistory(
     await db.pool.query<{ id: string }>(
       `INSERT INTO messages(conversation_id, role, created_at)
        VALUES($1,'assistant',$2) RETURNING id`,
-      [
-        task.conversationId,
-        new Date(historicalAt.getTime() + 2 * 3_600_000),
-      ],
+      [task.conversationId, new Date(historicalAt.getTime() + 2 * 3_600_000)],
     )
   ).rows[0]!.id;
   const afterSwitchId = (
@@ -104,7 +101,13 @@ async function seedHistory(
       [task.conversationId, afterSwitchAt],
     )
   ).rows[0]!.id;
-  return { attemptId, messageId: sent.id, materialId, assistantId, afterSwitchId };
+  return {
+    attemptId,
+    messageId: sent.id,
+    materialId,
+    assistantId,
+    afterSwitchId,
+  };
 }
 
 async function eventRows(db: Database) {
@@ -142,8 +145,7 @@ function failingDatabase(db: Database, failAt: number): Database {
     query: (sql: string, params?: unknown[]) => {
       if (sql.startsWith("INSERT INTO student_learning_events")) {
         inserts += 1;
-        if (inserts >= failAt)
-          return Promise.reject(Error("injected failure"));
+        if (inserts >= failAt) return Promise.reject(Error("injected failure"));
       }
       return client.query(sql, params as never);
     },
@@ -189,7 +191,9 @@ it("backfills historical activity with an honest coverage range", async () =>
       expect(row.occurred_at.toISOString()).toBe(historicalAt.toISOString());
     }
     // 助手消息与切换后的用户消息都不属于历史回填。
-    expect(events.some((row) => row.source_id === seed.assistantId)).toBe(false);
+    expect(events.some((row) => row.source_id === seed.assistantId)).toBe(
+      false,
+    );
     expect(events.some((row) => row.source_id === seed.afterSwitchId)).toBe(
       false,
     );
@@ -202,8 +206,9 @@ it("backfills historical activity with an honest coverage range", async () =>
       ).rows[0]!.n,
     ).toBe(0);
 
-    expect((await coverage(db, "2026-10-01", "2026-11-10")).learningComplete)
-      .toBe(false);
+    expect(
+      (await coverage(db, "2026-10-01", "2026-11-10")).learningComplete,
+    ).toBe(false);
     expect(await coverage(db, "2026-10-01", "2026-10-31")).toEqual({
       visitsStartedAt: startedAt.toISOString(),
       backfillVersion: VERSION,
