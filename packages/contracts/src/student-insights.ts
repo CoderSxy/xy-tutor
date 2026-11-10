@@ -322,6 +322,7 @@ export type TaskRecordDTO = {
   status: string;
   revisionId: string;
   chapterId: string | null;
+  conversationId: string | null;
   createdAt: string;
   updatedAt: string;
   itemCount: number;

@@ -75,6 +75,7 @@ type TaskRow = {
   status: string;
   revisionId: string;
   chapterId: string | null;
+  conversationId: string | null;
   createdAt: Date;
   updatedAt: Date;
   itemCount: number;
@@ -199,6 +200,7 @@ function toTask(row: TaskRow): TaskRecordDTO {
     status: row.status,
     revisionId: row.revisionId,
     chapterId: row.chapterId,
+    conversationId: row.conversationId,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
     itemCount: row.itemCount,
@@ -354,6 +356,9 @@ export class InsightRecordService {
       const rows = await tx.query<TaskRow>(
         `SELECT t.id, t.kind, t.title, t.status,
            t.revision_id AS "revisionId", t.chapter_id AS "chapterId",
+           (SELECT id FROM conversations
+             WHERE task_id = t.id
+             ORDER BY created_at DESC LIMIT 1) AS "conversationId",
            t.created_at AS "createdAt", t.updated_at AS "updatedAt",
            (SELECT count(*)::int FROM task_items ti
              WHERE ti.task_id = t.id) AS "itemCount",

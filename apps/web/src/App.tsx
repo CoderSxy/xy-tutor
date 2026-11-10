@@ -8,6 +8,13 @@ import { Accounts } from "./routes/admin/Accounts";
 import { Students } from "./routes/admin/students/Students";
 import { StudentLayout } from "./routes/admin/students/StudentLayout";
 import { Overview } from "./routes/admin/students/Overview";
+import { Records } from "./routes/admin/students/Records";
+import { RecordDetail } from "./routes/admin/students/RecordDetail";
+import { Mistakes as AdminMistakes } from "./routes/admin/students/Mistakes";
+import { MistakeDetail as AdminMistakeDetail } from "./routes/admin/students/MistakeDetail";
+import { Materials as AdminMaterials } from "./routes/admin/students/Materials";
+import { MaterialDetail as AdminMaterialDetail } from "./routes/admin/students/MaterialDetail";
+import { Activity } from "./routes/admin/students/Activity";
 import { RequireAdmin } from "./components/RequireAdmin";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
@@ -72,6 +79,19 @@ export function App() {
             >
               <Route index element={<Navigate to="overview" replace />} />
               <Route path="overview" element={<Overview />} />
+              <Route path="records" element={<Records />} />
+              <Route path="records/:taskId" element={<RecordDetail />} />
+              <Route path="mistakes" element={<AdminMistakes />} />
+              <Route
+                path="mistakes/:mistakeId"
+                element={<AdminMistakeDetail />}
+              />
+              <Route path="materials" element={<AdminMaterials />} />
+              <Route
+                path="materials/:materialId"
+                element={<AdminMaterialDetail />}
+              />
+              <Route path="activity" element={<Activity />} />
               <Route
                 path="*"
                 element={<Navigate to="../overview" replace />}
