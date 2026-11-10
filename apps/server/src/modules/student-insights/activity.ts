@@ -20,6 +20,12 @@ import {
 } from "./metrics.js";
 import { metaFor, readCoverage, type CoverageState } from "./queries.js";
 
+export {
+  backfillStudentInsights,
+  type BackfillOptions,
+  type BackfillResult,
+} from "./backfill.js";
+
 export type LearningEventType =
   | "answer_submitted"
   | "learning_message_sent"
