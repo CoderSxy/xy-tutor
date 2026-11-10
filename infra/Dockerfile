@@ -1,5 +1,6 @@
 # Build on a development/CI machine, then transfer the images to ECS.
 FROM node:22-bookworm-slim AS build
+ENV CI=true
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -34,3 +35,9 @@ ENV TMPDIR=/work
 USER postgres
 ENTRYPOINT ["node"]
 CMD ["scripts/backup-db.mjs"]
+
+# Export ordinary Linux files; ECS does not need Docker or an image registry.
+FROM scratch AS release
+COPY --from=server /app /backend
+COPY --from=web /srv /web
+COPY infra/native /deploy

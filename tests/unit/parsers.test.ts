@@ -48,6 +48,21 @@ it("rejects PDFs over 100 pages and survives malformed input", async () => {
   await expect(collect(await document(101))).rejects.toThrow("PDF_PAGE_LIMIT");
   await expect(collect(Buffer.from("%PDF-broken"))).rejects.toThrow();
 });
+it("stops rendering once the scanned-page budget is spent", async () => {
+  const bytes = await document(3);
+  const collect = async () => {
+    for await (const _page of parseDocument({
+      bytes,
+      contentType: "application/pdf",
+      signal: new AbortController().signal,
+      ocr: { recognize: async () => ({ text: "scanned" }) },
+      maxOcrPages: 1,
+    })) {
+      void _page;
+    }
+  };
+  await expect(collect()).rejects.toThrow("OCR_PAGE_LIMIT");
+});
 it("allows a full textbook through an explicit higher page limit while keeping student defaults", async () => {
   const bytes = await document(102, "Textbook page");
   let count = 0;

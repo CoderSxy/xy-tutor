@@ -19,7 +19,11 @@ export const textbookStatus: Record<string, string> = {
 export function textbookParseError(code?: string | null): string {
   const reasons: Record<string, string> = {
     PDF_PAGE_LIMIT: "教材超过500页，请按册拆分后重新上传。",
+    OCR_PAGE_LIMIT:
+      "扫描页超过60页，后端无法一次识别完。请拆分成多个较小文件，或换用带文字层的PDF。",
     FILE_SIZE_LIMIT: "教材PDF必须小于50MB，请压缩文件或按册拆分后重新上传。",
+    PARSE_TIMEOUT: "教材解析超过10分钟，请按册拆分后重新上传。",
+    PARSE_STALLED: "教材解析长时间无响应，请检查文件后重新上传。",
     PDF_PARSE_FAILED: "无法读取该PDF，请检查文件是否损坏、加密或含异常页面。",
     IMAGE_PIXEL_LIMIT: "教材中有尺寸过大的页面，请压缩页面后重试。",
     OCR_IMAGE_LIMIT: "扫描页图片超过识别限制，请压缩页面后重试。",

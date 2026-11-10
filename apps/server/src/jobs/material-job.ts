@@ -4,6 +4,7 @@ import type { MaterialService } from "../modules/materials/service.js";
 import { parseDocument } from "./parsers/pdf-process.js";
 import type { OcrProvider } from "./parsers/ocr.js";
 import type { ModelGateway } from "../agent/provider.js";
+import { PermanentJobError } from "./errors.js";
 import {
   candidateSchema,
   type ExtractionInput,
@@ -21,95 +22,87 @@ export function materialHandler(
         [id],
       )
     ).rows[0];
-    if (!m || m.file_status !== "ready") throw Error("INVALID_MATERIAL");
+    if (!m || m.file_status !== "ready")
+      throw new PermanentJobError("INVALID_MATERIAL");
     const store = s.uploads.store;
     if (!store) throw Error("OSS_NOT_CONFIGURED");
-    try {
-      const pages: ExtractionInput["pages"] = [];
-      const questions: ExtractionInput["questions"] = [];
-      for await (const page of parseDocument({
-        bytes: await store.read(m.object_key),
-        contentType: m.content_type,
-        signal,
-        ocr,
-      })) {
-        pages.push({
-          pdfPageIndex: page.pdfPageIndex,
-          text: page.text,
-          status: page.status,
-        });
-        let extracted: ExtractionInput["questions"] | undefined;
-        if (gateway && page.status === "ready" && page.text.length <= 10000) {
-          try {
-            const response = await gateway.complete(
-              {
-                priority: "background",
-                context: {
-                  systemPrompt:
-                    "将资料页拆为候选题，区分studentAnswer和teacherAnnotation，不要判题，不要补造题干或学生答案。输出JSON对象{questions:[{candidateId,stem,studentAnswer?,teacherAnnotation?,sources:[{pageIndex,bbox:[0,0,1,1]}]}]}。bbox为规范化原图坐标，不确定时引用整页。",
-                  messages: [
-                    {
-                      role: "user",
-                      content: JSON.stringify({
-                        pageIndex: page.pdfPageIndex,
-                        text: page.text,
-                      }),
-                      timestamp: Date.now(),
-                    },
-                  ],
-                },
+    const pages: ExtractionInput["pages"] = [];
+    const questions: ExtractionInput["questions"] = [];
+    for await (const page of parseDocument({
+      read: () => store.read(m.object_key),
+      contentType: m.content_type,
+      signal,
+      ocr,
+    })) {
+      pages.push({
+        pdfPageIndex: page.pdfPageIndex,
+        text: page.text,
+        status: page.status,
+      });
+      let extracted: ExtractionInput["questions"] | undefined;
+      if (gateway && page.status === "ready" && page.text.length <= 10000) {
+        try {
+          const response = await gateway.complete(
+            {
+              priority: "background",
+              context: {
+                systemPrompt:
+                  "将资料页拆为候选题，区分studentAnswer和teacherAnnotation，不要判题，不要补造题干或学生答案。输出JSON对象{questions:[{candidateId,stem,studentAnswer?,teacherAnnotation?,sources:[{pageIndex,bbox:[0,0,1,1]}]}]}。bbox为规范化原图坐标，不确定时引用整页。",
+                messages: [
+                  {
+                    role: "user",
+                    content: JSON.stringify({
+                      pageIndex: page.pdfPageIndex,
+                      text: page.text,
+                    }),
+                    timestamp: Date.now(),
+                  },
+                ],
               },
-              signal,
+            },
+            signal,
+          );
+          const parsed = z
+            .object({ questions: z.array(candidateSchema).max(100) })
+            .parse(
+              JSON.parse(
+                response.text.replace(/^```(?:json)?\s*|\s*```$/g, ""),
+              ),
             );
-            const parsed = z
-              .object({ questions: z.array(candidateSchema).max(100) })
-              .parse(
-                JSON.parse(
-                  response.text.replace(/^```(?:json)?\s*|\s*```$/g, ""),
-                ),
-              );
-            extracted = parsed.questions.map((q, i) => ({
-              ...q,
-              candidateId: `p${page.pdfPageIndex}-${i}`,
-              sources: q.sources.map((source) => ({
-                ...source,
-                pageIndex: page.pdfPageIndex,
-              })),
-            }));
-          } catch {
-            /* Keep the actual page available for manual confirmation. */
-          }
+          extracted = parsed.questions.map((q, i) => ({
+            ...q,
+            candidateId: `p${page.pdfPageIndex}-${i}`,
+            sources: q.sources.map((source) => ({
+              ...source,
+              pageIndex: page.pdfPageIndex,
+            })),
+          }));
+        } catch {
+          /* Keep the actual page available for manual confirmation. */
         }
-        if (extracted?.length) questions.push(...extracted);
-        else if (page.text) {
-          for (let start = 0; start < page.text.length; start += 20000)
-            questions.push({
-              candidateId: `p${page.pdfPageIndex}-manual-${start}`,
-              stem: page.text.slice(start, start + 20000),
-              sources: [{ pageIndex: page.pdfPageIndex, bbox: [0, 0, 1, 1] }],
-            });
-        } else
+      }
+      if (extracted?.length) questions.push(...extracted);
+      else if (page.text) {
+        for (let start = 0; start < page.text.length; start += 20000)
           questions.push({
-            candidateId: `p${page.pdfPageIndex}-manual`,
-            stem: "",
+            candidateId: `p${page.pdfPageIndex}-manual-${start}`,
+            stem: page.text.slice(start, start + 20000),
             sources: [{ pageIndex: page.pdfPageIndex, bbox: [0, 0, 1, 1] }],
           });
-        if (questions.length > 100) throw Error("QUESTION_LIMIT");
-      }
-      await s.saveExtraction(
-        id,
-        { pages, questions },
-        gateway?.runtime.model.id ?? "pdf-text-or-manual",
-        { jobId: job.id, token: job.leaseToken },
-      );
-      return { pages: pages.length, candidates: questions.length };
-    } catch (error) {
-      if (job.attempts >= 3)
-        await s.db.pool.query(
-          "UPDATE materials SET status='failed' WHERE id=$1 AND status='processing' AND EXISTS(SELECT 1 FROM jobs WHERE id=$2 AND lease_token=$3 AND status='running')",
-          [id, job.id, job.leaseToken],
-        );
-      throw error;
+      } else
+        questions.push({
+          candidateId: `p${page.pdfPageIndex}-manual`,
+          stem: "",
+          sources: [{ pageIndex: page.pdfPageIndex, bbox: [0, 0, 1, 1] }],
+        });
+      if (questions.length > 100) throw new PermanentJobError("QUESTION_LIMIT");
     }
+    await s.saveExtraction(
+      id,
+      { pages, questions },
+      gateway?.runtime.model.id ?? "pdf-text-or-manual",
+      { jobId: job.id, token: job.leaseToken },
+    );
+    return { pages: pages.length, candidates: questions.length };
   };
 }

@@ -76,6 +76,7 @@ export class JobQueue {
     token: string,
     errorCode: string,
     now = new Date(),
+    permanent = false,
   ): Promise<void> {
     const client = await this.db.pool.connect();
     try {
@@ -86,14 +87,30 @@ export class JobQueue {
           kind: string;
           payload: Record<string, unknown>;
         }>(
-          `UPDATE jobs SET status=CASE WHEN attempts>=3 THEN 'failed' ELSE 'queued' END,
+          `UPDATE jobs SET status=CASE WHEN $5::boolean OR attempts>=3 THEN 'failed' ELSE 'queued' END,
              available_at=$4::timestamptz+interval '10 seconds',
              lease_token=NULL,lease_expires_at=NULL,error_code=$3
            WHERE id=$1 AND lease_token=$2 AND status='running'
            RETURNING status,kind,payload`,
-          [id, token, errorCode, now],
+          [id, token, errorCode, now, permanent],
         )
       ).rows[0];
+      if (job?.status === "failed" && job.kind === "textbook.parse") {
+        const revisionId = job.payload.revisionId;
+        if (typeof revisionId === "string")
+          await client.query(
+            "UPDATE textbook_revisions SET status='failed' WHERE id=$1 AND status='processing'",
+            [revisionId],
+          );
+      }
+      if (job?.status === "failed" && job.kind === "material.parse") {
+        const materialId = job.payload.materialId;
+        if (typeof materialId === "string")
+          await client.query(
+            "UPDATE materials SET status='failed' WHERE id=$1 AND status='processing'",
+            [materialId],
+          );
+      }
       if (job?.kind === "student.insight") {
         const reportId = job.payload.reportId;
         const generation = job.payload.generation;

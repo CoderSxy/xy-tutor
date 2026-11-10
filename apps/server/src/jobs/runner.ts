@@ -1,8 +1,11 @@
 const safeErrorCodes = new Set([
   "PDF_PAGE_LIMIT",
+  "OCR_PAGE_LIMIT",
   "FILE_SIZE_LIMIT",
   "PDF_PARSE_FAILED",
   "PARSE_OUTPUT_LIMIT",
+  "PARSE_TIMEOUT",
+  "PARSE_STALLED",
   "IMAGE_PIXEL_LIMIT",
   "OCR_IMAGE_LIMIT",
   "OCR_UNAVAILABLE",
@@ -10,6 +13,7 @@ const safeErrorCodes = new Set([
   "INVALID_TEXTBOOK_FILE",
 ]);
 import { randomUUID } from "node:crypto";
+import { PermanentJobError } from "./errors.js";
 import type { JobQueue, Job } from "./queue.js";
 export type JobHandler = (job: Job, signal: AbortSignal) => Promise<unknown>;
 export class JobRunner {
@@ -52,14 +56,20 @@ export class JobRunner {
         const result = await handler(job, controller.signal);
         await this.queue.finish(job.id, job.leaseToken, result);
       } catch (error) {
+        // 永久失败：同一份文件重跑多少次都是同样结果，别再排下一轮。
+        const permanent =
+          !controller.signal.aborted && error instanceof PermanentJobError;
         const code =
-          error instanceof Error && safeErrorCodes.has(error.message)
+          error instanceof Error &&
+          (permanent || safeErrorCodes.has(error.message))
             ? error.message
             : "PROCESSING_FAILED";
         await this.queue.fail(
           job.id,
           job.leaseToken,
           controller.signal.aborted ? "INTERRUPTED" : code,
+          new Date(),
+          permanent,
         );
       } finally {
         clearInterval(heartbeat);
