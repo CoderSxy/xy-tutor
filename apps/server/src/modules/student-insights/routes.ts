@@ -16,6 +16,7 @@ import {
 import type { FileStore } from "../../infra/oss.js";
 import { requireAdmin } from "../auth/policy.js";
 import { requireSession } from "../auth/routes.js";
+import { InsightActivityService } from "./activity.js";
 import { InsightFileService } from "./files.js";
 import { resolveInsightRange } from "./metrics.js";
 import { requireAdminInsightScope } from "./policy.js";
@@ -73,6 +74,7 @@ function registerRoutes(
   const service = new InsightQueryService(deps.database);
   const records = new InsightRecordService(deps.database);
   const files = new InsightFileService(deps.database, deps.fileStore);
+  const activity = new InsightActivityService(deps.database);
 
   adminInsightRoute(app, "GET", "/students", async (request) => {
     const actor = requireSession(request).actor;
@@ -99,6 +101,19 @@ function registerRoutes(
         to: range.to,
         revisionId: input.revisionId,
       });
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/activity",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      return activity.get(
+        scope,
+        insightFilterInputSchema.parse(request.query),
+      );
     },
   );
 

@@ -6,6 +6,7 @@ import {
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { AuthService } from "../auth/service.js";
+import { recordLearningEvent } from "../student-insights/activity.js";
 import { ConversationAttachmentService } from "./attachments.js";
 import type { MessageDTO, MessageHistory } from "./contracts.js";
 export class MessageService {
@@ -42,9 +43,12 @@ export class MessageService {
       .parse(input);
     await this.authorize(scope, v.conversationId);
     return inTransaction(this.db, async (tx) => {
-      await tx.query("SELECT id FROM conversations WHERE id=$1 FOR UPDATE", [
-        v.conversationId,
-      ]);
+      const conversation = (
+        await tx.query(
+          'SELECT id, task_id AS "taskId", revision_id AS "revisionId" FROM conversations WHERE id=$1 FOR UPDATE',
+          [v.conversationId],
+        )
+      ).rows[0];
       if (v.requestKey) {
         const prev = (
           await tx.query(
@@ -75,6 +79,18 @@ export class MessageService {
           [m.id, v.content],
         )
       ).rows[0];
+      if (v.role === "user")
+        await recordLearningEvent(tx, {
+          studentId: scope.studentId,
+          actorId: scope.actor.userId,
+          eventType: "learning_message_sent",
+          sourceType: "message",
+          sourceId: m.id,
+          taskId: conversation.taskId,
+          revisionId: conversation.revisionId,
+          occurredAt: new Date(),
+          sourceOrigin: "live",
+        });
       return {
         id: m.id,
         versionId: mv.id,

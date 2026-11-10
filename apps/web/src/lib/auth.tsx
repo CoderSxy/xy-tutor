@@ -17,6 +17,7 @@ import type {
   Capabilities,
 } from "./types";
 import { useRemote } from "./useRemote";
+import { useStudentVisit } from "../features/student-insights/useStudentVisit";
 type AuthState = {
   session: Session | null;
   loading: boolean;
@@ -74,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+  useStudentVisit(session?.actor.role === "student");
   const profile = useRemote<StudentProfile>(
     session && studentId ? `/api/students/${studentId}` : null,
   );

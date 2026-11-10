@@ -7,6 +7,7 @@ import {
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { AuthService } from "../auth/service.js";
+import { recordLearningEvent } from "../student-insights/activity.js";
 import type { UploadService } from "../uploads/service.js";
 import type { CatalogService } from "../catalog/service.js";
 import { JobQueue } from "../../jobs/queue.js";
@@ -63,6 +64,16 @@ export class MaterialService {
         kind: "material.parse",
         dedupeKey: `material:${r.id}`,
         payload: { materialId: r.id },
+      });
+      await recordLearningEvent(tx, {
+        studentId: scope.studentId,
+        actorId: scope.actor.userId,
+        eventType: "material_submitted",
+        sourceType: "material",
+        sourceId: r.id,
+        revisionId: v.revisionId,
+        occurredAt: new Date(),
+        sourceOrigin: "live",
       });
       return { id: r.id };
     });

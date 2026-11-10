@@ -27,6 +27,7 @@ import { registerLearning } from "./modules/learning/routes.js";
 import { registerConversations } from "./modules/conversations/routes.js";
 import { CatalogService } from "./modules/catalog/service.js";
 import { registerCatalog } from "./modules/catalog/routes.js";
+import { registerStudentVisits, initializeInsightCollection } from "./modules/student-insights/activity.js";
 import { registerStudentInsights } from "./modules/student-insights/routes.js";
 import { JobQueue } from "./jobs/queue.js";
 import { JobRunner } from "./jobs/runner.js";
@@ -100,7 +101,10 @@ export function buildApp(deps: AppDependencies) {
   if (deps.database && deps.config) {
     const auth = new AuthService(deps.database);
     app.register(async (scoped) => {
+      // 采集切换点必须在注册服务前落库，保证所有实例一致。
+      await initializeInsightCollection(deps.database!);
       await registerAuth(scoped, auth, deps.config!);
+      registerStudentVisits(scoped, { database: deps.database! });
       const uploads: UploadService = new UploadService(
         deps.database!,
         auth,

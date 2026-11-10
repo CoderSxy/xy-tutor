@@ -12,6 +12,7 @@ import {
 } from "../../../../../packages/contracts/src/conversation-images.js";
 import type { FileStore } from "../../infra/oss.js";
 import type { AuthService } from "../auth/service.js";
+import { recordLearningEvent } from "../student-insights/activity.js";
 import { ConversationAttachmentService } from "./attachments.js";
 import { EventStore } from "./events.js";
 export interface RunExecutor {
@@ -147,6 +148,17 @@ export class RunService {
           versionId!,
           v.attachmentIds,
         );
+        await recordLearningEvent(tx, {
+          studentId: scope.studentId,
+          actorId: scope.actor.userId,
+          eventType: "learning_message_sent",
+          sourceType: "message",
+          sourceId: m.id,
+          taskId: c.task_id,
+          revisionId: c.revision_id,
+          occurredAt: new Date(),
+          sourceOrigin: "live",
+        });
       }
       if (v.questionVersionId) {
         if (!c.task_id || v.mode !== "reply" || !versionId)
@@ -158,20 +170,33 @@ export class RunService {
           )
         ).rows[0];
         if (!valid) throw new AppError("NOT_FOUND", 404, "当前题目不存在");
-        await tx.query(
-          "INSERT INTO attempts(student_id,task_id,question_version_id,message_version_id,request_key,answer) VALUES($1,$2,$3,$4,$5,$6)",
-          [
-            scope.studentId,
-            c.task_id,
-            v.questionVersionId,
-            versionId,
-            `run:${v.requestKey}`,
-            v.message,
-          ],
-        );
+        const attempt = (
+          await tx.query(
+            "INSERT INTO attempts(student_id,task_id,question_version_id,message_version_id,request_key,answer) VALUES($1,$2,$3,$4,$5,$6) RETURNING id",
+            [
+              scope.studentId,
+              c.task_id,
+              v.questionVersionId,
+              versionId,
+              `run:${v.requestKey}`,
+              v.message,
+            ],
+          )
+        ).rows[0];
         await tx.query("UPDATE task_items SET status='answered' WHERE id=$1", [
           valid.id,
         ]);
+        await recordLearningEvent(tx, {
+          studentId: scope.studentId,
+          actorId: scope.actor.userId,
+          eventType: "answer_submitted",
+          sourceType: "attempt",
+          sourceId: attempt.id,
+          taskId: c.task_id,
+          revisionId: c.revision_id,
+          occurredAt: new Date(),
+          sourceOrigin: "live",
+        });
       }
       if (v.mode === "reply" && c.task_id)
         await tx.query(

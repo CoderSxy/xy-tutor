@@ -6,6 +6,7 @@ import {
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { AuthService } from "../auth/service.js";
+import { recordLearningEvent } from "../student-insights/activity.js";
 export type AttemptDTO = {
   id: string;
   answer: string;
@@ -88,6 +89,17 @@ export class AttemptService {
       await tx.query("UPDATE task_items SET status='answered' WHERE id=$1", [
         q.id,
       ]);
+      await recordLearningEvent(tx, {
+        studentId: scope.studentId,
+        actorId: scope.actor.userId,
+        eventType: "answer_submitted",
+        sourceType: "attempt",
+        sourceId: a.id,
+        taskId: v.taskId,
+        revisionId: task.revision_id,
+        occurredAt: new Date(),
+        sourceOrigin: "live",
+      });
       return {
         id: a.id,
         answer: v.answer,
