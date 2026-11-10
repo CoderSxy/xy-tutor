@@ -1,0 +1,36 @@
+apps/server/src/modules/student-insights/queries.ts
+  s_7ddd7bcc8c3bb9::t_7d5cd00b4cf6b6 1-102,111-201,203-223,225-261,263-279,281-299,301-388,391-501,504-824
+  s_7ddd7bcc8c3bb9::t_c16c5fa3c25517 389-390
+  s_7ddd7bcc8c3bb9::t_8ba9bef269691d 103-110,202,224,262,280,300
+  s_7ddd7bcc8c3bb9::t_bd1310a9a43010 502-503
+apps/server/src/modules/student-insights/routes.ts
+  s_7ddd7bcc8c3bb9::t_8c0061fc45a805 55-56,58-86
+  s_7ddd7bcc8c3bb9::t_fd6318b173f196 3-6,9-11
+packages/contracts/src/student-insights.ts
+  s_7ddd7bcc8c3bb9::t_700d69d68fbcf5 40-49,51
+tests/integration/admin-student-insight-queries.test.ts
+  s_7ddd7bcc8c3bb9::t_a92b27b1988785 1-26,33,35-43,45-146,148-206,209-236,239-260,262-289,291-293,295-310,312-319,321-407
+  s_7ddd7bcc8c3bb9::t_7defe324534329 147,207-208,237-238,261,290,294
+  s_7ddd7bcc8c3bb9::t_ccf974d930be50 27-32,34,44
+  s_7ddd7bcc8c3bb9::t_54e0da9690ec39 320
+  s_7ddd7bcc8c3bb9::t_6dfb209b9acdc1 311
+apps/server/src/modules/student-insights/facts.ts
+  s_7ddd7bcc8c3bb9::t_be78f6ed1319c8 13
+  s_7ddd7bcc8c3bb9::t_d169e4910b9a4d 6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "14fb5458b8c2aad20261acf8f1f3592ff0d76c7f",
+  "prompts": {},
+  "sessions": {
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
