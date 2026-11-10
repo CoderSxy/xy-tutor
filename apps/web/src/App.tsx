@@ -5,6 +5,10 @@ import { MistakeDetail } from "./routes/MistakeDetail";
 import { Textbooks } from "./routes/admin/Textbooks";
 import { TextbookReview } from "./routes/admin/TextbookReview";
 import { Accounts } from "./routes/admin/Accounts";
+import { Students } from "./routes/admin/students/Students";
+import { StudentLayout } from "./routes/admin/students/StudentLayout";
+import { Overview } from "./routes/admin/students/Overview";
+import { RequireAdmin } from "./components/RequireAdmin";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
 import { AppShell } from "./components/AppShell";
@@ -57,9 +61,23 @@ export function App() {
           <Route path="/materials/:id" element={<MaterialReview />} />
           <Route path="/mistakes" element={<Mistakes />} />
           <Route path="/mistakes/:id" element={<MistakeDetail />} />
-          <Route path="/admin/textbooks" element={<Textbooks />} />
-          <Route path="/admin/textbooks/:id" element={<TextbookReview />} />
-          <Route path="/admin/accounts" element={<Accounts />} />
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin/textbooks" element={<Textbooks />} />
+            <Route path="/admin/textbooks/:id" element={<TextbookReview />} />
+            <Route path="/admin/accounts" element={<Accounts />} />
+            <Route path="/admin/students" element={<Students />} />
+            <Route
+              path="/admin/students/:studentId"
+              element={<StudentLayout />}
+            >
+              <Route index element={<Navigate to="overview" replace />} />
+              <Route path="overview" element={<Overview />} />
+              <Route
+                path="*"
+                element={<Navigate to="../overview" replace />}
+              />
+            </Route>
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

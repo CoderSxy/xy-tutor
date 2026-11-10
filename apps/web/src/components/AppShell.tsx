@@ -9,6 +9,7 @@ import {
   Settings,
   Menu,
   ShieldCheck,
+  Users,
   LogOut,
 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -59,6 +60,10 @@ export function AppShell({
           {mode === "admin" && (
             <>
               <div className="nav-divider" />
+              <NavLink to="/admin/students" onClick={() => setOpen(false)}>
+                <Users size={20} />
+                <span>学生学情</span>
+              </NavLink>
               <NavLink to="/admin/textbooks" onClick={() => setOpen(false)}>
                 <ShieldCheck size={20} />
                 <span>教材管理</span>
