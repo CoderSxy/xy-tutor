@@ -1,0 +1,42 @@
+tests/e2e/admin-student-analysis.spec.ts
+  s_7ddd7bcc8c3bb9::t_f056f5d7a0b664 1-570
+apps/web/src/App.tsx
+  s_7ddd7bcc8c3bb9::t_e9da1f72c5faba 18-19
+  s_7ddd7bcc8c3bb9::t_8b72fdd55ed4cc 97-98
+apps/web/src/features/student-insights/ReportContent.tsx
+  s_7ddd7bcc8c3bb9::t_d0b93a7de8f097 1-177
+apps/web/src/routes/admin/students/Analysis.tsx
+  s_7ddd7bcc8c3bb9::t_3baff00cfc1b1c 1-173
+apps/web/src/features/student-insights/api.ts
+  s_7ddd7bcc8c3bb9::t_009a1f312c6bed 16-19
+  s_7ddd7bcc8c3bb9::t_6a2dd9824aa7c6 453-532
+  s_7ddd7bcc8c3bb9::t_cf2989273a5cab 301-338
+apps/web/src/styles/global.css
+  s_7ddd7bcc8c3bb9::t_5c51bbe2f35618 2939-3005,3007-3009
+tests/e2e/real-server.ts
+  s_7ddd7bcc8c3bb9::t_40ff0b05bc4dc9 179-207
+  s_7ddd7bcc8c3bb9::t_0587a52bb571f7 49-135,137
+  s_7ddd7bcc8c3bb9::t_27d6b101475fd4 136
+tests/e2e/admin-student-analysis-real.spec.ts
+  s_7ddd7bcc8c3bb9::t_2cde6dec369abf 1-61
+apps/web/src/routes/admin/students/AnalysisDetail.tsx
+  s_7ddd7bcc8c3bb9::t_acd13a96973793 1-33,35-111,113-154
+  s_7ddd7bcc8c3bb9::t_fcca50f79587df 34
+  s_7ddd7bcc8c3bb9::t_1b62ae758fd8ef 112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3bc3862cf3ed1b4340d21ab7d8ea070de21d6e4c",
+  "prompts": {},
+  "sessions": {
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
