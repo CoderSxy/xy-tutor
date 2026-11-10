@@ -1,0 +1,27 @@
+scripts/backfill-student-insights.ts
+  s_7ddd7bcc8c3bb9::t_0c18f8416dd483 1-43
+package.json
+  s_7ddd7bcc8c3bb9::t_c05cd8a4a5fab5 24
+tests/integration/student-insight-backfill.test.ts
+  s_7ddd7bcc8c3bb9::t_724374ccd67f28 1-353
+apps/server/src/modules/student-insights/activity.ts
+  s_7ddd7bcc8c3bb9::t_9c4345a97b37a2 23-28
+apps/server/src/modules/student-insights/backfill.ts
+  s_7ddd7bcc8c3bb9::t_e4e0d448a6ca82 1-289
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "dbbb4ddcc708692e3d30b187aa5a1a26b843b70f",
+  "prompts": {},
+  "sessions": {
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
