@@ -1,0 +1,38 @@
+docs/qa/admin-student-insights-review-fixes.md
+  s_329ce14e8c9d8a::t_d82a70a6d27a77 1-18,22-31
+  s_329ce14e8c9d8a::t_1b4d8a39f6f463 19-21
+tests/integration/student-insight-backfill.test.ts
+  s_329ce14e8c9d8a::t_f47f9fe9fb8251 53-56,94,104-110,148,194-196,209-211
+  s_329ce14e8c9d8a::t_a9ad790d2e5516 14
+tests/integration/student-insight-review-regressions.test.ts
+  s_329ce14e8c9d8a::t_f47f9fe9fb8251 5-12,15-18,20-26,28-46,48-79,81-110,112-135,137-155
+  s_329ce14e8c9d8a::t_b14e32994f6003 1-4,13-14,19,27,47,80,111,136
+apps/server/src/modules/student-insights/reports.ts
+  s_329ce14e8c9d8a::t_f47f9fe9fb8251 50-53,71-75,127-130,189-192,243-246,248-250,252-264,269-271,274-289,293-310,327,336,368,371-375,497,509,557-562
+apps/server/src/modules/student-insights/backfill.ts
+  s_329ce14e8c9d8a::t_f47f9fe9fb8251 5,36-37,160,184-189,242,269-272
+tests/integration/student-insight-report-jobs.test.ts
+  s_329ce14e8c9d8a::t_f47f9fe9fb8251 78-85,126,142-145,168,349-351
+apps/server/src/modules/student-insights/activity.ts
+  s_329ce14e8c9d8a::t_f47f9fe9fb8251 30,47,50,68,164-165,167-173,207-218
+tests/integration/student-insight-reports.test.ts
+  s_329ce14e8c9d8a::t_f47f9fe9fb8251 5,63-65,108-110,196-199,213-216,228-231,242-245,258-261,272-275,282-285
+tests/integration/student-insight-activity.test.ts
+  s_329ce14e8c9d8a::t_f47f9fe9fb8251 152-156,163-167,263,310-313,321,324-326,340,379-381,393,433-435
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6f98a5d5870490296327bba2ee14b49332523ac1",
+  "prompts": {},
+  "sessions": {
+    "s_329ce14e8c9d8a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c322-e82f-7b02-a89a-03d64c9354e3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
