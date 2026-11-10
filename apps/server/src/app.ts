@@ -15,6 +15,7 @@ import { materialHandler } from "./jobs/material-job.js";
 import { BootstrapService } from "./agent/bootstrap.js";
 import { TutorExecutor } from "./agent/tutor.js";
 import type { ModelGateway } from "./agent/provider.js";
+import { modelSupportsImages } from "./agent/capabilities.js";
 import { scopeForRequest } from "./modules/learning/routes.js";
 import { requireSession } from "./modules/auth/routes.js";
 import { RunService } from "./modules/conversations/runs.js";
@@ -139,6 +140,7 @@ export function buildApp(deps: AppDependencies) {
         auth,
         catalog,
         deps.gateway,
+        deps.fileStore,
       );
       const summaries = new SummaryService(deps.database!, auth, deps.gateway);
       const knowledge = new KnowledgeService(deps.database!, auth);
@@ -180,7 +182,7 @@ export function buildApp(deps: AppDependencies) {
           z.object({ id: z.uuid() }).parse(req.params).id,
         ),
       );
-      const runs = new RunService(deps.database!, auth);
+      const runs = new RunService(deps.database!, auth, deps.fileStore);
       registerRuns(scoped, runs, () => !!deps.gateway);
       const bootstrap = new BootstrapService(
         deps.database!,
@@ -198,6 +200,9 @@ export function buildApp(deps: AppDependencies) {
           llmConfigured: !!deps.gateway,
           uploadsConfigured: !!deps.fileStore,
           ocrConfigured: !!deps.ocr,
+          images: modelSupportsImages(deps.gateway)
+            ? "enabled-unverified"
+            : "disabled",
         };
       });
       if (deps.enableJobs) {
@@ -225,6 +230,7 @@ export function buildApp(deps: AppDependencies) {
                     includeArchived: true,
                   }),
               },
+              deps.fileStore,
             ),
           ),
         );

@@ -30,6 +30,46 @@ it("does not verify final values when working or unconfirmed recognition is requ
     await new AssessmentVerifier().verify({ ...base, stemConfirmed: false }),
   ).toMatchObject({ verification: "pending" });
 });
+it("requires multimodal verification whenever image evidence exists", async () => {
+  const v = new AssessmentVerifier();
+  expect(
+    await v.verify({ ...base, hasImageEvidence: true }),
+  ).toMatchObject({ correctness: "uncertain", verification: "pending" });
+  expect(
+    await v.verify({
+      ...base,
+      hasImageEvidence: true,
+      independent: {
+        correctness: "incorrect",
+        evidenceSufficient: true,
+        criteriaSatisfied: false,
+      },
+    }),
+  ).toMatchObject({ correctness: "uncertain", verification: "pending" });
+  expect(
+    await v.verify({
+      ...base,
+      hasImageEvidence: true,
+      independent: {
+        correctness: "correct",
+        evidenceSufficient: true,
+        criteriaSatisfied: true,
+      },
+    }),
+  ).toMatchObject({ correctness: "correct", verification: "verified" });
+  expect(
+    await v.verify({
+      ...base,
+      answerType: "open",
+      hasImageEvidence: true,
+      independent: {
+        correctness: "correct",
+        evidenceSufficient: true,
+        criteriaSatisfied: true,
+      },
+    }),
+  ).toMatchObject({ correctness: "correct", verification: "verified" });
+});
 it("keeps disagreement, missing evidence and open answers pending", async () => {
   const v = new AssessmentVerifier();
   expect(

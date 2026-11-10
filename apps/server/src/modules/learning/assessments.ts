@@ -1,11 +1,22 @@
 import { z } from "zod";
+import type { ImageContent } from "@earendil-works/pi-ai";
 import type { Database } from "../../../../../packages/db/src/client.js";
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
+import {
+  IMAGE_READ_TIMEOUT_MS,
+  MAX_MODEL_IMAGE_BYTES,
+  MAX_MODEL_IMAGES,
+} from "../../../../../packages/contracts/src/conversation-images.js";
 import type { AuthService } from "../auth/service.js";
 import type { CatalogService } from "../catalog/service.js";
 import { TextbookSearch } from "../catalog/search.js";
+import type { FileStore } from "../../infra/oss.js";
 import type { ModelGateway } from "../../agent/provider.js";
+import {
+  ImageEvidenceReader,
+  type LoadedImage,
+} from "../conversations/attachments.js";
 import { AssessmentVerifier, type Correctness } from "./verifier.js";
 import { referenceSchema, checkReference, parseModelJson } from "./practice.js";
 export type AssessmentDTO = {
@@ -22,6 +33,7 @@ export class AssessmentService {
     readonly auth: AuthService,
     private catalog: CatalogService,
     private gateway?: ModelGateway,
+    private store?: FileStore,
   ) {}
   async submitCandidate(
     scope: StudentScope,
@@ -45,6 +57,42 @@ export class AssessmentService {
       )
     ).rows[0];
     if (!a) throw new AppError("NOT_FOUND", 404, "作答不存在");
+    const attachments = a.message_version_id
+      ? (
+          await this.db.pool.query<{ file_id: string; size: number }>(
+            "SELECT ma.file_id,f.size FROM message_attachments ma JOIN files f ON f.id=ma.file_id WHERE ma.message_version_id=$1 AND f.status='ready' AND f.content_type LIKE 'image/%' ORDER BY ma.position",
+            [a.message_version_id],
+          )
+        ).rows
+      : [];
+    const hasImageEvidence = attachments.length > 0;
+    let images: LoadedImage[] = [];
+    let imageUnreadable = false;
+    if (hasImageEvidence) {
+      const total = attachments.reduce(
+        (sum, row) => sum + Number(row.size),
+        0,
+      );
+      if (
+        !this.store ||
+        attachments.length > MAX_MODEL_IMAGES ||
+        total > MAX_MODEL_IMAGE_BYTES
+      )
+        imageUnreadable = true;
+      else {
+        const reader = new ImageEvidenceReader(this.db, this.store);
+        try {
+          images = await reader.load(
+            attachments.map((row) => row.file_id),
+            AbortSignal.timeout(IMAGE_READ_TIMEOUT_MS),
+          );
+        } catch {
+          imageUnreadable = true;
+        } finally {
+          reader.release();
+        }
+      }
+    }
     if (
       v.taskId &&
       a.task_id !== v.taskId &&
@@ -128,7 +176,10 @@ export class AssessmentService {
     if (
       ref &&
       this.gateway &&
-      (ref.requires_working || ref.answer_type === "worked")
+      !imageUnreadable &&
+      (ref.requires_working ||
+        ref.answer_type === "worked" ||
+        hasImageEvidence)
     ) {
       try {
         const r = await this.gateway.complete(
@@ -140,12 +191,32 @@ export class AssessmentService {
                 {
                   role: "user",
                   timestamp: Date.now(),
-                  content: JSON.stringify({
-                    stem: a.stem,
-                    answer: a.answer,
-                    reference: ref.answer,
-                    requiresWorking: ref.requires_working,
-                  }),
+                  content: hasImageEvidence
+                    ? [
+                        {
+                          type: "text" as const,
+                          text: JSON.stringify({
+                            stem: a.stem,
+                            answer: a.answer,
+                            reference: ref.answer,
+                            requiresWorking: ref.requires_working,
+                            hasImageEvidence: true,
+                          }),
+                        },
+                        ...images.map(
+                          (image): ImageContent => ({
+                            type: "image",
+                            data: image.data,
+                            mimeType: image.mimeType,
+                          }),
+                        ),
+                      ]
+                    : JSON.stringify({
+                        stem: a.stem,
+                        answer: a.answer,
+                        reference: ref.answer,
+                        requiresWorking: ref.requires_working,
+                      }),
                 },
               ],
             },
@@ -172,6 +243,7 @@ export class AssessmentService {
       referenceAnswer: ref?.answer,
       candidateCorrectness: v.correctness,
       citationsValid,
+      hasImageEvidence,
       independent,
     });
     const hints = (
@@ -203,6 +275,7 @@ export class AssessmentService {
             independent,
             referenceIds: v.referenceIds,
             citationsValid,
+            imageEvidence: hasImageEvidence,
           }),
         ],
       )

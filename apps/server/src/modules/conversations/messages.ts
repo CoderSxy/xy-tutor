@@ -6,12 +6,16 @@ import {
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { AuthService } from "../auth/service.js";
+import { ConversationAttachmentService } from "./attachments.js";
 import type { MessageDTO, MessageHistory } from "./contracts.js";
 export class MessageService {
+  readonly attachments: ConversationAttachmentService;
   constructor(
     readonly db: Database,
     readonly auth: AuthService,
-  ) {}
+  ) {
+    this.attachments = new ConversationAttachmentService(db, auth);
+  }
   async authorize(scope: StudentScope, conversationId: string): Promise<void> {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);
     z.uuid().parse(conversationId);
@@ -121,6 +125,10 @@ export class MessageService {
         m.id,
       ]);
       await tx.query(
+        "INSERT INTO message_attachments(message_version_id,file_id,position) SELECT $1,file_id,position FROM message_attachments WHERE message_version_id=$2",
+        [mv.id, old.id],
+      );
+      await tx.query(
         "INSERT INTO evidence_invalidations(student_id,evidence_version_id,reason) VALUES($1,$2,'message_edited')",
         [scope.studentId, old.id],
       );
@@ -155,6 +163,7 @@ export class MessageService {
           versionNo: row.current_version,
           content: "",
           regeneratedFrom: row.regenerated_from,
+          attachments: [],
           versions: [],
         };
         messages.set(row.id, m);
@@ -163,13 +172,27 @@ export class MessageService {
         id: row.version_id,
         versionNo: row.version_no,
         content: row.content,
+        attachments: [],
       });
       if (row.version_no === row.current_version) {
         m.versionId = row.version_id;
         m.content = row.content;
       }
     }
-    return [...messages.values()];
+    const list = [...messages.values()];
+    const grouped = await this.attachments.listForVersions(
+      scope,
+      conversationId,
+      list.flatMap((item) => item.versions.map((version) => version.id)),
+    );
+    for (const message of list) {
+      for (const version of message.versions)
+        version.attachments = grouped.get(version.id) ?? [];
+      message.attachments =
+        message.versions.find((version) => version.id === message.versionId)
+          ?.attachments ?? [];
+    }
+    return list;
   }
   async regenerate(
     scope: StudentScope,

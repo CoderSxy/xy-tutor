@@ -4,10 +4,12 @@ import { MessageCircle, NotebookPen, Sparkles, Target } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { api, jsonBody, errorMessage } from "../lib/api";
 import type { TaskDTO, TaskKind } from "../lib/types";
+import type { ImageSubmission } from "../../../../packages/contracts/src/conversation-images.js";
 import { Button } from "../components/ui/button";
 import { SessionRail } from "../components/SessionRail";
 import { sessionStarter } from "../lib/sessionStart";
 import { Composer } from "../features/tutor/Composer";
+import { useImageAttachments } from "../features/tutor/useImageAttachments";
 
 const quickStarts: {
   kind: TaskKind;
@@ -46,36 +48,55 @@ export function Home() {
     navigate = useNavigate();
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [draft, setDraft] = useState("");
+    [draft, setDraft] = useState(""),
+    [railRefresh, setRailRefresh] = useState(0);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const firstMessage = useRef<ReturnType<typeof sessionStarter> | null>(null);
   if (!firstMessage.current)
     firstMessage.current = sessionStarter(
-      async (scope) => {
+      async (scope, creationKey) => {
         const [studentId, revisionId] = scope.split(":");
-        return api<TaskDTO>(
+        const task = await api<TaskDTO>(
           `/api/tasks?studentId=${encodeURIComponent(studentId!)}`,
           {
             method: "POST",
-            ...jsonBody({ revisionId, kind: "free_question" }),
+            ...jsonBody({ revisionId, kind: "free_question", creationKey }),
           },
         );
+        setRailRefresh((value) => value + 1);
+        return task;
       },
-      (conversationId, message, requestKey, scope) =>
-        api(
+      async (conversationId, submission, requestKey, scope) => {
+        const result = await api<{ runId: string }>(
           `/api/conversations/${conversationId}/runs?studentId=${encodeURIComponent(scope.split(":")[0]!)}`,
           {
             method: "POST",
-            ...jsonBody({ message, requestKey }),
+            ...jsonBody({
+              message: submission.message,
+              requestKey,
+              attachmentIds: submission.attachmentIds,
+            }),
           },
-        ),
+        );
+        sessionStorage.setItem(`xy.run.${conversationId}`, result.runId);
+        return result;
+      },
     );
-  const createSession = async (kind: TaskKind, message?: string) => {
+  const images = useImageAttachments({
+    studentId: a.studentId,
+    identity: a.selected?.id,
+    enabled: a.capabilities?.images !== "disabled",
+    ensureConversation: () =>
+      firstMessage.current!.ensureConversation(
+        `${a.studentId}:${a.selected!.id}`,
+      ),
+  });
+  const createSession = async (kind: TaskKind, submission?: ImageSubmission) => {
     if (!a.selected) return;
-    if (message) {
-      const id = await firstMessage.current!(
+    if (submission) {
+      const id = await firstMessage.current!.send(
         `${a.studentId}:${a.selected.id}`,
-        message,
+        submission,
       );
       navigate(`/study/${id}`);
       return;
@@ -105,11 +126,11 @@ export function Home() {
     setDraft("我想自由提问：");
     requestAnimationFrame(() => composerRef.current?.focus());
   };
-  const sendFreeQuestion = async (text: string) => {
+  const sendFreeQuestion = async (submission: ImageSubmission) => {
     setBusy(true);
     setError("");
     try {
-      await createSession("free_question", text);
+      await createSession("free_question", submission);
       return true;
     } catch (e) {
       setError(errorMessage(e));
@@ -146,7 +167,7 @@ export function Home() {
         </div>
       )}
       <div className="home-layout">
-        <SessionRail />
+        <SessionRail refreshKey={String(railRefresh)} />
         <section className="chat-landing">
           <div className="chat-landing-body">
             <div className="chat-hero">
@@ -188,6 +209,8 @@ export function Home() {
               placeholder="想学什么、哪里没懂，直接说…"
               onSubmit={sendFreeQuestion}
               onCancel={async () => {}}
+              attachments={images}
+              imagesEnabled={a.capabilities?.images !== "disabled"}
             />
             <p className="composer-note">
               发送后会开启一个新的自由提问会话，左边随时可以找回。

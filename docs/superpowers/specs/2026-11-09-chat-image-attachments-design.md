@@ -204,3 +204,30 @@ MessageDTO/MessageHistory 的当前及历史版本增加 attachments 数组：fi
 | OSS保存，模型直接读取临时URL | 请求较小，但依赖网关抓取能力和链接有效期 | 后续经兼容性验证再考虑 |
 
 方案复核已补充“提交响应丢失”和“已保存消息执行失败”的不同恢复契约；实施顺序按计划执行。本文不授权迁移生产数据库、清理生产对象或实际收费联调。
+
+## 14. 实施状态与验收记录（2026-11-09）
+
+第 1–6 项代码实现已完成，工作区改动尚未提交。
+
+**未绑定图片清理（第 10 节第 5 条）**
+
+- `FileStore` 新增 `delete(key)`，OSS 与测试用 `MemoryFileStore` 同时实现。
+- 迁移 `0017_chat_image_cleanup` 为 `files` 增加 `source_key`、`sealed_key`、`cleanup_error`，并回填历史会话图片；索引 `files_cleanup_lookup` 支持按 purpose/status/created_at 查找。
+- `scripts/cleanup-chat-images.ts` 提供 `cleanupChatImages()`；默认 dry-run，`--execute` 才删除。只处理 `purpose='conversation_image'` 且超过 24 小时、未被 `message_attachments` 绑定的行，不列举 bucket、不按前缀盲删。
+- 认领使用 `SELECT ... FOR UPDATE SKIP LOCKED` 后置 `status='deleting'`；绑定侧查询改为 `FOR SHARE`，二者并发只有一个能成功。删除失败写 `cleanup_failed` + `cleanup_error`，保留行以便下次重试。
+- 删除集合包含上传源 key、封存 key 与确定性 `sealed/sha256(sourceKey)`，可清理 seal 成功后数据库更新失败留下的孤儿封存对象。
+- 已绑定图片、软删除会话中的证据、24 小时内草稿均不会被清理；这些行为由 `tests/integration/chat-image-cleanup.test.ts` 覆盖。
+
+**自动化验收（2026-11-09 全部通过）**
+
+| 命令 | 结果 |
+| --- | --- |
+| `pnpm typecheck` | 通过 |
+| `pnpm lint` | 通过 |
+| `pnpm test:unit` | 9 文件 / 32 用例通过 |
+| `pnpm test:integration` | 18 文件 / 80 用例通过 |
+| `pnpm build` | 通过 |
+| `pnpm exec playwright test tests/e2e/chat-images.spec.ts tests/e2e/responsive.spec.ts --reporter=line` | 14 用例通过 |
+| `git diff --check` | 通过 |
+
+**未执行**：真实 OSS + 当前网关端到端 smoke（需用户授权与凭据）；真机相机拍照链路（无真机）。两者均不算已验收。

@@ -51,6 +51,14 @@ export function MistakeDetail() {
       questionStem: string;
       messageContent: string | null;
       hints: { level: string; content: string }[];
+      attachments?: {
+        fileId: string;
+        name: string;
+        mimeType: string;
+        width: number | null;
+        height: number | null;
+        position: number;
+      }[];
     }>();
   const correction = async () => {
     if (!detail.data) return;
@@ -162,7 +170,29 @@ export function MistakeDetail() {
           <h3>当时的题目</h3>
           <Markdown>{evidence.questionStem}</Markdown>
           <h3 className="section-spacer">学生作答</h3>
-          <Markdown>{evidence.answer}</Markdown>
+          {evidence.answer ? (
+            <Markdown>{evidence.answer}</Markdown>
+          ) : (
+            <p className="muted">本次作答未填写文字，以下图片为作答证据。</p>
+          )}
+          {!!evidence.attachments?.length && (
+            <>
+              <h3 className="section-spacer">作答图片</h3>
+              <div className="form-actions">
+                {evidence.attachments.map((att) => (
+                  <span className="badge" key={att.fileId}>
+                    {att.name}
+                    {att.width && att.height
+                      ? `（${att.width}×${att.height}）`
+                      : ""}
+                  </span>
+                ))}
+              </div>
+              <p className="muted text-small">
+                图片与这条消息版本绑定，判题读取的是同一份已封存文件。
+              </p>
+            </>
+          )}
           <h3 className="section-spacer">作答前的提示</h3>
           {evidence.hints.length ? (
             evidence.hints.map((h, i) => (

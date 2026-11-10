@@ -102,7 +102,7 @@ export class AttemptService {
     z.uuid().parse(id);
     const row = (
       await this.db.pool.query(
-        'SELECT a.id,a.answer,a.question_version_id,a.created_at,v.stem AS "questionStem",mv.content AS "messageContent" FROM attempts a JOIN question_versions v ON v.id=a.question_version_id LEFT JOIN message_versions mv ON mv.id=a.message_version_id WHERE a.id=$1 AND a.student_id=$2',
+        'SELECT a.id,a.answer,a.question_version_id,a.message_version_id,a.created_at,v.stem AS "questionStem",mv.content AS "messageContent" FROM attempts a JOIN question_versions v ON v.id=a.question_version_id LEFT JOIN message_versions mv ON mv.id=a.message_version_id WHERE a.id=$1 AND a.student_id=$2',
         [id, scope.studentId],
       )
     ).rows[0];
@@ -113,12 +113,21 @@ export class AttemptService {
         [row.question_version_id, row.created_at],
       )
     ).rows;
+    const attachments = row.message_version_id
+      ? (
+          await this.db.pool.query(
+            'SELECT f.id AS "fileId",f.name,f.content_type AS "mimeType",f.width,f.height,ma.position FROM message_attachments ma JOIN files f ON f.id=ma.file_id WHERE ma.message_version_id=$1 ORDER BY ma.position',
+            [row.message_version_id],
+          )
+        ).rows
+      : [];
     return {
       id: row.id,
       answer: row.answer,
       questionStem: row.questionStem,
       messageContent: row.messageContent,
       hints,
+      attachments,
     };
   }
 }

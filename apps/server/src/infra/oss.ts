@@ -1,5 +1,5 @@
 import OSS from "ali-oss";
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 export type ObjectMetadata = {
   size: number;
   contentType: string;
@@ -14,6 +14,7 @@ export interface FileStore {
   signDownload(key: string, ttlSeconds: number): Promise<string>;
   read(key: string): Promise<Buffer>;
   seal(key: string): Promise<string>;
+  delete(key: string): Promise<void>;
 }
 export function createFileStore(
   env: Record<string, string | undefined>,
@@ -63,12 +64,15 @@ export class OssFileStore implements FileStore {
     return this.client.signatureUrl(key, { expires: ttlSeconds });
   }
   async seal(key: string) {
-    const sealed = `sealed/${randomUUID()}`;
+    const sealed = `sealed/${createHash("sha256").update(key).digest("hex")}`;
     await this.client.copy(sealed, key);
     return sealed;
   }
   async read(key: string) {
     const object = await this.client.get(key);
     return Buffer.from(object.content);
+  }
+  async delete(key: string) {
+    await this.client.delete(key);
   }
 }

@@ -6,7 +6,13 @@ import {
 } from "../../../../../packages/db/src/client.js";
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
+import {
+  MAX_MESSAGE_IMAGES,
+  MAX_MESSAGE_TEXT_LENGTH,
+} from "../../../../../packages/contracts/src/conversation-images.js";
+import type { FileStore } from "../../infra/oss.js";
 import type { AuthService } from "../auth/service.js";
+import { ConversationAttachmentService } from "./attachments.js";
 import { EventStore } from "./events.js";
 export interface RunExecutor {
   execute(runId: string, signal: AbortSignal): Promise<void>;
@@ -21,6 +27,7 @@ export type RunDTO = {
 };
 export class RunService {
   readonly events: EventStore;
+  readonly attachments: ConversationAttachmentService;
   private ticking = false;
   private active = new Map<
     string,
@@ -30,8 +37,10 @@ export class RunService {
   constructor(
     readonly db: Database,
     readonly auth: AuthService,
+    store?: FileStore,
   ) {
     this.events = new EventStore(db, auth);
+    this.attachments = new ConversationAttachmentService(db, auth, store);
   }
   async latest(
     scope: StudentScope,
@@ -61,12 +70,20 @@ export class RunService {
       .object({
         conversationId: z.uuid(),
         requestKey: z.string().min(1).max(120),
-        message: z.string().trim().min(1).max(20000),
+        message: z.string().trim().max(MAX_MESSAGE_TEXT_LENGTH).default(""),
+        attachmentIds: z
+          .array(z.uuid())
+          .max(MAX_MESSAGE_IMAGES)
+          .default([]),
         mode: z.enum(["reply", "opening"]).default("reply"),
         questionVersionId: z.uuid().optional(),
       })
       .strict()
       .parse(input);
+    if (!v.message && !v.attachmentIds.length)
+      throw new AppError("VALIDATION", 422, "消息不能为空");
+    if (v.mode === "opening" && v.attachmentIds.length)
+      throw new AppError("VALIDATION", 422, "开场消息不能附图");
     return inTransaction(this.db, async (tx) => {
       const c = (
         await tx.query(
@@ -77,14 +94,25 @@ export class RunService {
       if (!c) throw new AppError("NOT_FOUND", 404, "会话不存在");
       const prev = (
         await tx.query(
-          "SELECT id,input_text,question_version_id FROM agent_runs WHERE conversation_id=$1 AND request_key=$2",
+          "SELECT id,input_text,question_version_id,mode,input_version_id FROM agent_runs WHERE conversation_id=$1 AND request_key=$2",
           [c.id, v.requestKey],
         )
       ).rows[0];
       if (prev) {
+        const prevFiles = prev.input_version_id
+          ? (
+              await tx.query(
+                "SELECT file_id FROM message_attachments WHERE message_version_id=$1 ORDER BY position",
+                [prev.input_version_id],
+              )
+            ).rows.map((row) => row.file_id)
+          : [];
         if (
           prev.input_text !== v.message ||
-          (prev.question_version_id ?? undefined) !== v.questionVersionId
+          (prev.question_version_id ?? undefined) !== v.questionVersionId ||
+          prev.mode !== v.mode ||
+          prevFiles.length !== v.attachmentIds.length ||
+          prevFiles.some((fileId, index) => fileId !== v.attachmentIds[index])
         )
           throw new AppError("CONFLICT", 409, "请求内容与原执行不同");
         return { runId: prev.id };
@@ -112,6 +140,13 @@ export class RunService {
             [m.id, v.message],
           )
         ).rows[0].id;
+        await this.attachments.validateAndBind(
+          tx,
+          scope,
+          c.id,
+          versionId!,
+          v.attachmentIds,
+        );
       }
       if (v.questionVersionId) {
         if (!c.task_id || v.mode !== "reply" || !versionId)
@@ -142,7 +177,11 @@ export class RunService {
         await tx.query(
           "UPDATE learning_tasks SET title=COALESCE(title,$1),updated_at=now() WHERE id=$2",
           [
-            [...v.message.replace(/\s+/g, " ").trim()].slice(0, 40).join(""),
+            [
+              ...(v.message.replace(/\s+/g, " ").trim() || "图片作答"),
+            ]
+              .slice(0, 40)
+              .join(""),
             c.task_id,
           ],
         );
@@ -158,6 +197,94 @@ export class RunService {
             versionId,
             v.mode,
             v.questionVersionId ?? null,
+          ],
+        )
+      ).rows[0];
+      await tx.query(
+        "INSERT INTO run_events(run_id,type,data) VALUES($1,'queued','{}')",
+        [r.id],
+      );
+      return { runId: r.id };
+    });
+  }
+  async retry(
+    scope: StudentScope,
+    runId: string,
+    input: unknown,
+  ): Promise<{ runId: string }> {
+    await this.auth.requireStudentAccess(scope.actor, scope.studentId);
+    z.uuid().parse(runId);
+    const v = z
+      .object({ requestKey: z.string().min(1).max(120) })
+      .strict()
+      .parse(input);
+    return inTransaction(this.db, async (tx) => {
+      const original = (
+        await tx.query(
+          "SELECT r.id,r.conversation_id,r.status,r.input_version_id,r.input_text,r.mode,r.question_version_id,c.task_id FROM agent_runs r JOIN conversations c ON c.id=r.conversation_id WHERE r.id=$1 AND r.student_id=$2",
+          [runId, scope.studentId],
+        )
+      ).rows[0];
+      if (!original) throw new AppError("NOT_FOUND", 404, "执行不存在");
+      await tx.query("SELECT id FROM conversations WHERE id=$1 FOR UPDATE", [
+        original.conversation_id,
+      ]);
+      if (!["failed", "interrupted", "cancelled"].includes(original.status))
+        throw new AppError("CONFLICT", 409, "当前回答无需重试");
+      if (original.input_version_id) {
+        if (
+          !(
+            await tx.query(
+              "SELECT 1 FROM message_versions v JOIN messages m ON m.id=v.message_id WHERE v.id=$1 AND m.current_version=v.version_no",
+              [original.input_version_id],
+            )
+          ).rowCount
+        )
+          throw new AppError("CONFLICT", 409, "输入内容已更新，无法重试");
+      }
+      if (original.task_id) {
+        const task = (
+          await tx.query(
+            "SELECT status FROM learning_tasks WHERE id=$1 AND student_id=$2 AND deleted_at IS NULL",
+            [original.task_id, scope.studentId],
+          )
+        ).rows[0];
+        if (task?.status !== "active")
+          throw new AppError("CONFLICT", 409, "任务当前不可继续");
+      }
+      const prev = (
+        await tx.query(
+          "SELECT id,retry_of_run_id FROM agent_runs WHERE conversation_id=$1 AND request_key=$2",
+          [original.conversation_id, v.requestKey],
+        )
+      ).rows[0];
+      if (prev) {
+        if (prev.retry_of_run_id !== original.id)
+          throw new AppError("CONFLICT", 409, "请求键已被其他执行占用");
+        return { runId: prev.id };
+      }
+      if (
+        (
+          await tx.query(
+            "SELECT 1 FROM agent_runs WHERE conversation_id=$1 AND status IN ('queued','running')",
+            [original.conversation_id],
+          )
+        ).rowCount
+      )
+        throw new AppError("CONFLICT", 409, "请等待当前回答完成或先停止");
+      const r = (
+        await tx.query(
+          "INSERT INTO agent_runs(student_id,actor_id,conversation_id,request_key,input_text,input_version_id,mode,question_version_id,retry_of_run_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id",
+          [
+            scope.studentId,
+            scope.actor.userId,
+            original.conversation_id,
+            v.requestKey,
+            original.input_text,
+            original.input_version_id,
+            original.mode,
+            original.question_version_id,
+            original.id,
           ],
         )
       ).rows[0];

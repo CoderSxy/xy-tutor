@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 export type StoredObject = {
   size: number;
   contentType: string;
@@ -5,8 +6,12 @@ export type StoredObject = {
 };
 export class MemoryFileStore {
   private objects = new Map<string, StoredObject>();
+  private failedDeletes = new Set<string>();
   put(key: string, value: StoredObject) {
     this.objects.set(key, value);
+  }
+  keys() {
+    return [...this.objects.keys()];
   }
   async signUpload(input: { key: string; contentType: string }) {
     return {
@@ -23,7 +28,8 @@ export class MemoryFileStore {
     return `https://test.invalid/download/${key}`;
   }
   async seal(key: string) {
-    const sealed = "sealed/" + crypto.randomUUID();
+    const sealed =
+      "sealed/" + createHash("sha256").update(key).digest("hex");
     this.objects.set(sealed, structuredClone(await this.head(key)));
     const object = this.objects.get(sealed)!;
     object.prefix = Buffer.from(object.prefix);
@@ -31,5 +37,12 @@ export class MemoryFileStore {
   }
   async read(key: string) {
     return (await this.head(key)).prefix;
+  }
+  async delete(key: string) {
+    if (this.failedDeletes.delete(key)) throw Error("Delete failed");
+    this.objects.delete(key);
+  }
+  failDeleteOnce(key: string) {
+    this.failedDeletes.add(key);
   }
 }

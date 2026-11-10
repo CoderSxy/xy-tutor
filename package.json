@@ -18,9 +18,11 @@
     "build": "tsc -p apps/server/tsconfig.build.json && vite build apps/web",
     "db:migrate": "node --env-file-if-exists=.env --import tsx packages/db/src/migrate.ts",
     "smoke:provider": "node --env-file-if-exists=.env --import tsx scripts/smoke-provider.ts",
+    "smoke:chat-image": "node --env-file-if-exists=.env --import tsx scripts/smoke-chat-image.ts",
     "smoke:oss": "node --env-file-if-exists=.env --import tsx scripts/smoke-oss.ts",
     "admin:create": "node --env-file-if-exists=.env --import tsx scripts/create-admin.ts",
-    "smoke:ocr": "node --env-file-if-exists=.env --import tsx scripts/smoke-ocr.ts"
+    "smoke:ocr": "node --env-file-if-exists=.env --import tsx scripts/smoke-ocr.ts",
+    "cleanup:chat-images": "node --env-file-if-exists=.env --import tsx scripts/cleanup-chat-images.ts"
   },
   "dependencies": {
     "@alicloud/ocr-api20210707": "3.1.3",

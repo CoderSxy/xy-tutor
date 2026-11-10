@@ -16,6 +16,11 @@ import type {
 import { AppError } from "../../../../packages/contracts/src/api.js";
 import { ModelBudget } from "./model-budget.js";
 export type ModelRuntime = { models: Models; model: Model<Api> };
+export function supportsImages(model: {
+  input: readonly string[];
+}): boolean {
+  return model.input.includes("image");
+}
 export function createGateway(
   env: Record<string, string | undefined>,
   budget = new ModelBudget(),

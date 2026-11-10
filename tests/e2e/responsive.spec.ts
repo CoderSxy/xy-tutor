@@ -17,7 +17,7 @@ for (const width of [360, 390, 768, 1024, 1280, 1440])
     await page.getByLabel("科目", { exact: true }).selectOption("数学");
     await page.getByRole("button", { name: "进入学习空间" }).click();
     await expect(
-      page.getByRole("heading", { name: "今天，从哪里开始？" }),
+      page.getByRole("heading", { name: "选一个方向，或者直接说出来。" }),
     ).toBeVisible();
     await page.screenshot({
       path: `docs/qa/screenshots/home-${width}.png`,
@@ -35,7 +35,7 @@ for (const width of [360, 390, 768, 1024, 1280, 1440])
         .toBe(true);
     }
     await page.goto("/");
-    await page.getByRole("button", { name: "开始每日5练" }).click();
+    await page.getByRole("button", { name: "每日5练", exact: true }).click();
     await expect(page.getByLabel("你的回答")).toBeVisible();
     await expect
       .poll(() =>

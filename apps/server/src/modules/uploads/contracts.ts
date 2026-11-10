@@ -2,7 +2,8 @@ import { z } from "zod";
 export const uploadInput = z
   .object({
     studentId: z.uuid().optional(),
-    purpose: z.enum(["textbook", "student_material"]),
+    conversationId: z.uuid().optional(),
+    purpose: z.enum(["textbook", "student_material", "conversation_image"]),
     name: z.string().min(1).max(200),
     contentType: z.enum([
       "application/pdf",

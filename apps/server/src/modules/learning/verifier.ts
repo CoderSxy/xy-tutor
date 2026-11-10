@@ -8,6 +8,7 @@ export type VerificationInput = {
   referenceAnswer?: string;
   candidateCorrectness: Correctness;
   citationsValid: boolean;
+  hasImageEvidence?: boolean;
   independent?: {
     correctness: Correctness;
     evidenceSufficient: boolean;
@@ -75,10 +76,11 @@ export class AssessmentVerifier {
       !v.referenceVerified ||
       !v.citationsValid ||
       !v.referenceAnswer ||
-      v.answerType === "open"
+      (!v.hasImageEvidence && v.answerType === "open")
     )
       return pending;
     if (
+      !v.hasImageEvidence &&
       !v.requiresWorking &&
       (v.answerType === "number" || v.answerType === "choice")
     ) {

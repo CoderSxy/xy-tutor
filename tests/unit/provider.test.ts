@@ -7,8 +7,9 @@ import {
   fauxThinking,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
-import { ModelGateway } from "../../apps/server/src/agent/provider.js";
+import { ModelGateway, createGateway } from "../../apps/server/src/agent/provider.js";
 import { ModelBudget } from "../../apps/server/src/agent/model-budget.js";
+import { configuredCapabilities } from "../../apps/server/src/agent/capabilities.js";
 it("maps public text and tools while excluding reasoning", async () => {
   const faux = fauxProvider();
   const models = createModels();
@@ -90,4 +91,13 @@ it("aborts an upstream stream", async () => {
   await expect(
     g.complete({ context: { messages: [] } }, c.signal),
   ).rejects.toMatchObject({ name: "AbortError" });
+});
+it("reports images only as enabled-unverified or disabled", () => {
+  const base = { LLM_MODEL: "m", LLM_API_KEY: "k" };
+  const off = createGateway(base);
+  const on = createGateway({ ...base, LLM_SUPPORTS_IMAGES: "true" });
+  expect(configuredCapabilities(off).images).toBe("disabled");
+  expect(configuredCapabilities(on).images).toBe("enabled-unverified");
+  expect(configuredCapabilities(undefined).images).toBe("disabled");
+  expect(configuredCapabilities(on).images).not.toBe("verified");
 });

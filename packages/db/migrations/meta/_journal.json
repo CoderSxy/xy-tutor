@@ -99,6 +99,34 @@
       "when": 1794192210021,
       "tag": "0013_brave_groot",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794195000000,
+      "tag": "0014_chat_image_attachments",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794198600000,
+      "tag": "0015_task_creation_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794202200000,
+      "tag": "0016_run_retry",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794205800000,
+      "tag": "0017_chat_image_cleanup",
+      "breakpoints": true
     }
   ]
 }

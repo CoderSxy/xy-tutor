@@ -86,6 +86,12 @@ export function createTeachingTools(
             )
           ).rows[0]
         : null,
+      attachments: (
+        await db.pool.query(
+          'SELECT f.id AS "fileId",f.name,f.content_type AS "mimeType",f.width,f.height,ma.position FROM agent_runs r JOIN message_attachments ma ON ma.message_version_id=r.input_version_id JOIN files f ON f.id=ma.file_id WHERE r.id=$1 ORDER BY ma.position',
+          [bound.runId],
+        )
+      ).rows,
     })),
     tool(
       "search_textbook",

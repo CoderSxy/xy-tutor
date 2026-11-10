@@ -11,6 +11,7 @@ import { StatusPanel } from "../components/StatusPanel";
 import { QuestionCard } from "../components/QuestionCard";
 import { SessionRail } from "../components/SessionRail";
 import { useTutorRun } from "../features/tutor/useTutorRun";
+import { useImageAttachments } from "../features/tutor/useImageAttachments";
 import { TutorPanel } from "../features/tutor/TutorPanel";
 import { Composer } from "../features/tutor/Composer";
 export function Study() {
@@ -21,6 +22,11 @@ export function Study() {
     id ? a.scoped(`/api/tasks/${id}/items`) : null,
   );
   const tutor = useTutorRun(task.data?.conversationId);
+  const images = useImageAttachments({
+    studentId: a.studentId,
+    conversationId: task.data?.conversationId,
+    enabled: a.capabilities?.images !== "disabled",
+  });
   const [error, setError] = useState(""),
     [summary, setSummary] = useState<SummaryContent>(),
     [questionOpen, setQuestionOpen] = useState(false);
@@ -170,6 +176,7 @@ export function Study() {
               messages={tutor.messages}
               stream={tutor.stream}
               status={tutor.status}
+              onRetry={() => void tutor.retry()}
             />
             {data.status === "completed" && (
               <div className="tutor-compose">
@@ -205,10 +212,12 @@ export function Study() {
                 <Composer
                   busy={tutor.busy}
                   hasQuestion={!!current}
-                  onSubmit={(text) =>
-                    tutor.submit(text, current?.questionVersionId)
+                  onSubmit={(submission) =>
+                    tutor.submit(submission, current?.questionVersionId)
                   }
                   onCancel={tutor.cancel}
+                  attachments={images}
+                  imagesEnabled={a.capabilities?.images !== "disabled"}
                 />
               </div>
             )}

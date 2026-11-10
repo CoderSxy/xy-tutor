@@ -25,6 +25,7 @@ export type Capabilities = {
   llmConfigured: boolean;
   uploadsConfigured: boolean;
   ocrConfigured: boolean;
+  images?: "enabled-unverified" | "disabled";
 };
 export type TaskItem = {
   id: string;

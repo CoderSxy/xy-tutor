@@ -1,12 +1,29 @@
 import { AppError } from "../../../../packages/contracts/src/api.js";
 import { SummaryService } from "../modules/learning/summaries.js";
 import { KnowledgeService } from "../modules/learning/knowledge.js";
-import type { Message } from "@earendil-works/pi-ai";
+import type { ImageContent, Message, TextContent } from "@earendil-works/pi-ai";
 import type { Database } from "../../../../packages/db/src/client.js";
 import type { StudentScope } from "../../../../packages/contracts/src/domain.js";
 import { MessageService } from "../modules/conversations/messages.js";
+import type { MessageHistory } from "../modules/conversations/contracts.js";
 import type { AuthService } from "../modules/auth/service.js";
 import type { CatalogService } from "../modules/catalog/service.js";
+import type {
+  ImageEvidenceReader,
+  LoadedImage,
+} from "../modules/conversations/attachments.js";
+import {
+  IMAGE_BUDGET_TOKENS,
+  MAX_MODEL_IMAGE_BYTES,
+  MAX_MODEL_IMAGES,
+} from "../../../../packages/contracts/src/conversation-images.js";
+export type BuildContextOptions = {
+  reader?: ImageEvidenceReader;
+  inputVersionId?: string | null;
+  signal?: AbortSignal;
+  perImageTokens?: number;
+  imageBudgetTokens?: number;
+};
 export type TutorContext = {
   systemContext: string;
   messages: Message[];
@@ -14,7 +31,29 @@ export type TutorContext = {
   revisionId: string;
   studentId: string;
   currentQuestionVersionId?: string;
+  inputContent?: (TextContent | ImageContent)[];
+  inputMatched: boolean;
+  imageCount: number;
 };
+
+function imageBlocks(images: readonly LoadedImage[]): ImageContent[] {
+  return images.map((image) => ({
+    type: "image",
+    data: image.data,
+    mimeType: image.mimeType,
+  }));
+}
+
+function userContent(
+  text: string,
+  images: readonly LoadedImage[],
+): string | (TextContent | ImageContent)[] {
+  if (!images.length) return text;
+  return [
+    ...(text ? [{ type: "text" as const, text }] : []),
+    ...imageBlocks(images),
+  ];
+}
 export async function buildContext(
   db: Database,
   auth: AuthService,
@@ -22,6 +61,7 @@ export async function buildContext(
   scope: StudentScope,
   conversationId: string,
   budgetTokens: number,
+  options: BuildContextOptions = {},
 ): Promise<TutorContext> {
   const ms = new MessageService(db, auth);
   await ms.authorize(scope, conversationId);
@@ -94,46 +134,82 @@ export async function buildContext(
       422,
       "当前题目或提示过长，请分段学习或选择更小的题目范围",
     );
-  let remaining = Math.max(
-    0,
-    budgetTokens - Buffer.byteLength(systemContext) - 2500,
-  );
+  const perImageTokens = options.perImageTokens ?? IMAGE_BUDGET_TOKENS;
   const history = await ms.history(scope, conversationId);
+  const inputIndex = options.inputVersionId
+    ? history.findIndex(
+        (message) => message.versionId === options.inputVersionId,
+      )
+    : -1;
+  const input = inputIndex >= 0 ? history[inputIndex] : undefined;
+  let inputImages: LoadedImage[] = [];
+  if (input?.attachments.length) {
+    if (!options.reader)
+      throw new AppError(
+        "UPSTREAM_UNAVAILABLE",
+        503,
+        "图片读取功能尚未配置，请联系管理员",
+      );
+    inputImages = await options.reader.load(
+      input.attachments.map((attachment) => attachment.fileId),
+      options.signal,
+    );
+  }
+  const imageBudget = options.imageBudgetTokens ?? Number.POSITIVE_INFINITY;
+  let imageCount = inputImages.length;
+  let imageTokens = inputImages.length * perImageTokens;
+  let imageBytes = inputImages.reduce((total, image) => total + image.size, 0);
+  if (
+    imageCount > MAX_MODEL_IMAGES ||
+    imageBytes > MAX_MODEL_IMAGE_BYTES ||
+    imageTokens > imageBudget
+  )
+    throw new AppError(
+      "VALIDATION",
+      422,
+      "当前题目或提示过长，请分段学习或选择更小的题目范围",
+    );
+  let remaining =
+    budgetTokens - Buffer.byteLength(systemContext) - 2500 - imageTokens;
+  const inputCost = Buffer.byteLength(input?.content ?? "");
+  if (inputCost > remaining)
+    throw new AppError(
+      "VALIDATION",
+      422,
+      "当前题目或提示过长，请分段学习或选择更小的题目范围",
+    );
+  remaining -= inputCost;
   const selected: Message[] = [];
-  for (const message of history.slice().reverse()) {
-    const bytes = Buffer.byteLength(message.content);
-    if (bytes > remaining) break;
-    remaining -= bytes;
-    selected.unshift({
-      role: message.role === "assistant" ? "assistant" : "user",
-      content:
-        message.role === "assistant"
-          ? [{ type: "text", text: message.content }]
-          : message.content,
-      timestamp: Date.now(),
-      ...(message.role === "assistant"
-        ? {
-            api: "openai-completions",
-            provider: "history",
-            model: "history",
-            usage: {
-              input: 0,
-              output: 0,
-              cacheRead: 0,
-              cacheWrite: 0,
-              totalTokens: 0,
-              cost: {
-                input: 0,
-                output: 0,
-                cacheRead: 0,
-                cacheWrite: 0,
-                total: 0,
-              },
-            },
-            stopReason: "stop",
-          }
-        : {}),
-    } as Message);
+  for (let index = history.length - 1; index >= 0; index--) {
+    if (index === inputIndex) continue;
+    const message = history[index]!;
+    const attachments = message.attachments ?? [];
+    const cost =
+      Buffer.byteLength(message.content) + attachments.length * perImageTokens;
+    if (cost > remaining) break;
+    if (imageCount + attachments.length > MAX_MODEL_IMAGES) break;
+    if (imageTokens + attachments.length * perImageTokens > imageBudget) break;
+    let loaded: LoadedImage[] = [];
+    if (attachments.length) {
+      if (!options.reader)
+        throw new AppError(
+          "UPSTREAM_UNAVAILABLE",
+          503,
+          "图片读取功能尚未配置，请联系管理员",
+        );
+      loaded = await options.reader.load(
+        attachments.map((attachment) => attachment.fileId),
+        options.signal,
+      );
+    }
+    const nextImageBytes =
+      imageBytes + loaded.reduce((total, image) => total + image.size, 0);
+    if (nextImageBytes > MAX_MODEL_IMAGE_BYTES) break;
+    remaining -= cost;
+    imageCount += loaded.length;
+    imageTokens += loaded.length * perImageTokens;
+    imageBytes = nextImageBytes;
+    selected.unshift(historyMessage(message, loaded));
   }
   return {
     systemContext,
@@ -142,5 +218,49 @@ export async function buildContext(
     revisionId: c.revision_id,
     studentId: c.student_id,
     currentQuestionVersionId: current?.question_version_id,
+    inputContent:
+      input && inputImages.length
+        ? (userContent(input.content, inputImages) as (
+            TextContent | ImageContent
+          )[])
+        : undefined,
+    inputMatched: inputIndex >= 0,
+    imageCount,
   };
+}
+
+function historyMessage(
+  message: MessageHistory,
+  images: readonly LoadedImage[],
+): Message {
+  return {
+    role: message.role === "assistant" ? "assistant" : "user",
+    content:
+      message.role === "assistant"
+        ? [{ type: "text", text: message.content }]
+        : userContent(message.content, images),
+    timestamp: Date.now(),
+    ...(message.role === "assistant"
+      ? {
+          api: "openai-completions",
+          provider: "history",
+          model: "history",
+          usage: {
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+            totalTokens: 0,
+            cost: {
+              input: 0,
+              output: 0,
+              cacheRead: 0,
+              cacheWrite: 0,
+              total: 0,
+            },
+          },
+          stopReason: "stop",
+        }
+      : {}),
+  } as Message;
 }

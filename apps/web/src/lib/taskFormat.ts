@@ -34,6 +34,7 @@ export function fullDate(iso: string) {
 }
 
 export function sessionTitle(t: TaskDTO) {
+  if (t.kind === "free_question" && !t.title?.trim()) return "未开始";
   return t.title?.trim() || `${kindLabels[t.kind]} · ${shortDate(t.createdAt)}`;
 }
 

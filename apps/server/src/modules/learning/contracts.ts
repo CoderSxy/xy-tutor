@@ -10,6 +10,7 @@ export const taskInput = z
       "free_question",
     ]),
     chapterId: z.uuid().optional(),
+    creationKey: z.string().min(1).max(120).optional(),
   })
   .strict();
 export type TaskKind = z.infer<typeof taskInput>["kind"];

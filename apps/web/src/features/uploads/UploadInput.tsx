@@ -5,35 +5,7 @@ import { useAuth } from "../../lib/auth";
 import { api, jsonBody, errorMessage } from "../../lib/api";
 import { Button } from "../../components/ui/button";
 import { StatusPanel } from "../../components/StatusPanel";
-async function prepare(file: File, rotation: number): Promise<Blob> {
-  if (file.type === "application/pdf") return file;
-  const image = await createImageBitmap(file);
-  try {
-    if (image.width * image.height > 40000000)
-      throw Error("照片像素过大，请先裁剪后上传");
-    const scale = Math.min(1, 2000 / Math.max(image.width, image.height));
-    const width = Math.round(image.width * scale),
-      height = Math.round(image.height * scale);
-    const canvas = document.createElement("canvas");
-    const sideways = rotation % 180 !== 0;
-    canvas.width = sideways ? height : width;
-    canvas.height = sideways ? width : height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw Error("浏览器无法处理图片");
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate((rotation * Math.PI) / 180);
-    ctx.drawImage(image, -width / 2, -height / 2, width, height);
-    return await new Promise<Blob>((resolve, reject) =>
-      canvas.toBlob(
-        (b) => (b ? resolve(b) : reject(Error("照片处理失败"))),
-        "image/jpeg",
-        0.88,
-      ),
-    );
-  } finally {
-    image.close();
-  }
-}
+import { prepareMaterialImage } from "./imagePrepare";
 export function UploadInput({
   purpose,
   onUploaded,
@@ -90,7 +62,7 @@ export function UploadInput({
     setError("");
     setProgress(0);
     try {
-      const blob = await prepare(file, rotation);
+      const blob = await prepareMaterialImage(file, rotation);
       const type =
         file.type === "application/pdf" ? "application/pdf" : "image/jpeg";
       const grant = await api<{

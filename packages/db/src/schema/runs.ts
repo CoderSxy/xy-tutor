@@ -7,6 +7,7 @@ import {
   bigserial,
   jsonb,
   uniqueIndex,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { users, studentProfiles } from "./auth.js";
 import { questionVersions } from "./questions.js";
@@ -35,6 +36,9 @@ export const agentRuns = pgTable(
     ),
     outputVersionId: uuid("output_version_id").references(
       () => messageVersions.id,
+    ),
+    retryOfRunId: uuid("retry_of_run_id").references(
+      (): AnyPgColumn => agentRuns.id,
     ),
     status: text().notNull().default("queued"),
     leaseToken: uuid("lease_token"),

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
+import { MAX_MESSAGE_IMAGES } from "../../../../../packages/contracts/src/conversation-images.js";
 import { z } from "zod";
 import { scopeForRequest } from "../learning/routes.js";
 import type { RunService } from "./runs.js";
@@ -23,6 +24,7 @@ export function registerRuns(
       .object({
         requestKey: z.string(),
         message: z.string(),
+        attachmentIds: z.array(z.uuid()).max(MAX_MESSAGE_IMAGES).default([]),
         questionVersionId: z.uuid().optional(),
       })
       .strict()
@@ -38,6 +40,23 @@ export function registerRuns(
   app.post("/api/runs/:id/cancel", async (req) => {
     await s.cancel(await scopeForRequest(s.auth, req), id.parse(req.params).id);
     return { ok: true };
+  });
+  app.post("/api/runs/:id/retry", async (req) => {
+    if (!available())
+      throw new AppError(
+        "UPSTREAM_UNAVAILABLE",
+        503,
+        "模型尚未配置，请联系管理员",
+      );
+    const body = z
+      .object({ requestKey: z.string() })
+      .strict()
+      .parse(req.body);
+    return s.retry(
+      await scopeForRequest(s.auth, req),
+      id.parse(req.params).id,
+      body,
+    );
   });
   app.get("/api/runs/:id/events", async (req, reply) => {
     const scope = await scopeForRequest(s.auth, req);

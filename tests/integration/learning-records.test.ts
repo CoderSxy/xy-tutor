@@ -191,3 +191,35 @@ it("changes the paging version after rename and deletion", async () =>
     expect(removed.pageVersion).not.toBe(renamed.pageVersion);
     expect(removed.items).toEqual([]);
   }));
+it("reuses a task by creation key and rejects conflicting or deleted reuse", async () =>
+  withTestDb(async (db) => {
+    const f = await catalogFixture(db);
+    const revision = await f.publish("人教版", "创建幂等");
+    const s = new TaskService(db, f.auth, f.catalog);
+    const input = {
+      revisionId: revision.id,
+      kind: "free_question" as const,
+      creationKey: "home-first-image",
+    };
+    const first = await s.create(f.scope, input);
+    const again = await s.create(f.scope, input);
+    expect(again.id).toBe(first.id);
+    expect(
+      (
+        await db.pool.query(
+          "SELECT count(*)::int AS n FROM learning_tasks WHERE student_id=$1",
+          [f.scope.studentId],
+        )
+      ).rows[0].n,
+    ).toBe(1);
+    await expect(
+      s.create(f.scope, { ...input, kind: "daily_practice" }),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(
+      (await s.create(f.scope, { ...input, creationKey: undefined })).id,
+    ).not.toBe(first.id);
+    await s.remove(f.scope, first.id);
+    await expect(s.create(f.scope, input)).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+  }));

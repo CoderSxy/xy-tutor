@@ -92,6 +92,7 @@ export function Mistakes() {
             <article className="panel mistake-card" key={m.id}>
               <div className="section-head">
                 <span className="badge">{stateLabels[m.status]}</span>
+                {m.hasImageEvidence && <span className="badge">图片作答</span>}
                 {m.dueAt && (
                   <small className="muted">
                     复习时间：

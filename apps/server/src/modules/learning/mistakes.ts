@@ -20,6 +20,7 @@ export type MistakeDTO = {
   dueAt: string | null;
   version: number;
   originalAttemptId: string | null;
+  hasImageEvidence: boolean;
 };
 export class MistakeService {
   constructor(
@@ -248,7 +249,7 @@ export class MistakeService {
     z.uuid().parse(id);
     const r = (
       await this.db.pool.query(
-        'SELECT m.id,m.question_id AS "questionId",v.id AS "questionVersionId",v.stem,m.status,m.due_at,m.version,m.original_attempt_id AS "originalAttemptId" FROM student_mistakes m JOIN LATERAL(SELECT id,stem FROM question_versions WHERE question_id=m.question_id ORDER BY version_no DESC LIMIT 1)v ON true WHERE m.id=$1 AND m.student_id=$2',
+        'SELECT m.id,m.question_id AS "questionId",v.id AS "questionVersionId",v.stem,m.status,m.due_at,m.version,m.original_attempt_id AS "originalAttemptId",EXISTS(SELECT 1 FROM attempts a JOIN message_attachments ma ON ma.message_version_id=a.message_version_id WHERE a.id=m.original_attempt_id) AS "hasImageEvidence" FROM student_mistakes m JOIN LATERAL(SELECT id,stem FROM question_versions WHERE question_id=m.question_id ORDER BY version_no DESC LIMIT 1)v ON true WHERE m.id=$1 AND m.student_id=$2',
         [id, scope.studentId],
       )
     ).rows[0];

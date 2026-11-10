@@ -11,6 +11,7 @@ import { studentProfiles } from "./auth.js";
 import { learningTasks } from "./learning.js";
 import { revisions } from "./catalog.js";
 import { questionVersions } from "./questions.js";
+import { files } from "./files.js";
 export const conversations = pgTable("conversations", {
   id: uuid().primaryKey().defaultRandom(),
   studentId: uuid("student_id")
@@ -97,6 +98,29 @@ export const hints = pgTable("hints", {
     .notNull()
     .defaultNow(),
 });
+export const messageAttachments = pgTable(
+  "message_attachments",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    messageVersionId: uuid("message_version_id")
+      .notNull()
+      .references(() => messageVersions.id),
+    fileId: uuid("file_id")
+      .notNull()
+      .references(() => files.id),
+    position: integer().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("message_attachment_position").on(
+      t.messageVersionId,
+      t.position,
+    ),
+    uniqueIndex("message_attachment_file").on(t.messageVersionId, t.fileId),
+  ],
+);
 export const evidenceInvalidations = pgTable("evidence_invalidations", {
   id: uuid().primaryKey().defaultRandom(),
   studentId: uuid("student_id")

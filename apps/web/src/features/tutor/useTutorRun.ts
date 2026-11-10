@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { api, jsonBody, errorMessage } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import type { MessageHistory } from "../../lib/types";
+import type { ImageSubmission } from "../../../../../packages/contracts/src/conversation-images.js";
 type Run = { id: string; status: string; content: string | null };
 export function useTutorRun(conversationId?: string) {
   const a = useAuth();
@@ -31,7 +32,12 @@ export function useTutorRun(conversationId?: string) {
       a.scoped(`/api/conversations/${conversationId}/latest-run`),
     )
       .then((r) => {
-        if (r && ["queued", "running"].includes(r.status)) {
+        if (
+          r &&
+          ["queued", "running", "failed", "interrupted", "cancelled"].includes(
+            r.status,
+          )
+        ) {
           lastId.current = "0";
           setRunId(r.id);
           setStatus(r.status);
@@ -47,7 +53,13 @@ export function useTutorRun(conversationId?: string) {
             lastId.current = "0";
             setRunId(old);
             setStatus(r.status);
-          } else sessionStorage.removeItem(key);
+          } else {
+            sessionStorage.removeItem(key);
+            if (["failed", "interrupted", "cancelled"].includes(r.status)) {
+              setRunId(old);
+              setStatus(r.status);
+            }
+          }
         })
         .catch(() => sessionStorage.removeItem(key));
   }, [conversationId, reload]);
@@ -110,11 +122,19 @@ export function useTutorRun(conversationId?: string) {
     };
     return () => source.close();
   }, [runId, conversationId, reload, a.studentId]);
-  const submit = async (text: string, questionVersionId?: string) => {
+  const submit = async (
+    input: string | ImageSubmission,
+    questionVersionId?: string,
+  ) => {
     if (!conversationId) return false;
+    const submission: ImageSubmission =
+      typeof input === "string" ? { message: input, attachmentIds: [] } : input;
+    const message = submission.message;
+    const attachments = submission.attachmentIds;
+    const question = submission.questionVersionId ?? questionVersionId;
     setError("");
     const pendingKey = `xy.pending.${conversationId}`;
-    const signature = JSON.stringify([text, questionVersionId]);
+    const signature = JSON.stringify([message, question ?? null, attachments]);
     let pending: { signature: string; requestKey: string } | undefined;
     try {
       pending =
@@ -131,9 +151,10 @@ export function useTutorRun(conversationId?: string) {
         {
           method: "POST",
           ...jsonBody({
-            message: text,
+            message,
             requestKey: pending!.requestKey,
-            questionVersionId,
+            questionVersionId: question,
+            attachmentIds: attachments,
           }),
         },
       );
@@ -156,6 +177,31 @@ export function useTutorRun(conversationId?: string) {
       setStatus("cancelled");
     }
   };
+  const retry = async () => {
+    if (!runId || !conversationId) return;
+    const key = `xy.retry.${runId}`;
+    let retryKey = sessionStorage.getItem(key);
+    if (!retryKey) {
+      retryKey = crypto.randomUUID();
+      sessionStorage.setItem(key, retryKey);
+    }
+    try {
+      const result = await api<{ runId: string }>(
+        a.scoped(`/api/runs/${runId}/retry`),
+        { method: "POST", ...jsonBody({ requestKey: retryKey }) },
+      );
+      lastId.current = "0";
+      setError("");
+      setStream("");
+      setStatus("queued");
+      setRunId(result.runId);
+      sessionStorage.setItem(`xy.run.${conversationId}`, result.runId);
+      sessionStorage.removeItem(key);
+      void reload().catch((e) => setError(errorMessage(e)));
+    } catch (e) {
+      setError(errorMessage(e));
+    }
+  };
   return {
     messages,
     stream,
@@ -164,6 +210,7 @@ export function useTutorRun(conversationId?: string) {
     setError,
     submit,
     cancel,
+    retry,
     reload,
     busy: ["queued", "running", "reconnecting"].includes(status),
   };

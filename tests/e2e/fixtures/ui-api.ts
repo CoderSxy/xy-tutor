@@ -3,6 +3,8 @@ export const studentId = "10000000-0000-4000-8000-000000000001";
 export const revisionId = "20000000-0000-4000-8000-000000000001";
 export const taskId = "30000000-0000-4000-8000-000000000001";
 export const conversationId = "40000000-0000-4000-8000-000000000001";
+export const runId = "60000000-0000-4000-8000-000000000001";
+export const retryRunId = "60000000-0000-4000-8000-000000000002";
 export async function mockLearningApi(
   page: Page,
   role: "student" | "admin" = "student",
@@ -110,6 +112,17 @@ export async function mockLearningApi(
     } else if (path === "/api/review/due" || path === "/api/knowledge")
       body = [];
     else if (path.endsWith("/summary")) body = null;
+    else if (/^\/api\/files\/[^/]+\/download$/.test(path))
+      body = {
+        url: `/test-media/${path.split("/")[3]}.png`,
+        contentType: "image/png",
+        expiresAt: new Date(Date.now() + 300_000).toISOString(),
+      };
+    else if (
+      /^\/api\/runs\/[^/]+\/retry$/.test(path) &&
+      request.method() === "POST"
+    )
+      body = { runId: retryRunId };
     else {
       status = 404;
       body = {

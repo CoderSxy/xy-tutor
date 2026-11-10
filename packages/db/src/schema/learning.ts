@@ -6,6 +6,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { studentProfiles } from "./auth.js";
 import { revisions } from "./catalog.js";
 import { questionVersions } from "./questions.js";
@@ -22,6 +23,7 @@ export const learningTasks = pgTable("learning_tasks", {
   status: text().notNull().default("active"),
   version: integer().notNull().default(1),
   chapterId: uuid("chapter_id"),
+  creationKey: text("creation_key"),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -29,7 +31,11 @@ export const learningTasks = pgTable("learning_tasks", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (t) => [
+  uniqueIndex("learning_task_creation_key")
+    .on(t.studentId, t.creationKey)
+    .where(sql`${t.creationKey} IS NOT NULL`),
+]);
 export const taskItems = pgTable(
   "task_items",
   {

@@ -39,10 +39,39 @@ export class TaskService {
         ).rowCount
       )
         throw new AppError("NOT_FOUND", 404, "章节不存在");
+      if (v.creationKey) {
+        await tx.query(
+          "SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))",
+          [scope.studentId, v.creationKey],
+        );
+        const existing = (
+          await tx.query(
+            "SELECT id,deleted_at,revision_id,kind,chapter_id FROM learning_tasks WHERE student_id=$1 AND creation_key=$2",
+            [scope.studentId, v.creationKey],
+          )
+        ).rows[0];
+        if (existing) {
+          if (existing.deleted_at)
+            throw new AppError("CONFLICT", 409, "任务已删除，请重新创建");
+          if (
+            existing.revision_id !== v.revisionId ||
+            existing.kind !== v.kind ||
+            (existing.chapter_id ?? undefined) !== v.chapterId
+          )
+            throw new AppError("CONFLICT", 409, "创建参数与已有任务不同");
+          return existing.id as string;
+        }
+      }
       const t = (
         await tx.query(
-          "INSERT INTO learning_tasks(student_id,revision_id,kind,chapter_id) VALUES($1,$2,$3,$4) RETURNING id",
-          [scope.studentId, v.revisionId, v.kind, v.chapterId ?? null],
+          "INSERT INTO learning_tasks(student_id,revision_id,kind,chapter_id,creation_key) VALUES($1,$2,$3,$4,$5) RETURNING id",
+          [
+            scope.studentId,
+            v.revisionId,
+            v.kind,
+            v.chapterId ?? null,
+            v.creationKey ?? null,
+          ],
         )
       ).rows[0];
       await tx.query(
