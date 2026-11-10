@@ -2,9 +2,13 @@ import { z } from "zod";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { Actor } from "../../../../../packages/contracts/src/domain.js";
 import {
+  KNOWLEDGE_ITEM_STATUSES,
   KNOWLEDGE_SOURCE_CONTENT_TYPES,
   createBatchInput,
+  editItemInput,
   type KnowledgeBatchDTO,
+  type KnowledgeItemDTO,
+  type KnowledgeItemStatus,
   type KnowledgeParseRunDTO,
 } from "../../../../../packages/contracts/src/knowledge-base.js";
 import {
@@ -26,6 +30,51 @@ type FileRow = {
   status: string;
   content_type: string;
 };
+
+type ItemRow = {
+  id: string;
+  batch_id: string;
+  parse_run_id: string;
+  title: string;
+  summary: string;
+  status: KnowledgeItemStatus;
+  replaces_item_id: string | null;
+  published_at: Date | null;
+  created_at: Date;
+  updated_at: Date;
+};
+
+export const listItemsQuery = z
+  .object({
+    status: z.enum(KNOWLEDGE_ITEM_STATUSES).optional(),
+    q: z.string().trim().min(1).max(255).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+    offset: z.coerce.number().int().min(0).default(0),
+  })
+  .strict();
+
+export const itemIdsInput = z
+  .object({ ids: z.array(z.uuid()).min(1).max(100) })
+  .strict();
+
+export const reparsePromptInput = z
+  .object({ extraPrompt: z.string().trim().min(1).max(4000) })
+  .strict();
+
+function itemDTO(row: ItemRow): KnowledgeItemDTO {
+  return {
+    id: row.id,
+    batchId: row.batch_id,
+    parseRunId: row.parse_run_id,
+    title: row.title,
+    summary: row.summary,
+    status: row.status,
+    replacesItemId: row.replaces_item_id,
+    publishedAt: row.published_at?.toISOString() ?? null,
+    createdAt: row.created_at.toISOString(),
+    updatedAt: row.updated_at.toISOString(),
+  };
+}
 
 function parseRunDTO(row: {
   id: string;
@@ -190,5 +239,263 @@ export class KnowledgeBaseService {
     const items: KnowledgeBatchDTO[] = [];
     for (const row of rows.rows) items.push(await this.getBatch(actor, row.id));
     return { items, total };
+  }
+
+  async listItems(
+    actor: Actor,
+    query: {
+      status?: KnowledgeItemStatus;
+      q?: string;
+      limit: number;
+      offset: number;
+    },
+  ): Promise<{ items: KnowledgeItemDTO[]; total: number }> {
+    requireAdmin(actor);
+    const filters: string[] = [];
+    const params: unknown[] = [];
+    if (query.status) {
+      params.push(query.status);
+      filters.push(`status=$${params.length}`);
+    }
+    if (query.q) {
+      params.push(`%${query.q}%`);
+      filters.push(
+        `(title ILIKE $${params.length} OR summary ILIKE $${params.length})`,
+      );
+    }
+    const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+    const total = (
+      await this.db.pool.query<{ n: number }>(
+        `SELECT count(*)::int AS n FROM knowledge_items ${where}`,
+        params,
+      )
+    ).rows[0]!.n;
+    const rows = await this.db.pool.query<ItemRow>(
+      `SELECT id,batch_id,parse_run_id,title,summary,status,replaces_item_id,published_at,created_at,updated_at
+       FROM knowledge_items ${where}
+       ORDER BY updated_at DESC, id DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, query.limit, query.offset],
+    );
+    return { items: rows.rows.map(itemDTO), total };
+  }
+
+  async updateItem(
+    actor: Actor,
+    id: string,
+    input: unknown,
+  ): Promise<KnowledgeItemDTO> {
+    requireAdmin(actor);
+    z.uuid().parse(id);
+    const parsed = editItemInput.safeParse(input);
+    if (!parsed.success)
+      throw new AppError("VALIDATION", 422, "知识点参数不正确");
+    return inTransaction(this.db, async (tx) => {
+      const item = (
+        await tx.query<ItemRow>(
+          "SELECT id,batch_id,parse_run_id,title,summary,status,replaces_item_id,published_at,created_at,updated_at FROM knowledge_items WHERE id=$1 FOR UPDATE",
+          [id],
+        )
+      ).rows[0];
+      if (!item) throw new AppError("NOT_FOUND", 404, "知识点不存在");
+      if (item.status === "discarded")
+        throw new AppError("CONFLICT", 409, "已丢弃的知识点不能修改");
+      const updated = (
+        await tx.query<ItemRow>(
+          "UPDATE knowledge_items SET title=$2,summary=$3,updated_at=now() WHERE id=$1 RETURNING id,batch_id,parse_run_id,title,summary,status,replaces_item_id,published_at,created_at,updated_at",
+          [id, parsed.data.title, parsed.data.summary],
+        )
+      ).rows[0]!;
+      await tx.query(
+        "INSERT INTO audit_events(actor_id,action,details) VALUES($1,'knowledge.item.update',$2)",
+        [actor.userId, JSON.stringify({ itemId: id })],
+      );
+      return itemDTO(updated);
+    });
+  }
+
+  async discardItems(actor: Actor, ids: string[]): Promise<void> {
+    requireAdmin(actor);
+    const unique = [...new Set(ids)];
+    await inTransaction(this.db, async (tx) => {
+      const rows = (
+        await tx.query<{ id: string; status: string }>(
+          "SELECT id,status FROM knowledge_items WHERE id=ANY($1::uuid[]) FOR UPDATE",
+          [unique],
+        )
+      ).rows;
+      if (rows.length !== unique.length)
+        throw new AppError("NOT_FOUND", 404, "知识点不存在");
+      if (rows.some((row) => row.status !== "pending_review"))
+        throw new AppError("CONFLICT", 409, "只有待确认的知识点可以丢弃");
+      await tx.query(
+        "UPDATE knowledge_items SET status='discarded',updated_at=now() WHERE id=ANY($1::uuid[])",
+        [unique],
+      );
+      await tx.query(
+        "INSERT INTO audit_events(actor_id,action,details) VALUES($1,'knowledge.item.discard',$2)",
+        [actor.userId, JSON.stringify({ itemIds: unique })],
+      );
+    });
+  }
+
+  async publishItems(actor: Actor, ids: string[]): Promise<KnowledgeItemDTO[]> {
+    requireAdmin(actor);
+    const unique = [...new Set(ids)];
+    return inTransaction(this.db, async (tx) => {
+      const rows = (
+        await tx.query<ItemRow>(
+          "SELECT id,batch_id,parse_run_id,title,summary,status,replaces_item_id,published_at,created_at,updated_at FROM knowledge_items WHERE id=ANY($1::uuid[]) FOR UPDATE",
+          [unique],
+        )
+      ).rows;
+      if (rows.length !== unique.length)
+        throw new AppError("NOT_FOUND", 404, "知识点不存在");
+      if (rows.some((row) => row.status !== "pending_review"))
+        throw new AppError("CONFLICT", 409, "只有待确认的知识点可以发布");
+      const byId = new Map(rows.map((row) => [row.id, row]));
+      const published: KnowledgeItemDTO[] = [];
+      for (const id of unique) {
+        const candidate = byId.get(id)!;
+        if (candidate.replaces_item_id) {
+          const target = (
+            await tx.query<ItemRow>(
+              "SELECT id,batch_id,parse_run_id,title,summary,status,replaces_item_id,published_at,created_at,updated_at FROM knowledge_items WHERE id=$1 FOR UPDATE",
+              [candidate.replaces_item_id],
+            )
+          ).rows[0];
+          if (!target || target.status !== "published")
+            throw new AppError("CONFLICT", 409, "被替换的知识点未发布");
+          const updated = (
+            await tx.query<ItemRow>(
+              "UPDATE knowledge_items SET title=$2,summary=$3,updated_at=now() WHERE id=$1 RETURNING id,batch_id,parse_run_id,title,summary,status,replaces_item_id,published_at,created_at,updated_at",
+              [target.id, candidate.title, candidate.summary],
+            )
+          ).rows[0]!;
+          await tx.query(
+            "UPDATE knowledge_items SET status='discarded',updated_at=now() WHERE id=$1",
+            [candidate.id],
+          );
+          published.push(itemDTO(updated));
+          continue;
+        }
+        const updated = (
+          await tx.query<ItemRow>(
+            "UPDATE knowledge_items SET status='published',published_at=now(),updated_at=now() WHERE id=$1 RETURNING id,batch_id,parse_run_id,title,summary,status,replaces_item_id,published_at,created_at,updated_at",
+            [candidate.id],
+          )
+        ).rows[0]!;
+        published.push(itemDTO(updated));
+      }
+      await tx.query(
+        "INSERT INTO audit_events(actor_id,action,details) VALUES($1,'knowledge.item.publish',$2)",
+        [actor.userId, JSON.stringify({ itemIds: unique })],
+      );
+      return published;
+    });
+  }
+
+  async reparseBatch(
+    actor: Actor,
+    batchId: string,
+    input: unknown,
+  ): Promise<KnowledgeParseRunDTO> {
+    requireAdmin(actor);
+    z.uuid().parse(batchId);
+    const parsed = reparsePromptInput.safeParse(input);
+    if (!parsed.success)
+      throw new AppError("VALIDATION", 422, "再解析参数不正确");
+    const batch = (
+      await this.db.pool.query<{ id: string }>(
+        "SELECT id FROM knowledge_batches WHERE id=$1",
+        [batchId],
+      )
+    ).rows[0];
+    if (!batch) throw new AppError("NOT_FOUND", 404, "批次不存在");
+    return this.scheduleReparse(actor, batchId, parsed.data.extraPrompt, null);
+  }
+
+  async reparsePublished(
+    actor: Actor,
+    itemId: string,
+    input: unknown,
+  ): Promise<KnowledgeParseRunDTO> {
+    requireAdmin(actor);
+    z.uuid().parse(itemId);
+    const parsed = reparsePromptInput.safeParse(input);
+    if (!parsed.success)
+      throw new AppError("VALIDATION", 422, "再解析参数不正确");
+    const item = (
+      await this.db.pool.query<{ batch_id: string; status: string }>(
+        "SELECT batch_id,status FROM knowledge_items WHERE id=$1",
+        [itemId],
+      )
+    ).rows[0];
+    if (!item) throw new AppError("NOT_FOUND", 404, "知识点不存在");
+    if (item.status !== "published")
+      throw new AppError("CONFLICT", 409, "只有已发布知识点可以再解析");
+    return this.scheduleReparse(
+      actor,
+      item.batch_id,
+      parsed.data.extraPrompt,
+      itemId,
+    );
+  }
+
+  private async scheduleReparse(
+    actor: Actor,
+    batchId: string,
+    extraPrompt: string,
+    replacesItemId: string | null,
+  ): Promise<KnowledgeParseRunDTO> {
+    const runId = await inTransaction(this.db, async (tx) => {
+      const run = (
+        await tx.query<{ id: string }>(
+          this.modelConfigured
+            ? "INSERT INTO knowledge_parse_runs(batch_id,extra_prompt,status) VALUES($1,$2,'queued') RETURNING id"
+            : "INSERT INTO knowledge_parse_runs(batch_id,extra_prompt,status,error_code,completed_at) VALUES($1,$2,'failed','MODEL_NOT_CONFIGURED',now()) RETURNING id",
+          [batchId, extraPrompt],
+        )
+      ).rows[0]!;
+      if (this.modelConfigured)
+        await this.queue.enqueue(tx, {
+          kind: "knowledge.parse",
+          dedupeKey: "knowledge.parse:" + run.id,
+          payload: replacesItemId
+            ? { runId: run.id, replacesItemId }
+            : { runId: run.id },
+        });
+      await tx.query(
+        "INSERT INTO audit_events(actor_id,action,details) VALUES($1,'knowledge.reparse',$2)",
+        [
+          actor.userId,
+          JSON.stringify({
+            batchId,
+            runId: run.id,
+            ...(replacesItemId ? { replacesItemId } : {}),
+          }),
+        ],
+      );
+      return run.id;
+    });
+    const row = (
+      await this.db.pool.query<{
+        id: string;
+        batch_id: string;
+        extra_prompt: string | null;
+        model: string | null;
+        status: string;
+        error_code: string | null;
+        item_count: number;
+        created_at: Date;
+        completed_at: Date | null;
+      }>(
+        `SELECT r.id,r.batch_id,r.extra_prompt,r.model,r.status,r.error_code,
+          (SELECT count(*)::int FROM knowledge_items i WHERE i.parse_run_id=r.id) AS item_count,
+          r.created_at,r.completed_at
+         FROM knowledge_parse_runs r WHERE r.id=$1`,
+        [runId],
+      )
+    ).rows[0]!;
+    return parseRunDTO(row);
   }
 }
