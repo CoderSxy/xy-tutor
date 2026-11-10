@@ -1,0 +1,79 @@
+scripts/build-release.sh
+  s_329ce14e8c9d8a::t_434ae7acc0f54d 1-34,41-50
+  s_329ce14e8c9d8a::t_ec08f7d597c26d 35-40
+infra/Dockerfile
+  s_329ce14e8c9d8a::t_434ae7acc0f54d 38-43
+  s_329ce14e8c9d8a::t_d37b0e02e6fca1 3
+infra/native/xy-tutor.service
+  s_329ce14e8c9d8a::t_ec08f7d597c26d 16
+  s_7ddd7bcc8c3bb9::t_c99c7521ccc88f 20-24
+  s_329ce14e8c9d8a::t_434ae7acc0f54d 1-15,17-19,25-35
+apps/server/src/jobs/queue.ts
+  s_7ddd7bcc8c3bb9::t_7c0bc7e356264d 79,90,95,98-113
+apps/server/src/jobs/runner.ts
+  s_7ddd7bcc8c3bb9::t_337e30abb04ea9 59-61,63-64,71-72
+  s_7ddd7bcc8c3bb9::t_4a6d54893174c0 3,7-8,16
+apps/server/src/jobs/errors.ts
+  s_7ddd7bcc8c3bb9::t_4fddc636c20d6a 1-17,21-25
+  s_7ddd7bcc8c3bb9::t_e392ab2755ec79 18-20
+apps/server/src/jobs/parsers/pdf-process.ts
+  s_7ddd7bcc8c3bb9::t_fe79d9e2b032bb 157
+  s_7ddd7bcc8c3bb9::t_152bf41b39d4ca 117,122,124,128,135,139,142
+  s_7ddd7bcc8c3bb9::t_07880adefecce8 4,18,26,34,36-39,41-43,49,59-62,70,85-90,103,107-116,118-119,123,125-127,129-131,133-134,136-138,140-141,143-156,158-173,175-180,184
+  s_7ddd7bcc8c3bb9::t_5ef2c10c699966 105
+  s_7ddd7bcc8c3bb9::t_4541bb71acef17 13-14
+  s_7ddd7bcc8c3bb9::t_47bf6c46841e77 121
+apps/server/src/jobs/parsers/pdf-child.ts
+  s_7ddd7bcc8c3bb9::t_24a69a73c1f1fd 4,7,12-18,20-23,33-35,37,46,48-49,67-68,70,77,80-81,86-90,92-93
+docs/runbooks/ecs-native-minimal.md
+  s_329ce14e8c9d8a::t_9953094b1791db 1,3,5,7-20,23,25,27-30,35,42,44,46,52,54,56,58-60,63,65,68,70-71,74,77-85,87-100,103,106-107,110,112-114,116-120,122-129,131,133,137,139,161,164,166-167,169,171,173-178,180
+  s_329ce14e8c9d8a::t_cb9cf1a8e2ec45 135
+  s_7ddd7bcc8c3bb9::t_02849c17d6ff37 21
+  s_7ddd7bcc8c3bb9::t_cb4f2035517be6 141-160
+  s_329ce14e8c9d8a::t_197caa331174c9 2,4,6,22,24,26,31-34,36-41,43,45,47-48,50-51,53,55,57,61-62,64,66-67,69,72-73,75-76,86,101-102,104-105,108-109,111,115,121,130,132,134,136,138,140,162-163,165,168,170,172,179
+  s_329ce14e8c9d8a::t_ebefcb80b8f0f8 49
+packages/contracts/src/file-limits.ts
+  s_7ddd7bcc8c3bb9::t_3d529149c0d601 4-5
+infra/native/nginx.conf
+  s_329ce14e8c9d8a::t_434ae7acc0f54d 1-21
+tests/unit/parsers.test.ts
+  s_7ddd7bcc8c3bb9::t_12f167882a3aba 51-65
+apps/web/src/lib/api.ts
+  s_7ddd7bcc8c3bb9::t_a6020fe1792b54 1-2,14,18-30,32-62
+docs/runbooks/agent-nerosun-release.md
+  s_329ce14e8c9d8a::t_75f280382ea01c 1-135
+apps/server/src/jobs/textbook-job.ts
+  s_7ddd7bcc8c3bb9::t_45673aea2e3bed 23
+  s_7ddd7bcc8c3bb9::t_c08feced3b5d61 27-38,40-41
+  s_7ddd7bcc8c3bb9::t_64c8dd1ccfcea6 8
+apps/web/src/routes/admin/Textbooks.tsx
+  s_7ddd7bcc8c3bb9::t_51403644e62607 22-23,25-26
+apps/server/src/jobs/material-job.ts
+  s_7ddd7bcc8c3bb9::t_a34c022a72a160 7,38-60,62-70,72-81,83-86,88-89,92-98,100-106
+  s_7ddd7bcc8c3bb9::t_847413e5bfe74d 29-37
+  s_7ddd7bcc8c3bb9::t_4e48c860ed5db1 25-26
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6ed2eecd35bd8598005585cafc738987036a36ac",
+  "prompts": {},
+  "sessions": {
+    "s_329ce14e8c9d8a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c322-e82f-7b02-a89a-03d64c9354e3",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
