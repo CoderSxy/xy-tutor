@@ -1,0 +1,38 @@
+tests/integration/knowledge-base-upload.test.ts
+  s_88c769acc0e1c6::t_af20fb4a576ba9 94-98
+  s_88c769acc0e1c6::t_eb73ea95d3044c 117,182,256
+  s_88c769acc0e1c6::t_4361ca47b2e1f2 103
+  s_88c769acc0e1c6::t_ca9b722b3070c7 1-93,99-102,104-116,118-181,183-255,257-284
+apps/server/src/modules/knowledge-base/service.ts
+  s_88c769acc0e1c6::t_d4ad7425495676 1-194
+packages/contracts/src/knowledge-base.ts
+  s_88c769acc0e1c6::t_fbbcd4a8346196 15-23
+apps/server/src/modules/uploads/contracts.ts
+  s_88c769acc0e1c6::t_27b69d17b5808b 6-11,18-19
+apps/server/src/modules/knowledge-base/routes.ts
+  s_88c769acc0e1c6::t_7f63403e53d8bd 1-30
+apps/server/src/app.ts
+  s_88c769acc0e1c6::t_53047ab05f0174 42-43
+  s_88c769acc0e1c6::t_8e430701bd58e8 266
+  s_88c769acc0e1c6::t_af7f1d9a6f5adb 130-134
+apps/server/src/modules/uploads/service.ts
+  s_88c769acc0e1c6::t_41902dc8b02227 84-85,87-96
+  s_88c769acc0e1c6::t_4170740b7a3ebc 41-43
+  s_88c769acc0e1c6::t_eb2280d58e7b64 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b260f2768983f5567851065716ab30c41740fce4",
+  "prompts": {},
+  "sessions": {
+    "s_88c769acc0e1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4497e957-dfb2-40a9-8e9b-cb11dfd0322a",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
