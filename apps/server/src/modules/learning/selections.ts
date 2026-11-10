@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import {
   inTransaction,
   type Database,
@@ -6,6 +7,7 @@ import {
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { AuthService } from "../auth/service.js";
+import { requireSession } from "../auth/routes.js";
 export type SelectionDTO = {
   revisionId: string;
   grade: string;
@@ -55,4 +57,13 @@ export class SelectionService {
     });
     return this.list(scope);
   }
+}
+
+export function registerSelections(app: FastifyInstance) {
+  const gone = async (req: FastifyRequest): Promise<never> => {
+    requireSession(req);
+    throw new AppError("GONE", 410, "教材选择已下线，请直接开始学习");
+  };
+  app.get("/api/learning/selections", gone);
+  app.post("/api/learning/selections", gone);
 }

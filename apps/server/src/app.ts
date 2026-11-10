@@ -1,4 +1,4 @@
-import { SelectionService } from "./modules/learning/selections.js";
+import { registerSelections } from "./modules/learning/selections.js";
 import Fastify from "fastify";
 import { SummaryService } from "./modules/learning/summaries.js";
 import { KnowledgeService } from "./modules/learning/knowledge.js";
@@ -133,19 +133,13 @@ export function buildApp(deps: AppDependencies) {
         scoped,
         new KnowledgeBaseService(deps.database!, jobs, !!deps.gateway),
       );
-      registerCatalog(scoped, catalog);
+      registerCatalog(scoped);
       registerStudentInsights(scoped, {
         database: deps.database!,
         fileStore: deps.fileStore,
         gatewayConfigured: !!deps.gateway,
       });
-      const selections = new SelectionService(deps.database!, auth);
-      scoped.get("/api/learning/selections", async (req) =>
-        selections.list(await scopeForRequest(auth, req)),
-      );
-      scoped.post("/api/learning/selections", async (req) =>
-        selections.record(await scopeForRequest(auth, req), req.body),
-      );
+      registerSelections(scoped);
       const materials = new MaterialService(
         deps.database!,
         auth,

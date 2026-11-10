@@ -117,7 +117,7 @@ it("rejects admins and students from ordinary student endpoints", async () =>
         },
         payload: { revisionId: crypto.randomUUID() },
       });
-      expect(write.statusCode).toBe(404);
+      expect(write.statusCode).toBe(410);
 
       expect(
         (

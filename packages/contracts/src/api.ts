@@ -5,7 +5,8 @@ export type ErrorCode =
   | "CONFLICT"
   | "VALIDATION"
   | "RATE_LIMITED"
-  | "UPSTREAM_UNAVAILABLE";
+  | "UPSTREAM_UNAVAILABLE"
+  | "GONE";
 export class AppError extends Error {
   constructor(
     public code: ErrorCode,
