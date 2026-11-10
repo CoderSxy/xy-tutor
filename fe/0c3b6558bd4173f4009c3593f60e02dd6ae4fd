@@ -1,0 +1,36 @@
+tests/unit/student-insight-report-output.test.ts
+  s_7ddd7bcc8c3bb9::t_90a63efaa98960 1-14,16-121,123-135
+  s_7ddd7bcc8c3bb9::t_2fd4e22199b185 15,122
+apps/server/src/jobs/queue.ts
+  s_7ddd7bcc8c3bb9::t_9148fdb26c620d 36-42
+  s_7ddd7bcc8c3bb9::t_33cbd386bb1fb7 80-120
+apps/server/src/modules/student-insights/report-generator.ts
+  s_7ddd7bcc8c3bb9::t_3375f1404dea4d 241-244
+  s_7ddd7bcc8c3bb9::t_81a37ac694cba8 1-169,175-240,245-390
+  s_7ddd7bcc8c3bb9::t_948235bc4bcdf3 170-174
+apps/server/src/jobs/student-insight-job.ts
+  s_7ddd7bcc8c3bb9::t_b9fc1bcfe70750 1-17
+apps/server/src/app.ts
+  s_7ddd7bcc8c3bb9::t_ff8c392646df33 268-274
+  s_7ddd7bcc8c3bb9::t_268695a2b53772 32-33
+tests/integration/student-insight-report-jobs.test.ts
+  s_7ddd7bcc8c3bb9::t_13422c3f961dc8 1-66,68-132,134-158,160-184,186-201,203-231,233-278,280-309,311-337,339-355
+  s_7ddd7bcc8c3bb9::t_2034f28fa92578 133,159,185,202,232,279,310,338
+  s_7ddd7bcc8c3bb9::t_0ced15527059f7 67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fe0c3b6558bd4173f4009c3593f60e02dd6ae4fd",
+  "prompts": {},
+  "sessions": {
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
