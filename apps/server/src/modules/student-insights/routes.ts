@@ -1,7 +1,14 @@
 import type { FastifyInstance, RouteHandlerMethod } from "fastify";
 import type { Database } from "../../../../../packages/db/src/client.js";
+import {
+  insightFilterInputSchema,
+  insightListQuerySchema,
+} from "../../../../../packages/contracts/src/student-insights.js";
 import { requireAdmin } from "../auth/policy.js";
 import { requireSession } from "../auth/routes.js";
+import { resolveInsightRange } from "./metrics.js";
+import { requireAdminInsightScope } from "./policy.js";
+import { InsightQueryService } from "./queries.js";
 
 export const STUDENT_INSIGHT_PREFIX = "/api/admin/student-insights";
 
@@ -45,8 +52,36 @@ export function registerStudentInsights(
 }
 
 function registerRoutes(
-  _app: FastifyInstance,
-  _deps: StudentInsightDependencies,
+  app: FastifyInstance,
+  deps: StudentInsightDependencies,
 ): void {
-  /* 资源端点随各任务加入，并通过 adminInsightRoute() 自动纳入权限参数化测试 */
+  const service = new InsightQueryService(deps.database);
+
+  adminInsightRoute(app, "GET", "/students", async (request) => {
+    const actor = requireSession(request).actor;
+    const input = insightListQuerySchema.parse(request.query);
+    return service.list(actor, input);
+  });
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/overview",
+    async (request) => {
+      const actor = requireSession(request).actor;
+      const { studentId } = request.params as { studentId: string };
+      const input = insightFilterInputSchema.parse(request.query);
+      const range = resolveInsightRange(input);
+      const scope = await requireAdminInsightScope(
+        deps.database,
+        actor,
+        studentId,
+      );
+      return service.overview(scope, {
+        from: range.from,
+        to: range.to,
+        revisionId: input.revisionId,
+      });
+    },
+  );
 }

@@ -3,14 +3,14 @@ import type { InsightFilter } from "../../../../../packages/contracts/src/studen
 import { resolveInsightRange } from "./metrics.js";
 
 // 所有证据有效性判断共用同一口径：学生本人名下、原始题版本或消息版本未被失效。
-const VALID_ATTEMPT = `NOT EXISTS (
+export const VALID_ATTEMPT = `NOT EXISTS (
   SELECT 1 FROM evidence_invalidations i
   WHERE i.student_id = a.student_id
     AND (i.evidence_version_id = a.question_version_id
       OR i.evidence_version_id = a.message_version_id)
 )`;
 
-const LATEST_ASSESSMENT = `LEFT JOIN LATERAL (
+export const LATEST_ASSESSMENT = `LEFT JOIN LATERAL (
   SELECT s.id, s.correctness, s.verification, s.hint_dependency, s.created_at
   FROM assessments s
   WHERE s.attempt_id = a.id

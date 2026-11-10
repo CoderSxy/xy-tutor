@@ -37,7 +37,18 @@ export const studentSortSchema = z.enum([
   "first_attempt_accuracy",
 ]);
 
+export const insightListQuerySchema = insightFilterInputSchema
+  .extend({
+    q: z.string().trim().max(80).optional(),
+    sort: studentSortSchema.default("last_learning_at"),
+    attention: attentionSchema.default("any"),
+    limit: pageQuerySchema.shape.limit,
+    offset: pageQuerySchema.shape.offset,
+  })
+  .strict();
+
 export type InsightFilter = z.infer<typeof insightFilterSchema>;
+export type InsightListQuery = z.infer<typeof insightListQuerySchema>;
 export type PageQuery = z.infer<typeof pageQuerySchema>;
 export type AdminInsightScope = { actor: Actor; studentId: string };
 
