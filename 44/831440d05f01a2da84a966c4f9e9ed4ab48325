@@ -1,0 +1,31 @@
+tests/helpers/student-insights.ts
+  s_7ddd7bcc8c3bb9::t_ae3ebf8a778819 546,548
+  s_7ddd7bcc8c3bb9::t_ac232c36aa0e14 4-8
+  s_7ddd7bcc8c3bb9::t_e1783ce38a5817 405
+  s_7ddd7bcc8c3bb9::t_1823e6b0c45260 91-380,382-404,406-545,547,549-553
+  s_7ddd7bcc8c3bb9::t_3bf7a5de338dd7 381
+tests/integration/student-insight-facts.test.ts
+  s_7ddd7bcc8c3bb9::t_28ec5683a55b7a 1-160
+apps/server/src/modules/student-insights/facts.ts
+  s_7ddd7bcc8c3bb9::t_2f1c009d386d18 1-373
+packages/db/migrations/0019_insight_fact_indexes.sql
+  s_7ddd7bcc8c3bb9::t_bca261f9f88255 1-7
+packages/db/migrations/meta/_journal.json
+  s_7ddd7bcc8c3bb9::t_c1d888b0b3fe8f 137-143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "44831440d05f01a2da84a966c4f9e9ed4ab48325",
+  "prompts": {},
+  "sessions": {
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
