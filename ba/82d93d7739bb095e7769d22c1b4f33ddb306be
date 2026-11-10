@@ -1,0 +1,28 @@
+apps/server/src/app.ts
+  s_88c769acc0e1c6::t_4e88488518b8d8 44
+  s_88c769acc0e1c6::t_cc9385767be51b 281-286
+apps/server/src/modules/knowledge-base/parser.ts
+  s_88c769acc0e1c6::t_6966d51453a139 1-109
+tests/integration/knowledge-parse-job.test.ts
+  s_88c769acc0e1c6::t_45c7111d9921d0 1-284
+tests/unit/knowledge-parse.test.ts
+  s_88c769acc0e1c6::t_b9c111da4fc532 1-101
+apps/server/src/jobs/knowledge-parse-job.ts
+  s_88c769acc0e1c6::t_d09b1d5014cfab 1-150
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ba82d93d7739bb095e7769d22c1b4f33ddb306be",
+  "prompts": {},
+  "sessions": {
+    "s_88c769acc0e1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4497e957-dfb2-40a9-8e9b-cb11dfd0322a",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
