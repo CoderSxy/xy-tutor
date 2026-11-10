@@ -1,0 +1,40 @@
+import {
+  pgTable,
+  uuid,
+  text,
+  jsonb,
+  timestamp,
+  boolean,
+} from "drizzle-orm/pg-core";
+import { attempts } from "./conversations.js";
+import { questionVersions } from "./questions.js";
+export const questionReferences = pgTable("question_references", {
+  id: uuid().primaryKey().defaultRandom(),
+  questionVersionId: uuid("question_version_id")
+    .notNull()
+    .references(() => questionVersions.id),
+  answer: text().notNull(),
+  answerType: text("answer_type").notNull(),
+  requiresWorking: boolean("requires_working").notNull(),
+  verification: text().notNull(),
+  evidence: jsonb().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+export const assessments = pgTable("assessments", {
+  id: uuid().primaryKey().defaultRandom(),
+  attemptId: uuid("attempt_id")
+    .notNull()
+    .references(() => attempts.id),
+  correctness: text().notNull(),
+  verification: text().notNull(),
+  hintDependency: text("hint_dependency").notNull(),
+  method: text().notNull(),
+  verifierVersion: text("verifier_version").notNull(),
+  referenceId: uuid("reference_id").references(() => questionReferences.id),
+  evidence: jsonb().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

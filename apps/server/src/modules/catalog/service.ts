@@ -1,0 +1,400 @@
+import { z } from "zod";
+import type { PoolClient } from "pg";
+import {
+  inTransaction,
+  type Database,
+} from "../../../../../packages/db/src/client.js";
+import type { Actor } from "../../../../../packages/contracts/src/domain.js";
+import { AppError } from "../../../../../packages/contracts/src/api.js";
+import type { AuthService } from "../auth/service.js";
+import type { UploadService } from "../uploads/service.js";
+import { requireAdmin } from "../auth/policy.js";
+import { JobQueue } from "../../jobs/queue.js";
+import type { ParsedPage } from "../../jobs/parsers/pdf-process.js";
+import {
+  draftInput,
+  reviewInput,
+  type CatalogFilter,
+  type RevisionDTO,
+} from "./contracts.js";
+const revisionQuery = `SELECT r.id,r.textbook_id AS "textbookId",r.file_id AS "fileId",r.revision_no AS "revisionNo",r.status,r.page_count AS "pageCount",t.title,e.name AS edition,g.name AS grade,s.name AS subject,t.term,t.publication_year AS "publicationYear",(SELECT j.error_code FROM jobs j WHERE j.kind='textbook.parse' AND j.payload->>'revisionId'=r.id::text AND j.status='failed' ORDER BY j.created_at DESC LIMIT 1) AS "parseErrorCode" FROM textbook_revisions r JOIN textbooks t ON t.id=r.textbook_id JOIN curriculum_editions e ON e.id=t.edition_id JOIN grades g ON g.id=t.grade_id JOIN subjects s ON s.id=t.subject_id`;
+export class CatalogService {
+  constructor(
+    readonly db: Database,
+    readonly auth: AuthService,
+    readonly uploads: UploadService,
+  ) {}
+  private async audit(
+    tx: PoolClient,
+    actor: Actor,
+    action: string,
+    id: string,
+  ) {
+    await tx.query(
+      "INSERT INTO audit_events(actor_id,action,details) VALUES($1,$2,$3)",
+      [actor.userId, action, JSON.stringify({ revisionId: id })],
+    );
+  }
+  async createDraft(actor: Actor, input: unknown): Promise<RevisionDTO> {
+    requireAdmin(actor);
+    const v = draftInput.parse(input);
+    const file = await this.uploads.authorize(actor, v.fileId);
+    if (file.status !== "ready" || file.purpose !== "textbook")
+      throw new AppError("CONFLICT", 409, "请先上传并确认教材PDF");
+    const id = await inTransaction(this.db, async (tx) => {
+      const ids = [];
+      for (const [table, name] of [
+        ["curriculum_editions", v.edition],
+        ["grades", v.grade],
+        ["subjects", v.subject],
+      ])
+        ids.push(
+          (
+            await tx.query(
+              `INSERT INTO ${table}(name) VALUES($1) ON CONFLICT(name) DO UPDATE SET name=EXCLUDED.name RETURNING id`,
+              [name],
+            )
+          ).rows[0].id,
+        );
+      const book = (
+        await tx.query(
+          "INSERT INTO textbooks(title,edition_id,grade_id,subject_id,term,publication_year) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(edition_id,grade_id,subject_id,term,publication_year) DO UPDATE SET title=textbooks.title RETURNING id",
+          [v.title, ...ids, v.term, v.publicationYear],
+        )
+      ).rows[0];
+      await tx.query("SELECT id FROM textbooks WHERE id=$1 FOR UPDATE", [
+        book.id,
+      ]);
+      const next = (
+        await tx.query(
+          "SELECT COALESCE(MAX(revision_no),0)+1 AS n FROM textbook_revisions WHERE textbook_id=$1",
+          [book.id],
+        )
+      ).rows[0].n;
+      const r = (
+        await tx.query(
+          "INSERT INTO textbook_revisions(textbook_id,file_id,revision_no) VALUES($1,$2,$3) RETURNING id",
+          [book.id, v.fileId, next],
+        )
+      ).rows[0];
+      await this.audit(tx, actor, "textbook.draft", r.id);
+      return r.id;
+    });
+    return this.getRevision(actor, id);
+  }
+  async startProcessing(actor: Actor, id: string): Promise<void> {
+    requireAdmin(actor);
+    z.uuid().parse(id);
+    await inTransaction(this.db, async (tx) => {
+      const r = (
+        await tx.query(
+          "SELECT status FROM textbook_revisions WHERE id=$1 FOR UPDATE",
+          [id],
+        )
+      ).rows[0];
+      if (!r) throw new AppError("NOT_FOUND", 404, "教材不存在");
+      if (r.status === "processing") return;
+      if (!["draft", "failed"].includes(r.status))
+        throw new AppError("CONFLICT", 409, "当前教材不可重新解析");
+      await tx.query(
+        "UPDATE textbook_revisions SET status='processing' WHERE id=$1",
+        [id],
+      );
+      const jobId = await new JobQueue(this.db).enqueue(tx, {
+        kind: "textbook.parse",
+        dedupeKey: `textbook:${id}`,
+        payload: { revisionId: id },
+      });
+      await tx.query(
+        "UPDATE jobs SET status='queued',attempts=0,available_at=now() WHERE id=$1 AND status='failed'",
+        [jobId],
+      );
+    });
+  }
+  private async replaceChunks(
+    tx: PoolClient,
+    revisionId: string,
+    pageId: string,
+    text: string,
+    chapter = "未分章",
+  ) {
+    const c = (
+      await tx.query(
+        "INSERT INTO chapters(revision_id,name) VALUES($1,$2) ON CONFLICT(revision_id,name) DO UPDATE SET name=EXCLUDED.name RETURNING id",
+        [revisionId, chapter],
+      )
+    ).rows[0];
+    await tx.query("DELETE FROM textbook_chunks WHERE page_id=$1", [pageId]);
+    for (let i = 0; i < text.length; i += 1200)
+      await tx.query(
+        "INSERT INTO textbook_chunks(revision_id,page_id,chapter_id,position,text) VALUES($1,$2,$3,$4,$5)",
+        [revisionId, pageId, c.id, i, text.slice(i, i + 1400)],
+      );
+  }
+  async saveParsedPage(
+    id: string,
+    page: ParsedPage,
+    lease?: { jobId: string; token: string },
+  ): Promise<void> {
+    await inTransaction(this.db, async (tx) => {
+      if (
+        lease &&
+        !(
+          await tx.query(
+            "SELECT id FROM jobs WHERE id=$1 AND lease_token=$2 AND status='running' FOR UPDATE",
+            [lease.jobId, lease.token],
+          )
+        ).rowCount
+      )
+        throw Error("STALE_JOB");
+      const r = (
+        await tx.query(
+          "SELECT status FROM textbook_revisions WHERE id=$1 FOR UPDATE",
+          [id],
+        )
+      ).rows[0];
+      if (r?.status !== "processing") return;
+      const p = (
+        await tx.query(
+          "INSERT INTO textbook_pages(revision_id,page_index,printed_page_label,text,status) VALUES($1,$2,$3,$4,$5) ON CONFLICT(revision_id,page_index) DO UPDATE SET printed_page_label=EXCLUDED.printed_page_label,text=EXCLUDED.text,status=EXCLUDED.status RETURNING id",
+          [
+            id,
+            page.pdfPageIndex,
+            page.printedPageLabel ?? null,
+            page.text,
+            page.status,
+          ],
+        )
+      ).rows[0];
+      await this.replaceChunks(tx, id, p.id, page.text);
+    });
+  }
+  private async excludeEmptyPages(
+    tx: PoolClient,
+    id: string,
+    actor?: Actor,
+  ): Promise<number> {
+    const pages = (
+      await tx.query(
+        "UPDATE textbook_pages SET excluded=true WHERE revision_id=$1 AND status='ready' AND NOT excluded AND text ~ '^[[:space:]]*$' RETURNING id,page_index",
+        [id],
+      )
+    ).rows;
+    if (!pages.length) return 0;
+    await tx.query(
+      "DELETE FROM textbook_chunks WHERE page_id=ANY($1::uuid[])",
+      [pages.map((p) => p.id)],
+    );
+    await tx.query(
+      "INSERT INTO audit_events(actor_id,action,details) VALUES($1,'textbook.auto_exclude_empty',$2)",
+      [
+        actor?.userId ?? null,
+        JSON.stringify({
+          revisionId: id,
+          pageIndexes: pages.map((p) => p.page_index),
+          ruleVersion: "empty-text-v1",
+          reason: "解析成功但没有识别出文字，自动排除",
+        }),
+      ],
+    );
+    return pages.length;
+  }
+  async excludeEmptyReviewPages(actor: Actor, id: string): Promise<number> {
+    requireAdmin(actor);
+    z.uuid().parse(id);
+    return inTransaction(this.db, async (tx) => {
+      const r = (
+        await tx.query(
+          "SELECT status FROM textbook_revisions WHERE id=$1 FOR UPDATE",
+          [id],
+        )
+      ).rows[0];
+      if (r?.status !== "review")
+        throw new AppError("CONFLICT", 409, "仅待检查教材可自动排除页面");
+      return this.excludeEmptyPages(tx, id, actor);
+    });
+  }
+  async finishProcessing(
+    id: string,
+    lease?: { jobId: string; token: string },
+  ): Promise<void> {
+    await inTransaction(this.db, async (tx) => {
+      if (
+        lease &&
+        !(
+          await tx.query(
+            "SELECT id FROM jobs WHERE id=$1 AND lease_token=$2 AND status='running' FOR UPDATE",
+            [lease.jobId, lease.token],
+          )
+        ).rowCount
+      )
+        throw Error("STALE_JOB");
+      const revision = (
+        await tx.query(
+          "SELECT status FROM textbook_revisions WHERE id=$1 FOR UPDATE",
+          [id],
+        )
+      ).rows[0];
+      if (revision?.status !== "processing") return;
+      await this.excludeEmptyPages(tx, id);
+      await tx.query(
+        "UPDATE textbook_revisions SET status='review',page_count=(SELECT count(*) FROM textbook_pages WHERE revision_id=$1) WHERE id=$1 AND status='processing'",
+        [id],
+      );
+    });
+  }
+  async reviewPage(actor: Actor, input: unknown): Promise<void> {
+    requireAdmin(actor);
+    const v = reviewInput.parse(input);
+    await inTransaction(this.db, async (tx) => {
+      const r = (
+        await tx.query(
+          "SELECT status FROM textbook_revisions WHERE id=$1 FOR UPDATE",
+          [v.revisionId],
+        )
+      ).rows[0];
+      if (r?.status !== "review")
+        throw new AppError("CONFLICT", 409, "仅待检查教材可修改");
+      const p = (
+        await tx.query(
+          "UPDATE textbook_pages SET text=COALESCE($1,text),status=CASE WHEN $1 IS NOT NULL THEN 'ready' ELSE status END,excluded=COALESCE($2,excluded),printed_page_label=COALESCE($3,printed_page_label) WHERE revision_id=$4 AND page_index=$5 RETURNING id,text,excluded",
+          [
+            v.text ?? null,
+            v.excluded ?? null,
+            v.printedPageLabel ?? null,
+            v.revisionId,
+            v.pageIndex,
+          ],
+        )
+      ).rows[0];
+      if (!p) throw new AppError("NOT_FOUND", 404, "页面不存在");
+      await this.replaceChunks(
+        tx,
+        v.revisionId,
+        p.id,
+        p.excluded ? "" : p.text,
+        v.chapter,
+      );
+      await this.audit(tx, actor, "textbook.review", v.revisionId);
+    });
+  }
+  async publish(actor: Actor, id: string): Promise<void> {
+    requireAdmin(actor);
+    z.uuid().parse(id);
+    await inTransaction(this.db, async (tx) => {
+      const r = (
+        await tx.query(
+          "SELECT * FROM textbook_revisions WHERE id=$1 FOR UPDATE",
+          [id],
+        )
+      ).rows[0];
+      if (r?.status !== "review")
+        throw new AppError("CONFLICT", 409, "教材尚不可发布");
+      await this.excludeEmptyPages(tx, id, actor);
+      const pages = (
+        await tx.query(
+          "SELECT * FROM textbook_pages WHERE revision_id=$1 ORDER BY page_index",
+          [id],
+        )
+      ).rows;
+      if (
+        !pages.length ||
+        pages.length !== r.page_count ||
+        pages.some(
+          (p) => !p.excluded && (p.status !== "ready" || !p.text.trim()),
+        ) ||
+        !pages.some((p) => !p.excluded && p.text.trim())
+      )
+        throw new AppError("CONFLICT", 409, "请处理或明确排除未识别页面");
+      await tx.query(
+        "UPDATE textbook_revisions SET status='published' WHERE id=$1",
+        [id],
+      );
+      await this.audit(tx, actor, "textbook.publish", id);
+    });
+  }
+  async disable(actor: Actor, id: string): Promise<void> {
+    requireAdmin(actor);
+    await inTransaction(this.db, async (tx) => {
+      const r = await tx.query(
+        "UPDATE textbook_revisions SET status='disabled' WHERE id=$1 AND status='published' RETURNING id",
+        [id],
+      );
+      if (!r.rowCount)
+        throw new AppError("CONFLICT", 409, "教材未发布或已停用");
+      await this.audit(tx, actor, "textbook.disable", id);
+    });
+  }
+  async listPublished(filters: CatalogFilter): Promise<RevisionDTO[]> {
+    return (
+      await this.db.pool.query<RevisionDTO>(
+        revisionQuery +
+          " WHERE r.status='published' AND ($1::text IS NULL OR e.name=$1) AND ($2::text IS NULL OR g.name=$2) AND ($3::text IS NULL OR s.name=$3) ORDER BY t.title,r.revision_no DESC",
+        [
+          filters.edition ?? null,
+          filters.grade ?? null,
+          filters.subject ?? null,
+        ],
+      )
+    ).rows;
+  }
+  async listAdmin(actor: Actor): Promise<RevisionDTO[]> {
+    requireAdmin(actor);
+    return (
+      await this.db.pool.query<RevisionDTO>(
+        revisionQuery + " ORDER BY r.created_at DESC",
+      )
+    ).rows;
+  }
+  async canReadRevision(actor: Actor, id: string): Promise<boolean> {
+    if (actor.role === "admin") return true;
+    const r = (
+      await this.db.pool.query(
+        "SELECT status FROM textbook_revisions WHERE id=$1",
+        [id],
+      )
+    ).rows[0];
+    if (r?.status === "published") return true;
+    const exists = (
+      await this.db.pool.query("SELECT to_regclass('learning_tasks') AS rel")
+    ).rows[0].rel;
+    if (!exists) return false;
+    return !!(
+      await this.db.pool.query(
+        "SELECT 1 FROM learning_tasks t JOIN student_access a ON a.student_id=t.student_id WHERE t.revision_id=$1 AND a.user_id=$2 LIMIT 1",
+        [id, actor.userId],
+      )
+    ).rowCount;
+  }
+  async getRevision(actor: Actor, id: string): Promise<RevisionDTO> {
+    if (!(await this.canReadRevision(actor, id)))
+      throw new AppError("NOT_FOUND", 404, "教材不存在");
+    const r = (
+      await this.db.pool.query<RevisionDTO>(revisionQuery + " WHERE r.id=$1", [
+        id,
+      ])
+    ).rows[0];
+    if (!r) throw new AppError("NOT_FOUND", 404, "教材不存在");
+    return r;
+  }
+  async getPages(actor: Actor, id: string) {
+    await this.getRevision(actor, id);
+    return (
+      await this.db.pool.query(
+        'SELECT id,page_index AS "pageIndex",printed_page_label AS "printedPageLabel",text,status,excluded FROM textbook_pages WHERE revision_id=$1 ORDER BY page_index',
+        [id],
+      )
+    ).rows;
+  }
+  async canReadFile(actor: Actor, fileId: string): Promise<boolean> {
+    const rs = (
+      await this.db.pool.query(
+        "SELECT id FROM textbook_revisions WHERE file_id=$1",
+        [fileId],
+      )
+    ).rows;
+    for (const r of rs)
+      if (await this.canReadRevision(actor, r.id)) return true;
+    return false;
+  }
+}

@@ -1,0 +1,35 @@
+[Unit]
+Description=XY Tutor
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=xy-tutor
+Group=xy-tutor
+WorkingDirectory=/opt/xy-tutor/current/backend
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=3002
+Environment=NODE_OPTIONS=--max-old-space-size=256
+Environment=RESOURCE_DISK_PATH=/opt/xy-tutor
+ExecStart=/usr/local/bin/node --env-file=/opt/xy-tutor/.env /opt/xy-tutor/current/backend/dist/server/apps/server/src/main.js
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=45
+# 解析扫描件时峰值会短暂超过 384M。留 1G 换页空间，让 cgroup 走 swap 而不是
+# 在高水位上做不可中断的内存回收（那样会让整个进程连定时器都停住）。
+MemoryHigh=512M
+MemoryMax=768M
+MemorySwapMax=1G
+TasksMax=100
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0027
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

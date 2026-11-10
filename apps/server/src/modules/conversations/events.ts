@@ -1,0 +1,82 @@
+import { z } from "zod";
+import type { Database } from "../../../../../packages/db/src/client.js";
+import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
+import { AppError } from "../../../../../packages/contracts/src/api.js";
+import type { AuthService } from "../auth/service.js";
+export const eventTypes = [
+  "queued",
+  "started",
+  "text_delta",
+  "tool_status",
+  "message_completed",
+  "assessment_ready",
+  "task_updated",
+  "suggested_actions",
+  "failed",
+  "cancelled",
+  "done",
+] as const;
+export type PublicEventInput = {
+  type: (typeof eventTypes)[number];
+  data: Record<string, unknown>;
+};
+export type PublicEvent = PublicEventInput & {
+  id: string;
+  runId: string;
+  createdAt: string;
+};
+export class EventStore {
+  constructor(
+    private db: Database,
+    private auth: AuthService,
+  ) {}
+  async append(runId: string, input: PublicEventInput): Promise<PublicEvent> {
+    const v = z
+      .object({
+        type: z.enum(eventTypes),
+        data: z.record(z.string(), z.unknown()),
+      })
+      .strict()
+      .parse(input);
+    if (JSON.stringify(v.data).length > 100000) throw Error("EVENT_TOO_LARGE");
+    const row = (
+      await this.db.pool.query(
+        "INSERT INTO run_events(run_id,type,data) VALUES($1,$2,$3) RETURNING id::text,created_at",
+        [runId, v.type, JSON.stringify(v.data)],
+      )
+    ).rows[0];
+    return { ...v, id: row.id, runId, createdAt: row.created_at.toISOString() };
+  }
+  async readAfter(
+    scope: StudentScope,
+    runId: string,
+    afterId = "0",
+  ): Promise<PublicEvent[]> {
+    await this.auth.requireStudentAccess(scope.actor, scope.studentId);
+    z.uuid().parse(runId);
+    if (!/^\d{1,18}$/.test(afterId))
+      throw new AppError("VALIDATION", 422, "事件游标不正确");
+    if (
+      !(
+        await this.db.pool.query(
+          "SELECT id FROM agent_runs WHERE id=$1 AND student_id=$2",
+          [runId, scope.studentId],
+        )
+      ).rowCount
+    )
+      throw new AppError("NOT_FOUND", 404, "执行不存在");
+    const rows = (
+      await this.db.pool.query(
+        "SELECT id::text,run_id,type,data,created_at FROM run_events WHERE run_id=$1 AND id>$2 ORDER BY id LIMIT 200",
+        [runId, afterId],
+      )
+    ).rows;
+    return rows.map((r) => ({
+      id: r.id,
+      runId: r.run_id,
+      type: r.type,
+      data: r.data,
+      createdAt: r.created_at.toISOString(),
+    }));
+  }
+}

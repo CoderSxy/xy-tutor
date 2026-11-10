@@ -1,0 +1,110 @@
+import { Materials } from "./routes/Materials";
+import { MaterialReview } from "./routes/MaterialReview";
+import { Mistakes } from "./routes/Mistakes";
+import { MistakeDetail } from "./routes/MistakeDetail";
+import { Textbooks } from "./routes/admin/Textbooks";
+import { TextbookReview } from "./routes/admin/TextbookReview";
+import { Accounts } from "./routes/admin/Accounts";
+import { Students } from "./routes/admin/students/Students";
+import { StudentLayout } from "./routes/admin/students/StudentLayout";
+import { Overview } from "./routes/admin/students/Overview";
+import { Records } from "./routes/admin/students/Records";
+import { RecordDetail } from "./routes/admin/students/RecordDetail";
+import { Mistakes as AdminMistakes } from "./routes/admin/students/Mistakes";
+import { MistakeDetail as AdminMistakeDetail } from "./routes/admin/students/MistakeDetail";
+import { Materials as AdminMaterials } from "./routes/admin/students/Materials";
+import { MaterialDetail as AdminMaterialDetail } from "./routes/admin/students/MaterialDetail";
+import { Activity } from "./routes/admin/students/Activity";
+import { Analysis } from "./routes/admin/students/Analysis";
+import { AnalysisDetail } from "./routes/admin/students/AnalysisDetail";
+import { RequireAdmin } from "./components/RequireAdmin";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { AuthProvider, useAuth } from "./lib/auth";
+import { AppShell } from "./components/AppShell";
+import { StatusPanel } from "./components/StatusPanel";
+import { DesignPreview } from "./components/DesignPreview";
+import { Login } from "./routes/Login";
+import { Activate } from "./routes/Activate";
+import { StudyEntry, RequireTextbook } from "./routes/StudyEntry";
+import { Home } from "./routes/Home";
+import { Study } from "./routes/Study";
+import { TaskHistory } from "./routes/TaskHistory";
+import { Profile } from "./routes/Profile";
+function Layout() {
+  const a = useAuth();
+  if (a.loading)
+    return <StatusPanel state="loading" title="正在读取学习账号" />;
+  if (!a.session) return <Login />;
+  return (
+    <AppShell
+      mode={a.session.actor.role}
+      name={a.profile?.displayName ?? "管理员"}
+      onLogout={() => void a.logout()}
+    >
+      <Outlet />
+    </AppShell>
+  );
+}
+export function App() {
+  if (import.meta.env.DEV && window.location.pathname === "/ui-preview")
+    return <DesignPreview />;
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/activate" element={<Activate />} />
+        <Route path="/reset" element={<Activate />} />
+        <Route element={<Layout />}>
+          <Route
+            index
+            element={
+              <RequireTextbook>
+                <Home />
+              </RequireTextbook>
+            }
+          />
+          <Route path="/select" element={<StudyEntry />} />
+          <Route path="/study/:id" element={<Study />} />
+          <Route path="/history" element={<TaskHistory />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/materials" element={<Materials />} />
+          <Route path="/materials/:id" element={<MaterialReview />} />
+          <Route path="/mistakes" element={<Mistakes />} />
+          <Route path="/mistakes/:id" element={<MistakeDetail />} />
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin/textbooks" element={<Textbooks />} />
+            <Route path="/admin/textbooks/:id" element={<TextbookReview />} />
+            <Route path="/admin/accounts" element={<Accounts />} />
+            <Route path="/admin/students" element={<Students />} />
+            <Route
+              path="/admin/students/:studentId"
+              element={<StudentLayout />}
+            >
+              <Route index element={<Navigate to="overview" replace />} />
+              <Route path="overview" element={<Overview />} />
+              <Route path="records" element={<Records />} />
+              <Route path="records/:taskId" element={<RecordDetail />} />
+              <Route path="mistakes" element={<AdminMistakes />} />
+              <Route
+                path="mistakes/:mistakeId"
+                element={<AdminMistakeDetail />}
+              />
+              <Route path="materials" element={<AdminMaterials />} />
+              <Route
+                path="materials/:materialId"
+                element={<AdminMaterialDetail />}
+              />
+              <Route path="activity" element={<Activity />} />
+              <Route path="analysis" element={<Analysis />} />
+              <Route path="analysis/:reportId" element={<AnalysisDetail />} />
+              <Route
+                path="*"
+                element={<Navigate to="../overview" replace />}
+              />
+            </Route>
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </AuthProvider>
+  );
+}

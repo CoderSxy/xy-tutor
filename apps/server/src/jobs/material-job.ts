@@ -1,0 +1,108 @@
+import { z } from "zod";
+import type { JobHandler } from "./runner.js";
+import type { MaterialService } from "../modules/materials/service.js";
+import { parseDocument } from "./parsers/pdf-process.js";
+import type { OcrProvider } from "./parsers/ocr.js";
+import type { ModelGateway } from "../agent/provider.js";
+import { PermanentJobError } from "./errors.js";
+import {
+  candidateSchema,
+  type ExtractionInput,
+} from "../modules/materials/contracts.js";
+export function materialHandler(
+  s: MaterialService,
+  ocr?: OcrProvider,
+  gateway?: ModelGateway,
+): JobHandler {
+  return async (job, signal) => {
+    const id = String(job.payload.materialId);
+    const m = (
+      await s.db.pool.query(
+        "SELECT m.*,f.object_key,f.status AS file_status,f.content_type FROM materials m JOIN files f ON f.id=m.file_id WHERE m.id=$1",
+        [id],
+      )
+    ).rows[0];
+    if (!m || m.file_status !== "ready")
+      throw new PermanentJobError("INVALID_MATERIAL");
+    const store = s.uploads.store;
+    if (!store) throw Error("OSS_NOT_CONFIGURED");
+    const pages: ExtractionInput["pages"] = [];
+    const questions: ExtractionInput["questions"] = [];
+    for await (const page of parseDocument({
+      read: () => store.read(m.object_key),
+      contentType: m.content_type,
+      signal,
+      ocr,
+    })) {
+      pages.push({
+        pdfPageIndex: page.pdfPageIndex,
+        text: page.text,
+        status: page.status,
+      });
+      let extracted: ExtractionInput["questions"] | undefined;
+      if (gateway && page.status === "ready" && page.text.length <= 10000) {
+        try {
+          const response = await gateway.complete(
+            {
+              priority: "background",
+              context: {
+                systemPrompt:
+                  "将资料页拆为候选题，区分studentAnswer和teacherAnnotation，不要判题，不要补造题干或学生答案。输出JSON对象{questions:[{candidateId,stem,studentAnswer?,teacherAnnotation?,sources:[{pageIndex,bbox:[0,0,1,1]}]}]}。bbox为规范化原图坐标，不确定时引用整页。",
+                messages: [
+                  {
+                    role: "user",
+                    content: JSON.stringify({
+                      pageIndex: page.pdfPageIndex,
+                      text: page.text,
+                    }),
+                    timestamp: Date.now(),
+                  },
+                ],
+              },
+            },
+            signal,
+          );
+          const parsed = z
+            .object({ questions: z.array(candidateSchema).max(100) })
+            .parse(
+              JSON.parse(
+                response.text.replace(/^```(?:json)?\s*|\s*```$/g, ""),
+              ),
+            );
+          extracted = parsed.questions.map((q, i) => ({
+            ...q,
+            candidateId: `p${page.pdfPageIndex}-${i}`,
+            sources: q.sources.map((source) => ({
+              ...source,
+              pageIndex: page.pdfPageIndex,
+            })),
+          }));
+        } catch {
+          /* Keep the actual page available for manual confirmation. */
+        }
+      }
+      if (extracted?.length) questions.push(...extracted);
+      else if (page.text) {
+        for (let start = 0; start < page.text.length; start += 20000)
+          questions.push({
+            candidateId: `p${page.pdfPageIndex}-manual-${start}`,
+            stem: page.text.slice(start, start + 20000),
+            sources: [{ pageIndex: page.pdfPageIndex, bbox: [0, 0, 1, 1] }],
+          });
+      } else
+        questions.push({
+          candidateId: `p${page.pdfPageIndex}-manual`,
+          stem: "",
+          sources: [{ pageIndex: page.pdfPageIndex, bbox: [0, 0, 1, 1] }],
+        });
+      if (questions.length > 100) throw new PermanentJobError("QUESTION_LIMIT");
+    }
+    await s.saveExtraction(
+      id,
+      { pages, questions },
+      gateway?.runtime.model.id ?? "pdf-text-or-manual",
+      { jobId: job.id, token: job.leaseToken },
+    );
+    return { pages: pages.length, candidates: questions.length };
+  };
+}

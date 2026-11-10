@@ -1,0 +1,92 @@
+import { it, expect } from "vitest";
+import { AssessmentVerifier } from "../../apps/server/src/modules/learning/verifier.js";
+const base = {
+  stemConfirmed: true,
+  referenceVerified: true,
+  answerType: "number" as const,
+  requiresWorking: false,
+  answer: "0.5",
+  referenceAnswer: "1/2",
+  candidateCorrectness: "correct" as const,
+  citationsValid: true,
+};
+it("verifies exact numeric equivalence without floating point rounding", async () => {
+  expect(await new AssessmentVerifier().verify(base)).toMatchObject({
+    correctness: "correct",
+    verification: "verified",
+  });
+  expect(
+    await new AssessmentVerifier().verify({
+      ...base,
+      answer: "0.5000000000000000001",
+    }),
+  ).toMatchObject({ correctness: "incorrect", verification: "verified" });
+});
+it("does not verify final values when working or unconfirmed recognition is required", async () => {
+  expect(
+    await new AssessmentVerifier().verify({ ...base, requiresWorking: true }),
+  ).toMatchObject({ verification: "pending" });
+  expect(
+    await new AssessmentVerifier().verify({ ...base, stemConfirmed: false }),
+  ).toMatchObject({ verification: "pending" });
+});
+it("requires multimodal verification whenever image evidence exists", async () => {
+  const v = new AssessmentVerifier();
+  expect(
+    await v.verify({ ...base, hasImageEvidence: true }),
+  ).toMatchObject({ correctness: "uncertain", verification: "pending" });
+  expect(
+    await v.verify({
+      ...base,
+      hasImageEvidence: true,
+      independent: {
+        correctness: "incorrect",
+        evidenceSufficient: true,
+        criteriaSatisfied: false,
+      },
+    }),
+  ).toMatchObject({ correctness: "uncertain", verification: "pending" });
+  expect(
+    await v.verify({
+      ...base,
+      hasImageEvidence: true,
+      independent: {
+        correctness: "correct",
+        evidenceSufficient: true,
+        criteriaSatisfied: true,
+      },
+    }),
+  ).toMatchObject({ correctness: "correct", verification: "verified" });
+  expect(
+    await v.verify({
+      ...base,
+      answerType: "open",
+      hasImageEvidence: true,
+      independent: {
+        correctness: "correct",
+        evidenceSufficient: true,
+        criteriaSatisfied: true,
+      },
+    }),
+  ).toMatchObject({ correctness: "correct", verification: "verified" });
+});
+it("keeps disagreement, missing evidence and open answers pending", async () => {
+  const v = new AssessmentVerifier();
+  expect(
+    await v.verify({
+      ...base,
+      answerType: "worked",
+      independent: {
+        correctness: "incorrect",
+        evidenceSufficient: true,
+        criteriaSatisfied: false,
+      },
+    }),
+  ).toMatchObject({ verification: "pending" });
+  expect(await v.verify({ ...base, referenceVerified: false })).toMatchObject({
+    verification: "pending",
+  });
+  expect(await v.verify({ ...base, answerType: "open" })).toMatchObject({
+    verification: "pending",
+  });
+});

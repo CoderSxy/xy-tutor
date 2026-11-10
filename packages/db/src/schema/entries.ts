@@ -1,0 +1,27 @@
+import { pgTable, uuid, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { studentProfiles } from "./auth.js";
+import { revisions } from "./catalog.js";
+import { conversations } from "./conversations.js";
+export const learningEntries = pgTable(
+  "learning_entries",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => studentProfiles.id),
+    revisionId: uuid("revision_id")
+      .notNull()
+      .references(() => revisions.id),
+    entryKey: text("entry_key").notNull(),
+    conversationId: uuid("conversation_id")
+      .notNull()
+      .references(() => conversations.id),
+  },
+  (t) => [
+    uniqueIndex("student_learning_entry").on(
+      t.studentId,
+      t.revisionId,
+      t.entryKey,
+    ),
+  ],
+);

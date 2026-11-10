@@ -1,0 +1,31 @@
+import {
+  pgTable,
+  uuid,
+  text,
+  bigint,
+  integer,
+  timestamp,
+} from "drizzle-orm/pg-core";
+import { users, studentProfiles } from "./auth.js";
+export const files = pgTable("files", {
+  id: uuid().primaryKey().defaultRandom(),
+  ownerId: uuid("owner_id")
+    .notNull()
+    .references(() => users.id),
+  studentId: uuid("student_id").references(() => studentProfiles.id),
+  conversationId: uuid("conversation_id"),
+  purpose: text().notNull(),
+  name: text().notNull(),
+  contentType: text("content_type").notNull(),
+  size: bigint({ mode: "number" }).notNull(),
+  width: integer(),
+  height: integer(),
+  objectKey: text("object_key").notNull().unique(),
+  sourceKey: text("source_key"),
+  sealedKey: text("sealed_key"),
+  status: text().notNull().default("prepared"),
+  cleanupError: text("cleanup_error"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

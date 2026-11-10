@@ -1,2 +1,9 @@
-import { createRoot } from 'react-dom/client';
-createRoot(document.getElementById('root')!).render(<p>XY Tutor 正在建设</p>);
+import { createRoot } from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
+import { App } from "./App";
+import "./styles/global.css";
+createRoot(document.getElementById("root")!).render(
+  <BrowserRouter>
+    <App />
+  </BrowserRouter>,
+);

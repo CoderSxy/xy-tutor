@@ -1,0 +1,9 @@
+[
+  {
+    "allowedOrigin": ["http://localhost:5173"],
+    "allowedMethod": ["PUT", "GET", "HEAD"],
+    "allowedHeader": ["Content-Type"],
+    "exposeHeader": ["ETag"],
+    "maxAgeSeconds": 600
+  }
+]

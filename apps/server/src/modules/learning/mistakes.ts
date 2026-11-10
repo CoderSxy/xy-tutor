@@ -1,0 +1,283 @@
+import { z } from "zod";
+import {
+  inTransaction,
+  type Database,
+} from "../../../../../packages/db/src/client.js";
+import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
+import { AppError } from "../../../../../packages/contracts/src/api.js";
+import type { AuthService } from "../auth/service.js";
+import {
+  decideTransition,
+  type MistakeState,
+  type TransitionInput,
+} from "./state-rules.js";
+export type MistakeDTO = {
+  id: string;
+  questionId: string;
+  questionVersionId: string;
+  stem: string;
+  status: MistakeState;
+  dueAt: string | null;
+  version: number;
+  originalAttemptId: string | null;
+  hasImageEvidence: boolean;
+};
+export class MistakeService {
+  constructor(
+    readonly db: Database,
+    readonly auth: AuthService,
+  ) {}
+  async add(scope: StudentScope, input: unknown): Promise<MistakeDTO> {
+    await this.auth.requireStudentAccess(scope.actor, scope.studentId);
+    const v = z
+      .object({ questionVersionId: z.uuid(), attemptId: z.uuid().optional() })
+      .strict()
+      .parse(input);
+    const q = (
+      await this.db.pool.query(
+        "SELECT q.id FROM questions q JOIN question_versions v ON v.question_id=q.id WHERE v.id=$1 AND q.student_id=$2",
+        [v.questionVersionId, scope.studentId],
+      )
+    ).rows[0];
+    if (!q) throw new AppError("NOT_FOUND", 404, "题目不存在");
+    if (
+      v.attemptId &&
+      !(
+        await this.db.pool.query(
+          "SELECT 1 FROM attempts WHERE id=$1 AND student_id=$2 AND question_version_id=$3",
+          [v.attemptId, scope.studentId, v.questionVersionId],
+        )
+      ).rowCount
+    )
+      throw new AppError("NOT_FOUND", 404, "原始作答不存在");
+    const r = (
+      await this.db.pool.query(
+        "INSERT INTO student_mistakes(student_id,question_id,original_attempt_id) VALUES($1,$2,$3) ON CONFLICT(student_id,question_id) DO UPDATE SET original_attempt_id=COALESCE(student_mistakes.original_attempt_id,EXCLUDED.original_attempt_id) RETURNING id",
+        [scope.studentId, q.id, v.attemptId ?? null],
+      )
+    ).rows[0];
+    return this.get(scope, r.id);
+  }
+  async rebuild(scope: StudentScope): Promise<void> {
+    await this.auth.requireStudentAccess(scope.actor, scope.studentId);
+    await inTransaction(this.db, async (tx) => {
+      const invalid = new Set(
+        (
+          await tx.query(
+            "SELECT evidence_version_id FROM evidence_invalidations WHERE student_id=$1",
+            [scope.studentId],
+          )
+        ).rows.map((r) => r.evidence_version_id as string),
+      );
+      const latest = new Set(
+        (
+          await tx.query(
+            "SELECT DISTINCT ON(s.attempt_id) s.id FROM assessments s JOIN attempts a ON a.id=s.attempt_id WHERE a.student_id=$1 AND s.verification='verified' ORDER BY s.attempt_id,s.created_at DESC,s.id DESC",
+            [scope.studentId],
+          )
+        ).rows.map((r) => r.id as string),
+      );
+      const mistakes = (
+        await tx.query(
+          "SELECT * FROM student_mistakes WHERE student_id=$1 FOR UPDATE",
+          [scope.studentId],
+        )
+      ).rows;
+      for (const m of mistakes) {
+        let state: MistakeState = "pending_correction";
+        let consolidatedAt: Date | null = null,
+          lastQuestion: string | null = null,
+          dueAt: Date | null = null;
+        const events = (
+          await tx.query(
+            "SELECT * FROM mistake_state_events WHERE mistake_id=$1 ORDER BY evidence_at,sequence",
+            [m.id],
+          )
+        ).rows;
+        for (const e of events) {
+          if (e.type === "start" && state === "pending_correction") {
+            state = "correcting";
+            continue;
+          }
+          if (!e.assessment_id || !latest.has(e.assessment_id)) continue;
+          const evidence = e.evidence as {
+            input: TransitionInput;
+            sourceVersionIds: string[];
+          };
+          if (
+            !evidence.input ||
+            evidence.sourceVersionIds.some((id) => invalid.has(id))
+          )
+            continue;
+          const input = {
+            ...evidence.input,
+            state,
+            consolidatedAt,
+            lastConsolidatedQuestionId: lastQuestion,
+          };
+          const decision = decideTransition(input, e.evidence_at);
+          if (decision.changed) {
+            state = decision.to;
+            if (decision.consolidatedAt !== undefined)
+              consolidatedAt = decision.consolidatedAt;
+            if (decision.lastConsolidatedQuestionId !== undefined)
+              lastQuestion = decision.lastConsolidatedQuestionId;
+            if (decision.dueAt !== undefined) dueAt = decision.dueAt;
+          }
+        }
+        if (
+          m.status !== state ||
+          String(m.due_at) !== String(dueAt) ||
+          String(m.consolidated_at) !== String(consolidatedAt)
+        ) {
+          await tx.query(
+            "UPDATE student_mistakes SET status=$1,due_at=$2,consolidated_at=$3,last_consolidated_question_id=$4,version=version+1 WHERE id=$5",
+            [state, dueAt, consolidatedAt, lastQuestion, m.id],
+          );
+          await tx.query(
+            "INSERT INTO mistake_state_events(mistake_id,type,from_state,to_state,reason,rule_version) VALUES($1,'projection',$2,$3,'根据有效证据重算当前状态','mistake-v1')",
+            [m.id, m.status, state],
+          );
+        }
+      }
+    });
+  }
+  async applyAssessment(
+    scope: StudentScope,
+    assessmentId: string,
+  ): Promise<MistakeDTO | undefined> {
+    await this.auth.requireStudentAccess(scope.actor, scope.studentId);
+    z.uuid().parse(assessmentId);
+    await this.rebuild(scope);
+    const a = (
+      await this.db.pool.query(
+        "SELECT s.*,a.student_id,a.question_version_id,a.message_version_id,a.created_at AS attempt_at,q.id AS question_id,rel.origin_question_id,rel.origin_question_version_id,rel.verified AS relation_verified FROM assessments s JOIN attempts a ON a.id=s.attempt_id JOIN question_versions v ON v.id=a.question_version_id JOIN questions q ON q.id=v.question_id LEFT JOIN question_relations rel ON rel.variant_question_id=q.id WHERE s.id=$1 AND a.student_id=$2",
+        [assessmentId, scope.studentId],
+      )
+    ).rows[0];
+    if (!a) throw new AppError("NOT_FOUND", 404, "评估不存在");
+    if (a.verification !== "verified" || a.correctness === "uncertain") return;
+    const originalId = a.origin_question_id ?? a.question_id;
+    let m = (
+      await this.db.pool.query(
+        "SELECT * FROM student_mistakes WHERE student_id=$1 AND question_id=$2",
+        [scope.studentId, originalId],
+      )
+    ).rows[0];
+    if (!m && a.correctness === "incorrect" && !a.origin_question_id) {
+      await this.add(scope, {
+        questionVersionId: a.question_version_id,
+        attemptId: a.attempt_id,
+      });
+      m = (
+        await this.db.pool.query(
+          "SELECT * FROM student_mistakes WHERE student_id=$1 AND question_id=$2",
+          [scope.studentId, originalId],
+        )
+      ).rows[0];
+    }
+    if (!m) return;
+    const sourceVersionIds = [
+      a.question_version_id,
+      a.message_version_id,
+      a.origin_question_version_id,
+    ].filter(Boolean) as string[];
+    if (
+      (
+        await this.db.pool.query(
+          "SELECT 1 FROM evidence_invalidations WHERE student_id=$1 AND evidence_version_id=ANY($2::uuid[])",
+          [scope.studentId, sourceVersionIds],
+        )
+      ).rowCount
+    )
+      return;
+    await inTransaction(this.db, async (tx) => {
+      const locked = (
+        await tx.query(
+          "SELECT * FROM student_mistakes WHERE id=$1 FOR UPDATE",
+          [m.id],
+        )
+      ).rows[0];
+      const input: TransitionInput = {
+        state: locked.status,
+        correctness: a.correctness,
+        verification: a.verification,
+        hintDependency: a.hint_dependency,
+        practiceRole: a.origin_question_id ? "variant" : "original",
+        variantVerified: !!a.relation_verified,
+        consolidatedAt: locked.consolidated_at,
+        lastConsolidatedQuestionId: locked.last_consolidated_question_id,
+        questionId: a.question_id,
+      };
+      const decision = decideTransition(input, a.attempt_at);
+      await tx.query(
+        "INSERT INTO mistake_state_events(mistake_id,assessment_id,attempt_id,type,from_state,to_state,reason,rule_version,evidence,evidence_at) VALUES($1,$2,$3,'assessment',$4,$5,$6,$7,$8,$9) ON CONFLICT(mistake_id,assessment_id) DO NOTHING",
+        [
+          m.id,
+          a.id,
+          a.attempt_id,
+          locked.status,
+          decision.to,
+          decision.reason,
+          decision.ruleVersion,
+          JSON.stringify({ input, sourceVersionIds }),
+          a.attempt_at,
+        ],
+      );
+    });
+    return this.get(scope, m.id);
+  }
+  async start(scope: StudentScope, id: string): Promise<MistakeDTO> {
+    await this.get(scope, id);
+    await inTransaction(this.db, async (tx) => {
+      const m = (
+        await tx.query(
+          "SELECT status FROM student_mistakes WHERE id=$1 FOR UPDATE",
+          [id],
+        )
+      ).rows[0];
+      if (m.status === "pending_correction")
+        await tx.query(
+          "INSERT INTO mistake_state_events(mistake_id,type,from_state,to_state,reason,rule_version) VALUES($1,'start','pending_correction','correcting','已开始订正辅导','mistake-v1')",
+          [id],
+        );
+    });
+    return this.get(scope, id);
+  }
+  async get(scope: StudentScope, id: string): Promise<MistakeDTO> {
+    await this.rebuild(scope);
+    z.uuid().parse(id);
+    const r = (
+      await this.db.pool.query(
+        'SELECT m.id,m.question_id AS "questionId",v.id AS "questionVersionId",v.stem,m.status,m.due_at,m.version,m.original_attempt_id AS "originalAttemptId",EXISTS(SELECT 1 FROM attempts a JOIN message_attachments ma ON ma.message_version_id=a.message_version_id WHERE a.id=m.original_attempt_id) AS "hasImageEvidence" FROM student_mistakes m JOIN LATERAL(SELECT id,stem FROM question_versions WHERE question_id=m.question_id ORDER BY version_no DESC LIMIT 1)v ON true WHERE m.id=$1 AND m.student_id=$2',
+        [id, scope.studentId],
+      )
+    ).rows[0];
+    if (!r) throw new AppError("NOT_FOUND", 404, "错题不存在");
+    return { ...r, dueAt: r.due_at?.toISOString() ?? null };
+  }
+  async list(
+    scope: StudentScope,
+    filter: { includeArchived?: boolean; questionId?: string } = {},
+  ): Promise<MistakeDTO[]> {
+    await this.rebuild(scope);
+    const rows = (
+      await this.db.pool.query(
+        "SELECT id FROM student_mistakes WHERE student_id=$1 AND ($2::boolean OR status<>'mastered') AND ($3::uuid IS NULL OR question_id=$3) ORDER BY due_at NULLS LAST,created_at DESC LIMIT 100",
+        [scope.studentId, !!filter.includeArchived, filter.questionId ?? null],
+      )
+    ).rows;
+    const result = [];
+    for (const row of rows) result.push(await this.get(scope, row.id));
+    return result;
+  }
+  async history(scope: StudentScope, id: string) {
+    await this.get(scope, id);
+    return (
+      await this.db.pool.query(
+        'SELECT id,assessment_id AS "assessmentId",attempt_id AS "attemptId",type,from_state AS "fromState",to_state AS "toState",reason,rule_version AS "ruleVersion",evidence_at AS "evidenceAt",created_at AS "createdAt" FROM mistake_state_events WHERE mistake_id=$1 ORDER BY sequence',
+        [id],
+      )
+    ).rows;
+  }
+}

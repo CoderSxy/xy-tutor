@@ -1,0 +1,23 @@
+{$APP_DOMAIN} {
+  encode zstd gzip
+  handle /api/* {
+    reverse_proxy server:3001 {
+      flush_interval -1
+      transport http {
+        response_header_timeout 180s
+      }
+    }
+  }
+  handle {
+    root * /srv
+    try_files {path} /index.html
+    file_server
+  }
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy same-origin
+    X-Frame-Options DENY
+    -Server
+  }
+  # No access log: URLs can contain file-signing information.
+}

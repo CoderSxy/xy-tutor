@@ -1,0 +1,57 @@
+import {
+  pgTable,
+  uuid,
+  text,
+  integer,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { studentProfiles } from "./auth.js";
+import { revisions } from "./catalog.js";
+import { questionVersions } from "./questions.js";
+export const learningTasks = pgTable("learning_tasks", {
+  id: uuid().primaryKey().defaultRandom(),
+  studentId: uuid("student_id")
+    .notNull()
+    .references(() => studentProfiles.id),
+  revisionId: uuid("revision_id")
+    .notNull()
+    .references(() => revisions.id),
+  kind: text().notNull(),
+  title: text(),
+  status: text().notNull().default("active"),
+  version: integer().notNull().default(1),
+  chapterId: uuid("chapter_id"),
+  creationKey: text("creation_key"),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+}, (t) => [
+  uniqueIndex("learning_task_creation_key")
+    .on(t.studentId, t.creationKey)
+    .where(sql`${t.creationKey} IS NOT NULL`),
+]);
+export const taskItems = pgTable(
+  "task_items",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    taskId: uuid("task_id")
+      .notNull()
+      .references(() => learningTasks.id),
+    questionVersionId: uuid("question_version_id")
+      .notNull()
+      .references(() => questionVersions.id),
+    position: integer().notNull(),
+    role: text().notNull(),
+    status: text().notNull().default("pending"),
+  },
+  (t) => [
+    uniqueIndex("task_item_position").on(t.taskId, t.position),
+    uniqueIndex("task_question_version").on(t.taskId, t.questionVersionId),
+  ],
+);

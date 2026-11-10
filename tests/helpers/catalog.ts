@@ -1,0 +1,55 @@
+import type { Database } from "../../packages/db/src/client.js";
+import { AuthService } from "../../apps/server/src/modules/auth/service.js";
+import { UploadService } from "../../apps/server/src/modules/uploads/service.js";
+import { CatalogService } from "../../apps/server/src/modules/catalog/service.js";
+import { MemoryFileStore } from "./files.js";
+export async function catalogFixture(db: Database) {
+  const auth = new AuthService(db);
+  const admin = await auth.createAdmin("admin", "long-test-password");
+  const invitation = await auth.invite(admin, { login: "student" });
+  const student = await auth.activate({
+    token: invitation.activationToken,
+    password: "long-test-password",
+  });
+  const scope = await auth.requireStudentAccess(
+    { userId: student.userId, role: "student" },
+    student.studentId!,
+  );
+  const store = new MemoryFileStore();
+  const uploads = new UploadService(db, auth, store);
+  const catalog = new CatalogService(db, auth, uploads);
+  const publish = async (edition: string, text: string) => {
+    const file = await uploads.create(admin, {
+      purpose: "textbook",
+      name: "数学.pdf",
+      size: 100,
+      contentType: "application/pdf",
+    });
+    store.put(file.key, {
+      size: 100,
+      contentType: "application/pdf",
+      prefix: Buffer.from("%PDF-1.7"),
+    });
+    await uploads.complete(admin, file.fileId);
+    const revision = await catalog.createDraft(admin, {
+      title: "数学",
+      edition,
+      grade: "五年级",
+      subject: "数学",
+      term: "下册",
+      publicationYear: 2024,
+      fileId: file.fileId,
+    });
+    await catalog.startProcessing(admin, revision.id);
+    await catalog.saveParsedPage(revision.id, {
+      pdfPageIndex: 0,
+      printedPageLabel: "12",
+      text,
+      status: "ready",
+    });
+    await catalog.finishProcessing(revision.id);
+    await catalog.publish(admin, revision.id);
+    return revision;
+  };
+  return { db, auth, admin, scope, catalog, uploads, store, publish };
+}

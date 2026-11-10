@@ -1,0 +1,43 @@
+import { it, expect } from "vitest";
+import { withTestDb } from "../helpers/database.js";
+import { catalogFixture } from "../helpers/catalog.js";
+import { TextbookSearch } from "../../apps/server/src/modules/catalog/search.js";
+it("restricts identical keywords and citation IDs to the bound revision", async () =>
+  withTestDb(async (db) => {
+    const f = await catalogFixture(db);
+    const a = await f.publish("人教版", "通分的方法：先找公分母。");
+    const b = await f.publish("苏教版", "通分需要确定公分母。");
+    const s = new TextbookSearch(f.catalog);
+    const scope = { student: f.scope, revisionId: a.id };
+    const results = await s.searchTextbook(scope, {
+      keywords: "通分",
+      limit: 5,
+    });
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.every((x) => x.revisionId === a.id)).toBe(true);
+    expect(results[0]?.printedPageLabel).toBe("12");
+    const other = await s.searchTextbook(
+      { student: f.scope, revisionId: b.id },
+      { keywords: "通分", limit: 5 },
+    );
+    await expect(
+      s.validateCitations(scope, [other[0]!.id]),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(
+      await s.searchTextbook(scope, { keywords: "不存在的主题", limit: 5 }),
+    ).toEqual([]);
+  }));
+it("does not search unpublished revisions or treat wildcards as all content", async () =>
+  withTestDb(async (db) => {
+    const f = await catalogFixture(db);
+    const r = await f.publish("人教版", "通分的方法");
+    const s = new TextbookSearch(f.catalog);
+    const scope = { student: f.scope, revisionId: r.id };
+    expect(await s.searchTextbook(scope, { keywords: "%_", limit: 5 })).toEqual(
+      [],
+    );
+    await f.catalog.disable(f.admin, r.id);
+    await expect(
+      s.searchTextbook(scope, { keywords: "通分", limit: 5 }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+  }));
