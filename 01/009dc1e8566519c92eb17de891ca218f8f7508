@@ -1,0 +1,76 @@
+packages/db/src/schema/entries.ts
+  s_88c769acc0e1c6::t_dd106fcbfcd480 12
+  s_88c769acc0e1c6::t_f33380059519f3 19
+packages/db/src/schema/conversations.ts
+  s_88c769acc0e1c6::t_960abcf8eca05b 21
+apps/web/src/routes/TaskHistory.tsx
+  s_88c769acc0e1c6::t_1787ccc8214f41 102
+  s_88c769acc0e1c6::t_1bcac73eaad684 116-120
+apps/server/src/agent/bootstrap.ts
+  s_88c769acc0e1c6::t_60d2ee5170033f 64
+  s_88c769acc0e1c6::t_5596f415e51922 30-33,42-43,49-50,54-55
+apps/server/src/agent/tools.ts
+  s_88c769acc0e1c6::t_20617ad28db98d 130
+  s_88c769acc0e1c6::t_2ab77134e9be86 25
+  s_88c769acc0e1c6::t_c6fbdd914d6af6 109
+tests/integration/student-insight-activity.test.ts
+  s_88c769acc0e1c6::t_0de46a4d69d551 240
+apps/server/src/modules/materials/service.ts
+  s_88c769acc0e1c6::t_c9316781570a75 44
+  s_88c769acc0e1c6::t_b58048d8def1c5 58-59
+  s_88c769acc0e1c6::t_c26c345906edd9 73
+  s_88c769acc0e1c6::t_6c33c031b5bdb1 137
+  s_88c769acc0e1c6::t_cdf043d118b568 292
+apps/server/src/modules/learning/assessments.ts
+  s_88c769acc0e1c6::t_eea37be89b7fe2 109-117
+packages/db/src/schema/knowledge.ts
+  s_88c769acc0e1c6::t_b080b01fa692b0 48
+apps/server/src/modules/learning/contracts.ts
+  s_88c769acc0e1c6::t_9ffdd38a8f60be 4
+  s_88c769acc0e1c6::t_f75fd9543b15e2 20
+apps/server/src/modules/learning/tasks.ts
+  s_88c769acc0e1c6::t_228c675d765542 50-51,55-56
+  s_88c769acc0e1c6::t_cfa1cdbf6265ca 43
+packages/db/src/schema/questions.ts
+  s_88c769acc0e1c6::t_39a183f522f81a 15
+apps/server/src/agent/context.ts
+  s_88c769acc0e1c6::t_e405fdedf094db 31
+packages/db/migrations/meta/_journal.json
+  s_88c769acc0e1c6::t_987c96efc7b088 151-157,160
+apps/server/src/modules/learning/attempts.ts
+  s_88c769acc0e1c6::t_fbef4a824f459b 62
+packages/db/src/schema/materials.ts
+  s_88c769acc0e1c6::t_1f8ece0a434701 23
+apps/server/src/modules/learning/knowledge.ts
+  s_88c769acc0e1c6::t_80aa6fb330826d 13
+  s_88c769acc0e1c6::t_2316d3bd2aabd9 71
+  s_88c769acc0e1c6::t_8aaa03debe0621 9
+apps/server/src/modules/learning/summaries.ts
+  s_88c769acc0e1c6::t_76db87c99e2801 158,162
+tests/integration/learning-records.test.ts
+  s_88c769acc0e1c6::t_23cd9b2e378f38 7,15,17,19-25
+tests/integration/learning-unbound.test.ts
+  s_88c769acc0e1c6::t_6f69e637314388 1-159
+packages/db/migrations/0021_unbind_revision.sql
+  s_88c769acc0e1c6::t_fd996ea4754861 1-39
+packages/db/src/schema/learning.ts
+  s_88c769acc0e1c6::t_20b9d314630dfb 18
+apps/server/src/modules/learning/practice.ts
+  s_88c769acc0e1c6::t_0dfcf961dfb70a 123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "01009dc1e8566519c92eb17de891ca218f8f7508",
+  "prompts": {},
+  "sessions": {
+    "s_88c769acc0e1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4497e957-dfb2-40a9-8e9b-cb11dfd0322a",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
