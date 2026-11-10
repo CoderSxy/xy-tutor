@@ -2,8 +2,8 @@ import { Materials } from "./routes/Materials";
 import { MaterialReview } from "./routes/MaterialReview";
 import { Mistakes } from "./routes/Mistakes";
 import { MistakeDetail } from "./routes/MistakeDetail";
-import { Textbooks } from "./routes/admin/Textbooks";
-import { TextbookReview } from "./routes/admin/TextbookReview";
+import { Knowledge } from "./routes/admin/Knowledge";
+import { KnowledgeReview } from "./routes/admin/KnowledgeReview";
 import { Accounts } from "./routes/admin/Accounts";
 import { Students } from "./routes/admin/students/Students";
 import { StudentLayout } from "./routes/admin/students/StudentLayout";
@@ -71,8 +71,19 @@ export function App() {
           <Route path="/mistakes" element={<Mistakes />} />
           <Route path="/mistakes/:id" element={<MistakeDetail />} />
           <Route element={<RequireAdmin />}>
-            <Route path="/admin/textbooks" element={<Textbooks />} />
-            <Route path="/admin/textbooks/:id" element={<TextbookReview />} />
+            <Route path="/admin/knowledge" element={<Knowledge />} />
+            <Route
+              path="/admin/knowledge/:batchId"
+              element={<KnowledgeReview />}
+            />
+            <Route
+              path="/admin/textbooks"
+              element={<Navigate to="/admin/knowledge" replace />}
+            />
+            <Route
+              path="/admin/textbooks/:id"
+              element={<Navigate to="/admin/knowledge" replace />}
+            />
             <Route path="/admin/accounts" element={<Accounts />} />
             <Route path="/admin/students" element={<Students />} />
             <Route

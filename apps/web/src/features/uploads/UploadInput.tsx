@@ -6,11 +6,40 @@ import { api, jsonBody, errorMessage } from "../../lib/api";
 import { Button } from "../../components/ui/button";
 import { StatusPanel } from "../../components/StatusPanel";
 import { prepareMaterialImage } from "./imagePrepare";
+
+const KNOWLEDGE_TYPES = [
+  "application/pdf",
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "text/plain",
+  "text/markdown",
+];
+
+// 浏览器对 .md 常给出空 MIME；按扩展名归一化，服务端才能识别文本资料。
+function knowledgeFile(file: File): File | null {
+  const name = file.name.toLowerCase();
+  const type =
+    file.type === "application/pdf" || name.endsWith(".pdf")
+      ? "application/pdf"
+      : ["image/png", "image/jpeg", "image/webp"].includes(file.type)
+        ? file.type
+        : file.type === "text/markdown" ||
+            name.endsWith(".md") ||
+            name.endsWith(".markdown")
+          ? "text/markdown"
+          : file.type === "text/plain" || name.endsWith(".txt")
+            ? "text/plain"
+            : null;
+  if (!type) return null;
+  return file.type === type ? file : new File([file], file.name, { type });
+}
+
 export function UploadInput({
   purpose,
   onUploaded,
 }: {
-  purpose: "textbook" | "student_material";
+  purpose: "textbook" | "student_material" | "knowledge_source";
   onUploaded: (id: string) => Promise<void>;
 }) {
   const a = useAuth();
@@ -28,15 +57,20 @@ export function UploadInput({
     },
     [preview],
   );
-  const choose = (f?: File) => {
-    if (!f) return;
+  const choose = (raw?: File) => {
+    if (!raw) return;
     setError("");
-    if (
-      !["application/pdf", "image/png", "image/jpeg", "image/webp"].includes(
-        f.type,
-      )
-    ) {
-      setError("请选择 PDF、JPG、PNG 或 WebP 文件");
+    const f = purpose === "knowledge_source" ? knowledgeFile(raw) : raw;
+    const allowed =
+      purpose === "knowledge_source"
+        ? KNOWLEDGE_TYPES
+        : ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+    if (!f || !allowed.includes(f.type)) {
+      setError(
+        purpose === "knowledge_source"
+          ? "请选择 TXT、Markdown、PDF、JPG、PNG 或 WebP 文件"
+          : "请选择 PDF、JPG、PNG 或 WebP 文件",
+      );
       return;
     }
     if (purpose === "textbook" && f.type !== "application/pdf") {
@@ -47,7 +81,9 @@ export function UploadInput({
       setError(
         purpose === "textbook"
           ? "教材PDF必须小于50MB"
-          : "文件超过限制：照片10MB，PDF30MB",
+          : purpose === "knowledge_source"
+            ? "知识点资料需小于10MB，PDF小于30MB"
+            : "文件超过限制：照片10MB，PDF30MB",
       );
       return;
     }
@@ -62,9 +98,14 @@ export function UploadInput({
     setError("");
     setProgress(0);
     try {
-      const blob = await prepareMaterialImage(file, rotation);
+      const text = file.type === "text/plain" || file.type === "text/markdown";
+      const blob = text ? file : await prepareMaterialImage(file, rotation);
       const type =
-        file.type === "application/pdf" ? "application/pdf" : "image/jpeg";
+        file.type === "application/pdf"
+          ? "application/pdf"
+          : text
+            ? file.type
+            : "image/jpeg";
       const grant = await api<{
         fileId: string;
         url: string;
@@ -132,7 +173,9 @@ export function UploadInput({
         accept={
           purpose === "textbook"
             ? "application/pdf"
-            : ".pdf,image/jpeg,image/png,image/webp"
+            : purpose === "knowledge_source"
+              ? ".txt,.md,.markdown,.pdf,image/jpeg,image/png,image/webp"
+              : ".pdf,image/jpeg,image/png,image/webp"
         }
         onChange={(e) => choose(e.target.files?.[0])}
         aria-label="选择上传文件"
@@ -196,10 +239,14 @@ export function UploadInput({
           <h3>
             {purpose === "textbook"
               ? "上传电子教材 PDF"
-              : "上传题目、作业或考试资料"}
+              : purpose === "knowledge_source"
+                ? "上传知识点文本或资料"
+                : "上传题目、作业或考试资料"}
           </h3>
           <p className="muted">
-            拖放文件到这里，或选择文件。照片会适度压缩，便于识别。
+            {purpose === "knowledge_source"
+              ? "支持 TXT、Markdown、PDF 与照片，照片会适度压缩后识别。"
+              : "拖放文件到这里，或选择文件。照片会适度压缩，便于识别。"}
           </p>
           <div className="form-actions">
             <Button variant="outline" onClick={() => ref.current?.click()}>
@@ -215,7 +262,9 @@ export function UploadInput({
           <small className="muted">
             {purpose === "textbook"
               ? "教材PDF<50MB、500页；扫描页会按页使用OCR"
-              : "照片≤10MB，PDF≤30MB、100页"}
+              : purpose === "knowledge_source"
+                ? "文本≤10MB，照片≤10MB，PDF<30MB"
+                : "照片≤10MB，PDF≤30MB、100页"}
           </small>
         </>
       )}

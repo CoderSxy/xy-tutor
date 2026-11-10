@@ -47,6 +47,7 @@ type ItemRow = {
 export const listItemsQuery = z
   .object({
     status: z.enum(KNOWLEDGE_ITEM_STATUSES).optional(),
+    batchId: z.uuid().optional(),
     q: z.string().trim().min(1).max(255).optional(),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     offset: z.coerce.number().int().min(0).default(0),
@@ -245,6 +246,7 @@ export class KnowledgeBaseService {
     actor: Actor,
     query: {
       status?: KnowledgeItemStatus;
+      batchId?: string;
       q?: string;
       limit: number;
       offset: number;
@@ -256,6 +258,10 @@ export class KnowledgeBaseService {
     if (query.status) {
       params.push(query.status);
       filters.push(`status=$${params.length}`);
+    }
+    if (query.batchId) {
+      params.push(query.batchId);
+      filters.push(`batch_id=$${params.length}`);
     }
     if (query.q) {
       params.push(`%${query.q}%`);

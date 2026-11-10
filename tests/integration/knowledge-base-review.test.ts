@@ -194,6 +194,24 @@ it("publishes pending items and lists them by status", async () =>
       });
       expect(searched.json()).toMatchObject({ total: 1 });
       expect(searched.json().items[0].id).toBe(first);
+
+      const other = await f.source();
+      await f.item({
+        batchId: other.batchId,
+        runId: other.runId,
+        title: "其他批次",
+        summary: "不应出现在本批次列表",
+      });
+      const byBatch = await app.inject({
+        method: "GET",
+        url: `/api/admin/knowledge/items?batchId=${batchId}`,
+        headers,
+      });
+      expect(byBatch.statusCode).toBe(200);
+      expect(byBatch.json()).toMatchObject({ total: 2 });
+      expect(
+        byBatch.json().items.map((item: { id: string }) => item.id).sort(),
+      ).toEqual([first, second].sort());
     } finally {
       await app.close();
     }

@@ -64,9 +64,9 @@ export function AppShell({
                 <Users size={20} />
                 <span>学生学情</span>
               </NavLink>
-              <NavLink to="/admin/textbooks" onClick={() => setOpen(false)}>
+              <NavLink to="/admin/knowledge" onClick={() => setOpen(false)}>
                 <ShieldCheck size={20} />
-                <span>教材管理</span>
+                <span>知识点</span>
               </NavLink>
               <NavLink to="/admin/accounts" onClick={() => setOpen(false)}>
                 <Settings size={20} />
