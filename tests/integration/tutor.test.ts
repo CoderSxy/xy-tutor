@@ -16,6 +16,7 @@ import { ConversationAttachmentService } from "../../apps/server/src/modules/con
 import { buildContext } from "../../apps/server/src/agent/context.js";
 import { ImageEvidenceReader } from "../../apps/server/src/modules/conversations/attachments.js";
 import { inTransaction } from "../../packages/db/src/client.js";
+import type { Database } from "../../packages/db/src/client.js";
 import { ModelGateway } from "../../apps/server/src/agent/provider.js";
 import { ModelBudget } from "../../apps/server/src/agent/model-budget.js";
 import { BootstrapService } from "../../apps/server/src/agent/bootstrap.js";
@@ -97,6 +98,40 @@ function imageBlocks(messages: Message[]): ImageBlock[] {
       if (block.type === "image") blocks.push(block);
   }
   return blocks;
+}
+
+async function knowledgeItem(
+  db: Database,
+  actorId: string,
+  input: { title: string; summary: string; status?: string },
+) {
+  const batchId = (
+    await db.pool.query<{ id: string }>(
+      "INSERT INTO knowledge_batches(actor_id,text_content) VALUES($1,'知识点') RETURNING id",
+      [actorId],
+    )
+  ).rows[0]!.id;
+  const runId = (
+    await db.pool.query<{ id: string }>(
+      "INSERT INTO knowledge_parse_runs(batch_id,status,model,completed_at) VALUES($1,'succeeded','fake',now()) RETURNING id",
+      [batchId],
+    )
+  ).rows[0]!.id;
+  const status = input.status ?? "published";
+  return (
+    await db.pool.query<{ id: string }>(
+      `INSERT INTO knowledge_items(batch_id,parse_run_id,title,summary,status,published_at)
+       VALUES($1,$2,$3,$4,$5,$6) RETURNING id`,
+      [
+        batchId,
+        runId,
+        input.title,
+        input.summary,
+        status,
+        status === "published" ? new Date() : null,
+      ],
+    )
+  ).rows[0]!.id;
 }
 it("opens once per entry and retains usable actions without a configured model", async () =>
   withTestDb(async (db) => {
@@ -186,7 +221,7 @@ it("rejects attempts to override tool scope and retains question and hint contex
       db,
       f.catalog,
     );
-    const tool = tools.find((x) => x.name === "search_textbook")!;
+    const tool = tools.find((x) => x.name === "search_knowledge")!;
     const result = await tool.execute("call", {
       keywords: "分数",
       studentId: crypto.randomUUID(),
@@ -203,6 +238,107 @@ it("rejects attempts to override tool scope and retains question and hint contex
     expect(context.currentQuestionVersionId).toBe(q.questionVersionId);
     expect(context.systemContext).toContain("先看分母是否相同");
     expect(context.systemContext).toContain("未知");
+  }));
+it("retrieves only published knowledge and reports insufficient evidence", async () =>
+  withTestDb(async (db) => {
+    const { createTeachingTools } =
+      await import("../../apps/server/src/agent/tools.js");
+    const f = await catalogFixture(db);
+    const task = await new TaskService(db, f.auth, f.catalog).create(f.scope, {
+      kind: "free_question",
+    });
+    const runs = new RunService(db, f.auth);
+    const { runId } = await runs.submit(f.scope, {
+      conversationId: task.conversationId,
+      requestKey: "knowledge-search",
+      message: "分数怎么通分",
+    });
+    const published = await knowledgeItem(db, f.admin.userId, {
+      title: "异分母分数加法",
+      summary: "先通分再相加",
+    });
+    await knowledgeItem(db, f.admin.userId, {
+      title: "分数草稿",
+      summary: "未确认的通分说明",
+      status: "pending_review",
+    });
+    await knowledgeItem(db, f.admin.userId, {
+      title: "分数废弃",
+      summary: "已丢弃的通分说明",
+      status: "discarded",
+    });
+    const tools = createTeachingTools(
+      { scope: f.scope, taskId: task.id, runId },
+      db,
+      f.catalog,
+    );
+    const tool = tools.find((x) => x.name === "search_knowledge")!;
+    const found = await tool.execute("call", { keywords: "分数" });
+    expect(found.isError).not.toBe(true);
+    expect(found.details).toEqual({
+      status: "found",
+      items: [
+        {
+          id: published,
+          title: "异分母分数加法",
+          summary: "先通分再相加",
+        },
+      ],
+    });
+    const missing = await tool.execute("call", { keywords: "三角形" });
+    expect(missing.details).toEqual({
+      status: "insufficient_evidence",
+      items: [],
+    });
+  }));
+it("describes knowledge retrieval instead of textbook metadata", async () =>
+  withTestDb(async (db) => {
+    const f = await catalogFixture(db);
+    const task = await new TaskService(db, f.auth, f.catalog).create(f.scope, {
+      kind: "free_question",
+    });
+    const context = await buildContext(
+      db,
+      f.auth,
+      f.catalog,
+      f.scope,
+      task.conversationId,
+      8000,
+    );
+    expect(context.revisionId).toBeUndefined();
+    const payload = JSON.parse(context.systemContext);
+    expect(payload).not.toHaveProperty("教材");
+    expect(payload).not.toHaveProperty("年级");
+    expect(payload).not.toHaveProperty("科目");
+    expect(payload.知识点检索说明).toContain("search_knowledge");
+  }));
+it("runs a tutoring turn without a textbook binding", async () =>
+  withTestDb(async (db) => {
+    const f = await catalogFixture(db);
+    const task = await new TaskService(db, f.auth, f.catalog).create(f.scope, {
+      kind: "free_question",
+    });
+    const runs = new RunService(db, f.auth);
+    const { runId } = await runs.submit(f.scope, {
+      conversationId: task.conversationId,
+      requestKey: "unbound-run",
+      message: "今天学什么",
+    });
+    const faux = fauxProvider();
+    const models = createModels();
+    models.setProvider(faux.provider);
+    faux.setResponses([fauxAssistantMessage("今天想从哪里开始？")]);
+    const gateway = new ModelGateway(
+      { models, model: faux.getModel() },
+      new ModelBudget(),
+    );
+    await new TutorExecutor(db, f.auth, f.catalog, runs, gateway).execute(
+      runId,
+      new AbortController().signal,
+    );
+    expect((await runs.get(f.scope, runId)).content).toBe(
+      "今天想从哪里开始？",
+    );
   }));
 it("stops tool loops after eight model requests", async () =>
   withTestDb(async (db) => {

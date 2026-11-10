@@ -28,7 +28,7 @@ export type TutorContext = {
   systemContext: string;
   messages: Message[];
   taskId: string | null;
-  revisionId: string | null;
+  revisionId?: string;
   studentId: string;
   currentQuestionVersionId?: string;
   inputContent?: (TextContent | ImageContent)[];
@@ -114,6 +114,8 @@ export async function buildContext(
   );
   const systemContext = JSON.stringify({
     学生: profile,
+    知识点检索说明:
+      "按学生问题调用 search_knowledge 检索已发布知识点，只引用工具实际返回的条目 ID、标题和总结；没有命中时说明依据不足。",
     任务: task,
     当前题目: current,
     提示历史: hints,
@@ -213,7 +215,7 @@ export async function buildContext(
     systemContext,
     messages: selected,
     taskId: c.task_id,
-    revisionId: c.revision_id,
+    ...(c.revision_id ? { revisionId: c.revision_id as string } : {}),
     studentId: c.student_id,
     currentQuestionVersionId: current?.question_version_id,
     inputContent:

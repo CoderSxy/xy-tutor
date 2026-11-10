@@ -2,8 +2,9 @@ import { z } from "zod";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { Database } from "../../../../packages/db/src/client.js";
 import type { StudentScope } from "../../../../packages/contracts/src/domain.js";
-import { TextbookSearch } from "../modules/catalog/search.js";
+import { searchInput } from "../../../../packages/contracts/src/knowledge-base.js";
 import type { CatalogService } from "../modules/catalog/service.js";
+import { searchPublishedKnowledge } from "../modules/knowledge-base/search.js";
 import { nextActions } from "./prompts.js";
 export type TeachingServices = {
   practice?: (
@@ -22,14 +23,13 @@ export function createTeachingTools(
   bound: {
     scope: StudentScope;
     taskId: string | null;
-    revisionId: string | null;
     runId: string;
+    revisionId?: string | null;
   },
   db: Database,
   catalog: CatalogService,
   services: TeachingServices = {},
 ): AgentTool<object, unknown>[] {
-  const search = new TextbookSearch(catalog);
   const empty = z.object({}).strict();
   const tool = (
     name: string,
@@ -93,30 +93,16 @@ export function createTeachingTools(
         )
       ).rows,
     })),
-    tool(
-      "search_textbook",
-      "查询当前教材依据",
-      z
-        .object({
-          keywords: z.string().min(1).max(255),
-          chapterId: z.uuid().optional(),
-        })
-        .strict(),
-      async (p) => {
-        const query = z
-          .object({ keywords: z.string(), chapterId: z.uuid().optional() })
-          .parse(p);
-        if (!bound.revisionId) return { status: "insufficient_evidence", chunks: [] };
-        const chunks = await search.searchTextbook(
-          { student: bound.scope, revisionId: bound.revisionId },
-          { ...query, limit: 5 },
-        );
-        return {
-          status: chunks.length ? "found" : "insufficient_evidence",
-          chunks,
-        };
-      },
-    ),
+    tool("search_knowledge", "检索已发布知识点", searchInput, async (p) => {
+      const items = await searchPublishedKnowledge(
+        db,
+        searchInput.parse(p),
+      );
+      return {
+        status: items.length ? "found" : "insufficient_evidence",
+        items,
+      };
+    }),
     tool(
       "get_material_question",
       "读取当前学生已确认题目",
@@ -127,8 +113,8 @@ export function createTeachingTools(
           .parse(p).questionVersionId;
         const row = (
           await db.pool.query(
-            "SELECT v.id,v.stem,v.knowledge_point FROM question_versions v JOIN questions q ON q.id=v.question_id WHERE v.id=$1 AND ($2::uuid IS NULL OR q.revision_id=$2) AND q.student_id=$3",
-            [id, bound.revisionId, bound.scope.studentId],
+            "SELECT v.id,v.stem,v.knowledge_point FROM question_versions v JOIN questions q ON q.id=v.question_id WHERE v.id=$1 AND q.student_id=$2",
+            [id, bound.scope.studentId],
           )
         ).rows[0];
         if (!row) throw Error("NOT_FOUND");

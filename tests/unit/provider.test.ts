@@ -19,7 +19,7 @@ it("maps public text and tools while excluding reasoning", async () => {
       [
         fauxThinking("private reasoning"),
         fauxText("先观察分母"),
-        fauxToolCall("search_textbook", { keywords: "通分" }),
+        fauxToolCall("search_knowledge", { keywords: "通分" }),
       ],
       { stopReason: "toolUse" },
     ),
@@ -47,7 +47,7 @@ it("maps public text and tools while excluding reasoning", async () => {
       .join(""),
   ).toBe("先观察分母");
   expect(
-    events.some((e) => e.type === "tool_call" && e.name === "search_textbook"),
+    events.some((e) => e.type === "tool_call" && e.name === "search_knowledge"),
   ).toBe(true);
   expect(JSON.stringify(events)).not.toContain("private reasoning");
 });
