@@ -1,0 +1,41 @@
+apps/server/src/modules/student-insights/queries.ts
+  s_7ddd7bcc8c3bb9::t_1d4d776527e8f4 137
+  s_7ddd7bcc8c3bb9::t_ee89b3bd64684f 111,117
+apps/server/src/modules/student-insights/records.ts
+  s_7ddd7bcc8c3bb9::t_69adc65e2bca0b 489-493
+  s_7ddd7bcc8c3bb9::t_0fad488d1d9ab6 1-488,494-939
+apps/server/src/modules/student-insights/routes.ts
+  s_7ddd7bcc8c3bb9::t_0c8b9a12326fe2 251,257
+  s_7ddd7bcc8c3bb9::t_c8130def77eb79 1-5
+  s_7ddd7bcc8c3bb9::t_a10c394c7eba92 6,11-14,16,19,23,27-30,74-75,104-250,252-256,258-259
+packages/contracts/src/student-insights.ts
+  s_7ddd7bcc8c3bb9::t_d12e9ad9a3552d 316-318
+  s_7ddd7bcc8c3bb9::t_944797f2bb4a3b 384-391
+  s_7ddd7bcc8c3bb9::t_fc9e373af8ec2f 55-107
+apps/server/src/modules/student-insights/files.ts
+  s_7ddd7bcc8c3bb9::t_82203446142aec 1-44,63-96,98-106
+  s_7ddd7bcc8c3bb9::t_f80270ecd36877 97
+  s_7ddd7bcc8c3bb9::t_4858c85ecaff2a 45-62
+apps/server/src/app.ts
+  s_7ddd7bcc8c3bb9::t_33ef3e553f7808 117-120
+tests/integration/admin-student-insight-records.test.ts
+  s_7ddd7bcc8c3bb9::t_34696ba06926b3 1-399,402-650,652-737
+  s_7ddd7bcc8c3bb9::t_ce4703312ac139 400-401
+  s_7ddd7bcc8c3bb9::t_0feb7804f9cce4 651
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f21c78c646a47d971854ad33b0755b28420cc25",
+  "prompts": {},
+  "sessions": {
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
