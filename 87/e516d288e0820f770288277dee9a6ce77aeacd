@@ -1,0 +1,23 @@
+tests/integration/knowledge-search.test.ts
+  s_88c769acc0e1c6::t_3967cf21bb0d6e 66
+  s_88c769acc0e1c6::t_5fe0af3edea269 180-182
+  s_88c769acc0e1c6::t_51eb9820296c14 1-65,67-179,183-184
+apps/server/src/modules/knowledge-base/search.ts
+  s_88c769acc0e1c6::t_3b96c1d937364b 1-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "87e516d288e0820f770288277dee9a6ce77aeacd",
+  "prompts": {},
+  "sessions": {
+    "s_88c769acc0e1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4497e957-dfb2-40a9-8e9b-cb11dfd0322a",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
