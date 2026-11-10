@@ -114,7 +114,10 @@ export function buildApp(deps: AppDependencies) {
       );
       registerUploads(scoped, uploads);
       registerCatalog(scoped, catalog);
-      registerStudentInsights(scoped, { database: deps.database! });
+      registerStudentInsights(scoped, {
+        database: deps.database!,
+        fileStore: deps.fileStore,
+      });
       const selections = new SelectionService(deps.database!, auth);
       scoped.get("/api/learning/selections", async (req) =>
         selections.list(await scopeForRequest(auth, req)),

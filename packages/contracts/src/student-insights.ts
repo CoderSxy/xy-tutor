@@ -52,6 +52,59 @@ export type InsightListQuery = z.infer<typeof insightListQuerySchema>;
 export type PageQuery = z.infer<typeof pageQuerySchema>;
 export type AdminInsightScope = { actor: Actor; studentId: string };
 
+const materialTypeList = z
+  .string()
+  .trim()
+  .max(100)
+  .optional()
+  .transform((value) =>
+    value
+      ? [
+          ...new Set(
+            value
+              .split(",")
+              .map((part) => part.trim())
+              .filter(Boolean),
+          ),
+        ]
+      : undefined,
+  )
+  .pipe(
+    z.array(z.enum(["mistake", "exam", "homework", "other"])).max(4).optional(),
+  );
+
+export const taskListQuerySchema = insightFilterInputSchema
+  .extend({
+    status: z.string().trim().max(40).optional(),
+    kind: z.string().trim().max(40).optional(),
+    limit: pageQuerySchema.shape.limit,
+    offset: pageQuerySchema.shape.offset,
+  })
+  .strict();
+
+export const mistakeListQuerySchema = insightFilterInputSchema
+  .extend({
+    status: z.string().trim().max(40).optional(),
+    chapterId: z.uuid().optional(),
+    knowledgePoint: z.string().trim().max(120).optional(),
+    limit: pageQuerySchema.shape.limit,
+    offset: pageQuerySchema.shape.offset,
+  })
+  .strict();
+
+export const materialListQuerySchema = insightFilterInputSchema
+  .extend({
+    types: materialTypeList,
+    status: z.string().trim().max(40).optional(),
+    limit: pageQuerySchema.shape.limit,
+    offset: pageQuerySchema.shape.offset,
+  })
+  .strict();
+
+export type TaskListQuery = z.infer<typeof taskListQuerySchema>;
+export type MistakeListQuery = z.infer<typeof mistakeListQuerySchema>;
+export type MaterialListQuery = z.infer<typeof materialListQuerySchema>;
+
 export type InsightCoverage = {
   learning: "partial" | "complete";
   historicalInferred: boolean;
@@ -260,6 +313,9 @@ export type AttemptRecordDTO = {
   messageVersionId: string | null;
   answer: string;
   createdAt: string;
+  stem: string;
+  knowledgePoint: string | null;
+  hints: { level: string; content: string }[];
   assessment: {
     id: string;
     correctness: "correct" | "incorrect" | "pending" | "unknown";
@@ -323,6 +379,14 @@ export type MaterialQuestionDTO = {
   knowledgePoint: string | null;
   answered: boolean;
   verified: boolean;
+};
+
+export type MaterialExtractionDTO = {
+  id: string;
+  versionNo: number;
+  model: string;
+  promptVersion: string;
+  createdAt: string;
 };
 
 export type ActivityDay = {

@@ -1,18 +1,33 @@
-import type { FastifyInstance, RouteHandlerMethod } from "fastify";
+import type {
+  FastifyInstance,
+  FastifyRequest,
+  RouteHandlerMethod,
+} from "fastify";
+import { z } from "zod";
 import type { Database } from "../../../../../packages/db/src/client.js";
 import {
   insightFilterInputSchema,
   insightListQuerySchema,
+  materialListQuerySchema,
+  mistakeListQuerySchema,
+  pageQuerySchema,
+  taskListQuerySchema,
 } from "../../../../../packages/contracts/src/student-insights.js";
+import type { FileStore } from "../../infra/oss.js";
 import { requireAdmin } from "../auth/policy.js";
 import { requireSession } from "../auth/routes.js";
+import { InsightFileService } from "./files.js";
 import { resolveInsightRange } from "./metrics.js";
 import { requireAdminInsightScope } from "./policy.js";
 import { InsightQueryService } from "./queries.js";
+import { InsightRecordService } from "./records.js";
 
 export const STUDENT_INSIGHT_PREFIX = "/api/admin/student-insights";
 
-export type StudentInsightDependencies = { database: Database };
+export type StudentInsightDependencies = {
+  database: Database;
+  fileStore?: FileStore;
+};
 
 export type InsightRouteEntry = {
   method: "GET" | "POST";
@@ -56,6 +71,8 @@ function registerRoutes(
   deps: StudentInsightDependencies,
 ): void {
   const service = new InsightQueryService(deps.database);
+  const records = new InsightRecordService(deps.database);
+  const files = new InsightFileService(deps.database, deps.fileStore);
 
   adminInsightRoute(app, "GET", "/students", async (request) => {
     const actor = requireSession(request).actor;
@@ -84,4 +101,160 @@ function registerRoutes(
       });
     },
   );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/tasks",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      return records.listTasks(scope, taskListQuerySchema.parse(request.query));
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/tasks/:taskId",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      const taskId = idOf(request, "taskId");
+      return records.getTask(
+        scope,
+        taskId,
+        pageQuerySchema.parse(request.query),
+        request.id,
+      );
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/tasks/:taskId/attempts",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      const taskId = idOf(request, "taskId");
+      return records.listAttempts(
+        scope,
+        taskId,
+        pageQuerySchema.parse(request.query),
+      );
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/conversations/:conversationId/messages",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      const conversationId = idOf(request, "conversationId");
+      return records.listMessages(
+        scope,
+        conversationId,
+        pageQuerySchema.parse(request.query),
+      );
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/mistakes",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      return records.listMistakes(
+        scope,
+        mistakeListQuerySchema.parse(request.query),
+      );
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/mistakes/:mistakeId",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      const mistakeId = idOf(request, "mistakeId");
+      return records.getMistake(scope, mistakeId, request.id);
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/mistakes/:mistakeId/events",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      const mistakeId = idOf(request, "mistakeId");
+      return records.listMistakeEvents(
+        scope,
+        mistakeId,
+        pageQuerySchema.parse(request.query),
+      );
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/materials",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      return records.listMaterials(
+        scope,
+        materialListQuerySchema.parse(request.query),
+      );
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/materials/:materialId",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      const materialId = idOf(request, "materialId");
+      return records.getMaterial(scope, materialId, request.id);
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/materials/:materialId/questions",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      const materialId = idOf(request, "materialId");
+      return records.listMaterialQuestions(
+        scope,
+        materialId,
+        pageQuerySchema.parse(request.query),
+      );
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/files/:fileId/download",
+    async (request) => {
+      const scope = await scopeOf(request, deps.database);
+      const fileId = idOf(request, "fileId");
+      return files.download(scope, fileId, request.id);
+    },
+  );
+}
+
+async function scopeOf(request: FastifyRequest, database: Database) {
+  const actor = requireSession(request).actor;
+  const { studentId } = request.params as { studentId: string };
+  return requireAdminInsightScope(database, actor, studentId);
+}
+
+function idOf(request: FastifyRequest, name: string): string {
+  const params = request.params as Record<string, string>;
+  return z.uuid().parse(params[name]);
 }

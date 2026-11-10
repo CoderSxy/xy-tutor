@@ -108,13 +108,13 @@ type QueryWindow = {
   revisionId?: string;
 };
 
-type CoverageState = {
+export type CoverageState = {
   visitsStartedAt: string | null;
   backfillVersion: string | null;
   learningComplete: boolean;
 };
 
-function metaFor(
+export function metaFor(
   range: InsightFilter,
   now: Date,
   coverage: CoverageState,
@@ -134,7 +134,7 @@ function metaFor(
   };
 }
 
-async function readCoverage(
+export async function readCoverage(
   tx: PoolClient,
   range: InsightFilter,
 ): Promise<CoverageState> {
