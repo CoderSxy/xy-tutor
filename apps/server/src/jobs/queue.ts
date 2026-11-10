@@ -33,6 +33,13 @@ export class JobQueue {
     ), materials AS (
       UPDATE materials m SET status='failed' FROM exhausted j
       WHERE j.kind='material.parse' AND m.id::text=j.payload->>'materialId' AND m.status='processing'
+    ), insights AS (
+      UPDATE student_insight_reports r SET status='failed', error_code='INTERRUPTED', completed_at=$1
+      FROM exhausted j
+      WHERE j.kind='student.insight'
+        AND r.id::text=j.payload->>'reportId'
+        AND r.generation=(j.payload->>'generation')::int
+        AND r.status IN ('queued','running')
     ) SELECT count(*) FROM exhausted`,
       [now],
     );
@@ -70,9 +77,46 @@ export class JobQueue {
     errorCode: string,
     now = new Date(),
   ): Promise<void> {
-    await this.db.pool.query(
-      "UPDATE jobs SET status=CASE WHEN attempts>=3 THEN 'failed' ELSE 'queued' END,available_at=$4::timestamptz+interval '10 seconds',lease_token=NULL,lease_expires_at=NULL,error_code=$3 WHERE id=$1 AND lease_token=$2 AND status='running'",
-      [id, token, errorCode, now],
-    );
+    const client = await this.db.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const job = (
+        await client.query<{
+          status: string;
+          kind: string;
+          payload: Record<string, unknown>;
+        }>(
+          `UPDATE jobs SET status=CASE WHEN attempts>=3 THEN 'failed' ELSE 'queued' END,
+             available_at=$4::timestamptz+interval '10 seconds',
+             lease_token=NULL,lease_expires_at=NULL,error_code=$3
+           WHERE id=$1 AND lease_token=$2 AND status='running'
+           RETURNING status,kind,payload`,
+          [id, token, errorCode, now],
+        )
+      ).rows[0];
+      if (job?.kind === "student.insight") {
+        const reportId = job.payload.reportId;
+        const generation = job.payload.generation;
+        if (typeof reportId === "string" && typeof generation === "number")
+          await client.query(
+            `UPDATE student_insight_reports
+             SET status=$3, error_code=$4, completed_at=$5
+             WHERE id=$1 AND generation=$2 AND status IN ('queued','running')`,
+            [
+              reportId,
+              generation,
+              job.status,
+              errorCode,
+              job.status === "failed" ? now : null,
+            ],
+          );
+      }
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }

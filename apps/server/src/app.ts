@@ -29,6 +29,8 @@ import { CatalogService } from "./modules/catalog/service.js";
 import { registerCatalog } from "./modules/catalog/routes.js";
 import { registerStudentVisits, initializeInsightCollection } from "./modules/student-insights/activity.js";
 import { registerStudentInsights } from "./modules/student-insights/routes.js";
+import { InsightReportGenerator } from "./modules/student-insights/report-generator.js";
+import { studentInsightHandler } from "./jobs/student-insight-job.js";
 import { JobQueue } from "./jobs/queue.js";
 import { JobRunner } from "./jobs/runner.js";
 import { resourcesAvailable } from "./jobs/limits.js";
@@ -263,6 +265,13 @@ export function buildApp(deps: AppDependencies) {
               deps.gateway,
             ),
             "learning.summary": summaryHandler(summaries),
+            ...(deps.gateway
+              ? {
+                  "student.insight": studentInsightHandler(
+                    new InsightReportGenerator(deps.database!, deps.gateway),
+                  ),
+                }
+              : {}),
           },
           deps.canStartJobs ?? resourcesAvailable,
         );
