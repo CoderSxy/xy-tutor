@@ -12,6 +12,15 @@ export const PARSE_RUN_STATUSES = [
   "failed",
 ] as const;
 
+export const KNOWLEDGE_SOURCE_CONTENT_TYPES = [
+  "text/plain",
+  "text/markdown",
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
 export type KnowledgeItemStatus = (typeof KNOWLEDGE_ITEM_STATUSES)[number];
 export type ParseRunStatus = (typeof PARSE_RUN_STATUSES)[number];
 

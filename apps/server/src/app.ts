@@ -39,6 +39,8 @@ import type { OcrProvider } from "./jobs/parsers/ocr.js";
 import type { FileStore } from "./infra/oss.js";
 import { UploadService } from "./modules/uploads/service.js";
 import { registerUploads } from "./modules/uploads/routes.js";
+import { KnowledgeBaseService } from "./modules/knowledge-base/service.js";
+import { registerKnowledgeBase } from "./modules/knowledge-base/routes.js";
 import { ZodError } from "zod";
 import type { Database } from "../../../packages/db/src/client.js";
 import type { AppConfig } from "./config.js";
@@ -125,6 +127,11 @@ export function buildApp(deps: AppDependencies) {
         uploads,
       );
       registerUploads(scoped, uploads);
+      const jobs = new JobQueue(deps.database!);
+      registerKnowledgeBase(
+        scoped,
+        new KnowledgeBaseService(deps.database!, jobs, !!deps.gateway),
+      );
       registerCatalog(scoped, catalog);
       registerStudentInsights(scoped, {
         database: deps.database!,
@@ -256,7 +263,7 @@ export function buildApp(deps: AppDependencies) {
       }
       if (deps.enableJobs) {
         const runner = new JobRunner(
-          new JobQueue(deps.database!),
+          jobs,
           {
             "textbook.parse": textbookHandler(catalog, deps.ocr),
             "material.parse": materialHandler(

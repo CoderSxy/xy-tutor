@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { Actor } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
+import { KNOWLEDGE_SOURCE_CONTENT_TYPES } from "../../../../../packages/contracts/src/knowledge-base.js";
 import {
   inTransaction,
   type Database,
@@ -37,6 +38,9 @@ function matchesMime(type: string, prefix: Buffer) {
       .equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
   if (type === "image/jpeg")
     return prefix[0] === 255 && prefix[1] === 216 && prefix[2] === 255;
+  // 纯文本没有魔数，只拒绝混入 NUL 的二进制内容。
+  if (type === "text/plain" || type === "text/markdown")
+    return !prefix.includes(0);
   return (
     prefix.subarray(0, 4).toString() === "RIFF" &&
     prefix.subarray(8, 12).toString() === "WEBP"
@@ -77,7 +81,19 @@ export class UploadService {
       if (!v.studentId) throw new AppError("VALIDATION", 422, "缺少学生信息");
       if (v.conversationId)
         throw new AppError("VALIDATION", 422, "学生材料不属于会话");
+      if (!v.contentType.startsWith("image/") && v.contentType !== "application/pdf")
+        throw new AppError("VALIDATION", 422, "学生材料须为PDF或图片");
       await this.auth.requireStudentAccess(actor, v.studentId);
+    } else if (v.purpose === "knowledge_source") {
+      requireAdmin(actor);
+      if (v.studentId || v.conversationId)
+        throw new AppError("VALIDATION", 422, "知识点资料不属于学生");
+      if (
+        !KNOWLEDGE_SOURCE_CONTENT_TYPES.includes(
+          v.contentType as (typeof KNOWLEDGE_SOURCE_CONTENT_TYPES)[number],
+        )
+      )
+        throw new AppError("VALIDATION", 422, "文件类型不支持");
     } else {
       if (!v.studentId) throw new AppError("VALIDATION", 422, "缺少学生信息");
       if (!v.conversationId)
