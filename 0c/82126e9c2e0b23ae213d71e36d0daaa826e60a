@@ -1,0 +1,32 @@
+packages/db/migrations/0020_knowledge_base.sql
+  s_88c769acc0e1c6::t_70a858e37d8077 1-50
+packages/db/src/schema/knowledge-base.ts
+  s_88c769acc0e1c6::t_4a0f78bc37e8c6 1-106
+packages/db/migrations/meta/_journal.json
+  s_88c769acc0e1c6::t_56c974f1f94e0c 144-150
+packages/contracts/src/file-limits.ts
+  s_88c769acc0e1c6::t_0be688aee779c0 20-26
+  s_88c769acc0e1c6::t_6c54fe9b10e777 9-13
+packages/contracts/src/knowledge-base.ts
+  s_88c769acc0e1c6::t_dae1b58b150c12 1-94
+tests/integration/knowledge-base-schema.test.ts
+  s_88c769acc0e1c6::t_7df618dee5b406 1-77
+tests/unit/knowledge-base-contracts.test.ts
+  s_88c769acc0e1c6::t_42ec806ac81aea 1-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0c82126e9c2e0b23ae213d71e36d0daaa826e60a",
+  "prompts": {},
+  "sessions": {
+    "s_88c769acc0e1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4497e957-dfb2-40a9-8e9b-cb11dfd0322a",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
