@@ -46,6 +46,95 @@ await withTestDb(async (db) => {
     ),
     { displayName: "端到端测试同学", preferences: { currentChapter: "加法" } },
   );
+  const inviteB = await auth.invite(admin, { login: "e2e-student-b" });
+  const studentB = await auth.activate({
+    token: inviteB.activationToken,
+    password: "e2e-only-password",
+  });
+  await auth.updateProfile(
+    await auth.requireStudentAccess(
+      { userId: studentB.userId, role: "student" },
+      studentB.studentId!,
+    ),
+    { displayName: "端到端同学乙", preferences: { currentChapter: "加法" } },
+  );
+  const one = async (query: Promise<{ rows: { id: string }[] }>) =>
+    (await query).rows[0]!.id;
+  const seedPractice = async (studentId: string, label: string) => {
+    const fileId = await one(
+      db.pool.query(
+        `INSERT INTO files(owner_id,purpose,name,content_type,size,object_key)
+         VALUES($1,'textbook',$2,'application/pdf',100,$3) RETURNING id`,
+        [admin.userId, `${label}.pdf`, crypto.randomUUID()],
+      ),
+    );
+    const editionId = await one(
+      db.pool.query("INSERT INTO curriculum_editions(name) VALUES($1) RETURNING id", [
+        `${label}-edition`,
+      ]),
+    );
+    const gradeId = await one(
+      db.pool.query("INSERT INTO grades(name) VALUES($1) RETURNING id", [
+        `${label}-grade`,
+      ]),
+    );
+    const subjectId = await one(
+      db.pool.query("INSERT INTO subjects(name) VALUES($1) RETURNING id", [
+        `${label}-subject`,
+      ]),
+    );
+    const textbookId = await one(
+      db.pool.query(
+        `INSERT INTO textbooks(title,edition_id,grade_id,subject_id,term,publication_year)
+         VALUES($1,$2,$3,$4,'下册',2024) RETURNING id`,
+        [label, editionId, gradeId, subjectId],
+      ),
+    );
+    const revisionId = await one(
+      db.pool.query(
+        `INSERT INTO textbook_revisions(textbook_id,file_id,revision_no,status)
+         VALUES($1,$2,1,'published') RETURNING id`,
+        [textbookId, fileId],
+      ),
+    );
+    const questionId = await one(
+      db.pool.query(
+        `INSERT INTO questions(student_id,revision_id,source_type)
+         VALUES($1,$2,'teacher') RETURNING id`,
+        [studentId, revisionId],
+      ),
+    );
+    const versionId = await one(
+      db.pool.query(
+        `INSERT INTO question_versions(question_id,version_no,stem,knowledge_point)
+         VALUES($1,1,'分数练习：1/2 + 1/2 = ?','分数') RETURNING id`,
+        [questionId],
+      ),
+    );
+    const createdAt = new Date(Date.now() - 2 * 86_400_000);
+    const taskId = await one(
+      db.pool.query(
+        `INSERT INTO learning_tasks(student_id,revision_id,kind,title,status,created_at,updated_at)
+         VALUES($1,$2,'practice',$3,'completed',$4,$4) RETURNING id`,
+        [studentId, revisionId, "分数练习", createdAt],
+      ),
+    );
+    const attemptId = await one(
+      db.pool.query(
+        `INSERT INTO attempts(student_id,task_id,question_version_id,request_key,answer,created_at)
+         VALUES($1,$2,$3,$4,'1',$5) RETURNING id`,
+        [studentId, taskId, versionId, crypto.randomUUID(), createdAt],
+      ),
+    );
+    await db.pool.query(
+      `INSERT INTO assessments(attempt_id,correctness,verification,hint_dependency,method,verifier_version,evidence,created_at)
+       VALUES($1,'correct','verified','none','model','v1','{}',$2)`,
+      [attemptId, createdAt],
+    );
+    return { taskId, evidenceKey: `attempt:${attemptId}` };
+  };
+  await seedPractice(student.studentId!, "端到端练习A");
+  await seedPractice(studentB.studentId!, "端到端练习B");
   const store = new TestStore();
   const faux = fauxProvider();
   const models = createModels();
@@ -87,6 +176,35 @@ await withTestDb(async (db) => {
       .map(text)
       .join("\n");
     const last = context.messages.at(-1);
+    if (system.includes("你是学情分析助手")) {
+      let key: string | null = null;
+      try {
+        const input = JSON.parse(text(last)) as {
+          evidence?: { key?: string }[];
+        };
+        key = input.evidence?.find((item) => item.key)?.key ?? null;
+      } catch {
+        key = null;
+      }
+      return fauxAssistantMessage(
+        JSON.stringify({
+          summary: "端到端测试报告：已读取本期练习记录。",
+          strengths: key ? [{ text: "完成了本期练习。", evidenceKeys: [key] }] : [],
+          difficulties: [],
+          habits: [],
+          recommendations: key
+            ? [
+                {
+                  text: "继续巩固分数加法。",
+                  basisEvidenceKeys: [key],
+                  priority: "medium",
+                },
+              ]
+            : [],
+          limitations: ["端到端测试数据，仅用于流程验证。"],
+        }),
+      );
+    }
     if (system.includes("根据结构化事实生成简短"))
       return fauxAssistantMessage(
         JSON.stringify({

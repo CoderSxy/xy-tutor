@@ -15,6 +15,8 @@ import { MistakeDetail as AdminMistakeDetail } from "./routes/admin/students/Mis
 import { Materials as AdminMaterials } from "./routes/admin/students/Materials";
 import { MaterialDetail as AdminMaterialDetail } from "./routes/admin/students/MaterialDetail";
 import { Activity } from "./routes/admin/students/Activity";
+import { Analysis } from "./routes/admin/students/Analysis";
+import { AnalysisDetail } from "./routes/admin/students/AnalysisDetail";
 import { RequireAdmin } from "./components/RequireAdmin";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider, useAuth } from "./lib/auth";
@@ -92,6 +94,8 @@ export function App() {
                 element={<AdminMaterialDetail />}
               />
               <Route path="activity" element={<Activity />} />
+              <Route path="analysis" element={<Analysis />} />
+              <Route path="analysis/:reportId" element={<AnalysisDetail />} />
               <Route
                 path="*"
                 element={<Navigate to="../overview" replace />}

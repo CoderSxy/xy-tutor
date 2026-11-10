@@ -13,6 +13,10 @@ import type {
   MessageRecordDTO,
   MistakeEventDTO,
   MistakeRecordDTO,
+  ReportCreateResult,
+  ReportDTO,
+  ReportHistory,
+  ReportRetryResult,
   StudentOverviewResponse,
   TaskItemDTO,
   TaskRecordDTO,
@@ -294,6 +298,44 @@ export function insightFileDownloadPath(
   return `${studentBase(studentId)}/files/${encodeURIComponent(fileId)}/download`;
 }
 
+export function reportsPath(studentId: string, input: PageInput): string {
+  return withQuery(`${studentBase(studentId)}/reports`, pageParams(input));
+}
+
+export function reportPath(studentId: string, reportId: string): string {
+  return `${studentBase(studentId)}/reports/${encodeURIComponent(reportId)}`;
+}
+
+export function createReport(
+  studentId: string,
+  filter: InsightFilter,
+): Promise<ReportCreateResult> {
+  return api<ReportCreateResult>(`${studentBase(studentId)}/reports`, {
+    method: "POST",
+    body: JSON.stringify({
+      from: filter.from,
+      to: filter.to,
+      ...(filter.revisionId ? { revisionId: filter.revisionId } : {}),
+    }),
+  });
+}
+
+export function retryReport(
+  studentId: string,
+  reportId: string,
+): Promise<ReportRetryResult> {
+  return api<ReportRetryResult>(
+    `${reportPath(studentId, reportId)}/retry`,
+    { method: "POST" },
+  );
+}
+
+export function useReports(studentId: string | undefined, input: PageInput) {
+  return useClearedRemote<ReportHistory>(
+    studentId ? reportsPath(studentId, input) : null,
+  );
+}
+
 export function useTasks(
   studentId: string | undefined,
   filter: InsightFilter,
@@ -407,4 +449,84 @@ export function useActivity(
   return useClearedRemote<ActivityDTO>(
     studentId ? activityPath(studentId, filter) : null,
   );
+}
+
+const REPORT_POLL_MS = 3_000;
+const REPORT_SLOW_POLL_MS = 15_000;
+const REPORT_SLOW_AFTER_MS = 120_000;
+
+export function useInsightReport(
+  studentId: string | undefined,
+  reportId: string | undefined,
+) {
+  const path =
+    studentId && reportId ? reportPath(studentId, reportId) : null;
+  const [state, setState] = useState<RemoteState<ReportDTO>>({
+    path,
+    loading: !!path,
+    error: "",
+  });
+  const [revision, setRevision] = useState(0);
+  const refetch = useCallback(() => setRevision((value) => value + 1), []);
+
+  useEffect(() => {
+    if (!path) {
+      setState({ path: null, loading: false, error: "" });
+      return;
+    }
+    const controller = new AbortController();
+    const startedAt = Date.now();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = () => {
+      setState((current) => ({
+        path,
+        data: current.path === path ? current.data : undefined,
+        loading: current.path !== path || !current.data,
+        error: "",
+      }));
+      void api<ReportDTO>(path, { signal: controller.signal })
+        .then((data) => {
+          if (controller.signal.aborted) return;
+          setState({ path, data, loading: false, error: "" });
+          if (data.status === "queued" || data.status === "running") {
+            const wait =
+              Date.now() - startedAt >= REPORT_SLOW_AFTER_MS
+                ? REPORT_SLOW_POLL_MS
+                : REPORT_POLL_MS;
+            timer = setTimeout(load, wait);
+          }
+        })
+        .catch((error: unknown) => {
+          if (controller.signal.aborted) return;
+          const status =
+            typeof error === "object" &&
+            error !== null &&
+            "status" in error &&
+            typeof error.status === "number"
+              ? error.status
+              : undefined;
+          setState({
+            path,
+            loading: false,
+            error: errorMessage(error),
+            ...(status ? { errorStatus: status } : {}),
+          });
+        });
+    };
+    load();
+    return () => {
+      controller.abort();
+      if (timer) clearTimeout(timer);
+    };
+  }, [path, revision]);
+
+  const current: RemoteState<ReportDTO> =
+    state.path === path ? state : { path, loading: !!path, error: "" };
+  return {
+    report: current.data,
+    loading: current.loading,
+    error: current.error,
+    errorStatus: current.errorStatus,
+    refetch,
+  };
 }
