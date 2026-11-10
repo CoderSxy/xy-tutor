@@ -1,0 +1,36 @@
+apps/server/src/agent/tools.ts
+  s_88c769acc0e1c6::t_72a765a0bcea43 27
+  s_88c769acc0e1c6::t_06e546b46c2c89 96-105
+  s_88c769acc0e1c6::t_0fc7ba1817ce65 5,7
+  s_88c769acc0e1c6::t_52f4ed24a946b7 116-117
+apps/server/src/agent/context.ts
+  s_88c769acc0e1c6::t_491843afc1a1c8 31
+  s_88c769acc0e1c6::t_b1befe9cceb432 117-118
+  s_88c769acc0e1c6::t_c813b05cbdd5c1 218
+apps/server/src/agent/prompts.ts
+  s_88c769acc0e1c6::t_fe54b5d6c55921 1,4-5
+tests/unit/provider.test.ts
+  s_88c769acc0e1c6::t_4ed756426730d1 50
+  s_88c769acc0e1c6::t_f3137de496ed08 22
+tests/integration/tutor.test.ts
+  s_88c769acc0e1c6::t_16a4b64ebfea51 19
+  s_88c769acc0e1c6::t_a8d7e80f5a5a1b 242-342
+  s_88c769acc0e1c6::t_250015bc535d93 224
+  s_88c769acc0e1c6::t_380683ae0531ee 102-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "11380b5621eaab460b26d3a5551ac28598c35e7a",
+  "prompts": {},
+  "sessions": {
+    "s_88c769acc0e1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4497e957-dfb2-40a9-8e9b-cb11dfd0322a",
+        "model": "unknown"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
