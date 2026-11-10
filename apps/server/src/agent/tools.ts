@@ -22,7 +22,7 @@ export function createTeachingTools(
   bound: {
     scope: StudentScope;
     taskId: string | null;
-    revisionId: string;
+    revisionId: string | null;
     runId: string;
   },
   db: Database,
@@ -106,6 +106,7 @@ export function createTeachingTools(
         const query = z
           .object({ keywords: z.string(), chapterId: z.uuid().optional() })
           .parse(p);
+        if (!bound.revisionId) return { status: "insufficient_evidence", chunks: [] };
         const chunks = await search.searchTextbook(
           { student: bound.scope, revisionId: bound.revisionId },
           { ...query, limit: 5 },
@@ -126,7 +127,7 @@ export function createTeachingTools(
           .parse(p).questionVersionId;
         const row = (
           await db.pool.query(
-            "SELECT v.id,v.stem,v.knowledge_point FROM question_versions v JOIN questions q ON q.id=v.question_id WHERE v.id=$1 AND q.revision_id=$2 AND q.student_id=$3",
+            "SELECT v.id,v.stem,v.knowledge_point FROM question_versions v JOIN questions q ON q.id=v.question_id WHERE v.id=$1 AND ($2::uuid IS NULL OR q.revision_id=$2) AND q.student_id=$3",
             [id, bound.revisionId, bound.scope.studentId],
           )
         ).rows[0];

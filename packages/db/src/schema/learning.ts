@@ -15,9 +15,7 @@ export const learningTasks = pgTable("learning_tasks", {
   studentId: uuid("student_id")
     .notNull()
     .references(() => studentProfiles.id),
-  revisionId: uuid("revision_id")
-    .notNull()
-    .references(() => revisions.id),
+  revisionId: uuid("revision_id").references(() => revisions.id),
   kind: text().notNull(),
   title: text(),
   status: text().notNull().default("active"),

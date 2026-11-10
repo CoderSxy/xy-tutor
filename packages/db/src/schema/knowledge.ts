@@ -45,9 +45,7 @@ export const knowledgeObservations = pgTable("knowledge_observations", {
   studentId: uuid("student_id")
     .notNull()
     .references(() => studentProfiles.id),
-  revisionId: uuid("revision_id")
-    .notNull()
-    .references(() => revisions.id),
+  revisionId: uuid("revision_id").references(() => revisions.id),
   assessmentId: uuid("assessment_id")
     .references(() => assessments.id)
     .unique(),
@@ -77,7 +75,6 @@ export const knowledgeStates = pgTable(
   (t) => [
     uniqueIndex("student_revision_knowledge").on(
       t.studentId,
-      t.revisionId,
       t.knowledgePoint,
     ),
   ],

@@ -4,7 +4,7 @@ import { catalogFixture } from "../helpers/catalog.js";
 import { TaskService } from "../../apps/server/src/modules/learning/tasks.js";
 import { MessageService } from "../../apps/server/src/modules/conversations/messages.js";
 import { AttemptService } from "../../apps/server/src/modules/learning/attempts.js";
-it("resumes tasks bound to old revisions after textbook replacement", async () =>
+it("resumes unbound tasks after textbook replacement", async () =>
   withTestDb(async (db) => {
     const f = await catalogFixture(db);
     const revision = await f.publish("人教版", "分数通分");
@@ -12,15 +12,17 @@ it("resumes tasks bound to old revisions after textbook replacement", async () =
     const task = await tasks.create(f.scope, {
       revisionId: revision.id,
       kind: "daily_practice",
+      creationKey: "history-1",
     });
+    expect(task.revisionId).toBeNull();
     await f.catalog.disable(f.admin, revision.id);
-    expect((await tasks.resume(f.scope, task.id)).revisionId).toBe(revision.id);
-    await expect(
-      tasks.create(f.scope, {
-        revisionId: revision.id,
-        kind: "daily_practice",
-      }),
-    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect((await tasks.resume(f.scope, task.id)).revisionId).toBeNull();
+    const reused = await tasks.create(f.scope, {
+      revisionId: revision.id,
+      kind: "daily_practice",
+      creationKey: "history-1",
+    });
+    expect(reused.id).toBe(task.id);
   }));
 it("retains edited messages and regenerated answers and rejects stale edits", async () =>
   withTestDb(async (db) => {

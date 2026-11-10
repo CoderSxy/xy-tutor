@@ -237,9 +237,8 @@ it("records a material event only when the material is created", async () =>
     const materials = new MaterialService(db, f.auth, f.uploads, f.catalog);
     await expect(
       materials.create(f.scope, {
-        fileId: upload.fileId,
+        fileId: crypto.randomUUID(),
         type: "homework",
-        revisionId: crypto.randomUUID(),
       }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(await eventCount(db)).toBe(0);

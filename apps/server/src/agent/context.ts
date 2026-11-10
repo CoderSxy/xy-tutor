@@ -28,7 +28,7 @@ export type TutorContext = {
   systemContext: string;
   messages: Message[];
   taskId: string | null;
-  revisionId: string;
+  revisionId: string | null;
   studentId: string;
   currentQuestionVersionId?: string;
   inputContent?: (TextContent | ImageContent)[];
@@ -70,7 +70,6 @@ export async function buildContext(
       conversationId,
     ])
   ).rows[0];
-  const revision = await catalog.getRevision(scope.actor, c.revision_id);
   const profile = await auth.getProfile(scope);
   const items = c.task_id
     ? (
@@ -114,7 +113,6 @@ export async function buildContext(
     c.revision_id,
   );
   const systemContext = JSON.stringify({
-    教材: revision,
     学生: profile,
     任务: task,
     当前题目: current,

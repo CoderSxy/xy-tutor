@@ -9,19 +9,13 @@ export const learningEntries = pgTable(
     studentId: uuid("student_id")
       .notNull()
       .references(() => studentProfiles.id),
-    revisionId: uuid("revision_id")
-      .notNull()
-      .references(() => revisions.id),
+    revisionId: uuid("revision_id").references(() => revisions.id),
     entryKey: text("entry_key").notNull(),
     conversationId: uuid("conversation_id")
       .notNull()
       .references(() => conversations.id),
   },
   (t) => [
-    uniqueIndex("student_learning_entry").on(
-      t.studentId,
-      t.revisionId,
-      t.entryKey,
-    ),
+    uniqueIndex("student_learning_entry").on(t.studentId, t.entryKey),
   ],
 );

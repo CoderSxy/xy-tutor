@@ -120,7 +120,7 @@ export class PracticeService {
           if (v.role === "variant" && v.sourceQuestionId) {
             const parent = (
               await this.db.pool.query(
-                "SELECT q.id,v.id AS version_id,v.stem FROM questions q JOIN LATERAL(SELECT id,stem FROM question_versions WHERE question_id=q.id ORDER BY version_no DESC LIMIT 1)v ON true WHERE q.id=$1 AND q.student_id=$2 AND q.revision_id=$3",
+                "SELECT q.id,v.id AS version_id,v.stem FROM questions q JOIN LATERAL(SELECT id,stem FROM question_versions WHERE question_id=q.id ORDER BY version_no DESC LIMIT 1)v ON true WHERE q.id=$1 AND q.student_id=$2 AND q.revision_id IS NOT DISTINCT FROM $3",
                 [v.sourceQuestionId, scope.studentId, task.revisionId],
               )
             ).rows[0];

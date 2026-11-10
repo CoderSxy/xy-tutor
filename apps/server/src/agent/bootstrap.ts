@@ -27,30 +27,32 @@ export class BootstrapService {
   }> {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);
     const v = z
-      .object({ revisionId: z.uuid(), entryKey: z.string().min(1).max(80) })
+      .object({
+        revisionId: z.uuid().optional(),
+        entryKey: z.string().min(1).max(80),
+      })
       .strict()
       .parse(input);
-    await this.catalog.getRevision(scope.actor, v.revisionId);
     const conversationId = await inTransaction(this.db, async (tx) => {
       await tx.query("SELECT id FROM student_profiles WHERE id=$1 FOR UPDATE", [
         scope.studentId,
       ]);
       const prev = (
         await tx.query(
-          "SELECT conversation_id FROM learning_entries WHERE student_id=$1 AND revision_id=$2 AND entry_key=$3",
-          [scope.studentId, v.revisionId, v.entryKey],
+          "SELECT conversation_id FROM learning_entries WHERE student_id=$1 AND entry_key=$2",
+          [scope.studentId, v.entryKey],
         )
       ).rows[0];
       if (prev) return prev.conversation_id as string;
       const c = (
         await tx.query(
-          "INSERT INTO conversations(student_id,revision_id) VALUES($1,$2) RETURNING id",
-          [scope.studentId, v.revisionId],
+          "INSERT INTO conversations(student_id,revision_id) VALUES($1,NULL) RETURNING id",
+          [scope.studentId],
         )
       ).rows[0];
       await tx.query(
-        "INSERT INTO learning_entries(student_id,revision_id,entry_key,conversation_id) VALUES($1,$2,$3,$4)",
-        [scope.studentId, v.revisionId, v.entryKey, c.id],
+        "INSERT INTO learning_entries(student_id,revision_id,entry_key,conversation_id) VALUES($1,NULL,$2,$3)",
+        [scope.studentId, v.entryKey, c.id],
       );
       return c.id as string;
     });
@@ -59,7 +61,7 @@ export class BootstrapService {
           conversationId,
           requestKey: `opening:${v.entryKey}`,
           message:
-            "请根据当前教材和真实进度开启学习引导，进度未知先问最近学到哪里，给出学习入口，不提前批量出题。",
+            "请根据学生真实进度开启学习引导，进度未知先问最近学到哪里，给出学习入口，不提前批量出题。",
           mode: "opening",
         })
       : undefined;

@@ -18,9 +18,7 @@ export const conversations = pgTable("conversations", {
     .notNull()
     .references(() => studentProfiles.id),
   taskId: uuid("task_id").references(() => learningTasks.id),
-  revisionId: uuid("revision_id")
-    .notNull()
-    .references(() => revisions.id),
+  revisionId: uuid("revision_id").references(() => revisions.id),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

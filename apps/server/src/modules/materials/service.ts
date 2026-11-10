@@ -41,7 +41,7 @@ export class MaterialService {
       .object({
         fileId: z.uuid(),
         type: z.enum(["mistake", "exam", "homework", "other"]),
-        revisionId: z.uuid(),
+        revisionId: z.uuid().optional(),
       })
       .strict()
       .parse(input);
@@ -52,12 +52,11 @@ export class MaterialService {
       file.purpose !== "student_material"
     )
       throw new AppError("NOT_FOUND", 404, "学生文件不存在或未就绪");
-    await this.catalog.getRevision(scope.actor, v.revisionId);
     return inTransaction(this.db, async (tx) => {
       const r = (
         await tx.query(
-          "INSERT INTO materials(student_id,file_id,revision_id,type) VALUES($1,$2,$3,$4) RETURNING id",
-          [scope.studentId, v.fileId, v.revisionId, v.type],
+          "INSERT INTO materials(student_id,file_id,revision_id,type) VALUES($1,$2,NULL,$3) RETURNING id",
+          [scope.studentId, v.fileId, v.type],
         )
       ).rows[0];
       await new JobQueue(this.db).enqueue(tx, {
@@ -71,7 +70,7 @@ export class MaterialService {
         eventType: "material_submitted",
         sourceType: "material",
         sourceId: r.id,
-        revisionId: v.revisionId,
+        revisionId: null,
         occurredAt: new Date(),
         sourceOrigin: "live",
       });
@@ -135,7 +134,7 @@ export class MaterialService {
     payload?: ExtractionInput;
     status: string;
     fileId: string;
-    revisionId: string;
+    revisionId: string | null;
     confirmedQuestionVersionIds: string[];
   }> {
     const m = await this.authorize(scope, id);
@@ -290,7 +289,7 @@ export class MaterialService {
       for (const id of new Set(versionIds)) {
         const q = (
           await tx.query(
-            "SELECT 1 FROM question_versions v JOIN questions q ON q.id=v.question_id WHERE v.id=$1 AND q.student_id=$2 AND q.revision_id=$3",
+            "SELECT 1 FROM question_versions v JOIN questions q ON q.id=v.question_id WHERE v.id=$1 AND q.student_id=$2 AND q.revision_id IS NOT DISTINCT FROM $3",
             [id, scope.studentId, task.revision_id],
           )
         ).rowCount;

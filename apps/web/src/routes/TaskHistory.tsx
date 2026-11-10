@@ -99,7 +99,7 @@ export function TaskHistory() {
           />
         ) : paged.items.length ? (
           paged.items.map((t) => {
-            const rev = revisions.get(t.revisionId);
+            const rev = t.revisionId ? revisions.get(t.revisionId) : undefined;
             return (
               <div className="list-row" key={t.id}>
                 <div className="history-info">
@@ -113,9 +113,11 @@ export function TaskHistory() {
                     <BookOpen size={14} />
                     {rev
                       ? `${rev.title} · ${bookMeta(rev)}`
-                      : a.catalogLoading
-                        ? "正在读取教材信息"
-                        : "教材信息已不可用"}
+                      : t.revisionId
+                        ? a.catalogLoading
+                          ? "正在读取教材信息"
+                          : "教材信息已不可用"
+                        : "未绑定教材"}
                   </p>
                 </div>
                 <Button asChild variant="outline">

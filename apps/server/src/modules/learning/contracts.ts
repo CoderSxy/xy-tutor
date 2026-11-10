@@ -1,7 +1,7 @@
 import { z } from "zod";
 export const taskInput = z
   .object({
-    revisionId: z.uuid(),
+    revisionId: z.uuid().optional(),
     kind: z.enum([
       "daily_practice",
       "knowledge_consolidation",
@@ -17,7 +17,7 @@ export type TaskKind = z.infer<typeof taskInput>["kind"];
 export type TaskDTO = {
   id: string;
   studentId: string;
-  revisionId: string;
+  revisionId: string | null;
   kind: TaskKind;
   title: string | null;
   status: "active" | "paused" | "completed" | "abandoned";

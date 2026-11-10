@@ -20,9 +20,7 @@ export const materials = pgTable("materials", {
   fileId: uuid("file_id")
     .notNull()
     .references(() => files.id),
-  revisionId: uuid("revision_id")
-    .notNull()
-    .references(() => revisions.id),
+  revisionId: uuid("revision_id").references(() => revisions.id),
   type: text().notNull(),
   status: text().notNull().default("processing"),
   extractionVersion: integer("extraction_version").notNull().default(0),

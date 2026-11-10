@@ -59,7 +59,7 @@ export class AttemptService {
         throw new AppError("CONFLICT", 409, "请先恢复学习任务");
       const q = (
         await tx.query(
-          "SELECT i.id FROM task_items i JOIN question_versions v ON v.id=i.question_version_id JOIN questions q ON q.id=v.question_id WHERE i.task_id=$1 AND i.question_version_id=$2 AND (q.student_id=$3 OR q.student_id IS NULL) AND q.revision_id=$4",
+          "SELECT i.id FROM task_items i JOIN question_versions v ON v.id=i.question_version_id JOIN questions q ON q.id=v.question_id WHERE i.task_id=$1 AND i.question_version_id=$2 AND (q.student_id=$3 OR q.student_id IS NULL) AND q.revision_id IS NOT DISTINCT FROM $4",
           [v.taskId, v.questionVersionId, scope.studentId, task.revision_id],
         )
       ).rows[0];

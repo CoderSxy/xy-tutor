@@ -25,20 +25,7 @@ export class TaskService {
   async create(scope: StudentScope, input: unknown): Promise<TaskDTO> {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);
     const v = taskInput.parse(input);
-    const rev = await this.catalog.getRevision(scope.actor, v.revisionId);
-    if (rev.status !== "published")
-      throw new AppError("CONFLICT", 409, "教材已停用，请选择已发布教材");
     const id = await inTransaction(this.db, async (tx) => {
-      if (
-        v.chapterId &&
-        !(
-          await tx.query(
-            "SELECT 1 FROM chapters WHERE id=$1 AND revision_id=$2",
-            [v.chapterId, v.revisionId],
-          )
-        ).rowCount
-      )
-        throw new AppError("NOT_FOUND", 404, "章节不存在");
       if (v.creationKey) {
         await tx.query(
           "SELECT pg_advisory_xact_lock(hashtext($1),hashtext($2))",
@@ -53,30 +40,20 @@ export class TaskService {
         if (existing) {
           if (existing.deleted_at)
             throw new AppError("CONFLICT", 409, "任务已删除，请重新创建");
-          if (
-            existing.revision_id !== v.revisionId ||
-            existing.kind !== v.kind ||
-            (existing.chapter_id ?? undefined) !== v.chapterId
-          )
+          if (existing.kind !== v.kind)
             throw new AppError("CONFLICT", 409, "创建参数与已有任务不同");
           return existing.id as string;
         }
       }
       const t = (
         await tx.query(
-          "INSERT INTO learning_tasks(student_id,revision_id,kind,chapter_id,creation_key) VALUES($1,$2,$3,$4,$5) RETURNING id",
-          [
-            scope.studentId,
-            v.revisionId,
-            v.kind,
-            v.chapterId ?? null,
-            v.creationKey ?? null,
-          ],
+          "INSERT INTO learning_tasks(student_id,revision_id,kind,chapter_id,creation_key) VALUES($1,NULL,$2,NULL,$3) RETURNING id",
+          [scope.studentId, v.kind, v.creationKey ?? null],
         )
       ).rows[0];
       await tx.query(
-        "INSERT INTO conversations(student_id,task_id,revision_id) VALUES($1,$2,$3)",
-        [scope.studentId, t.id, v.revisionId],
+        "INSERT INTO conversations(student_id,task_id,revision_id) VALUES($1,$2,NULL)",
+        [scope.studentId, t.id],
       );
       return t.id;
     });

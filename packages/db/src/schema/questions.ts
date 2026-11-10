@@ -12,9 +12,7 @@ import { revisions } from "./catalog.js";
 export const questions = pgTable("questions", {
   id: uuid().primaryKey().defaultRandom(),
   studentId: uuid("student_id").references(() => studentProfiles.id),
-  revisionId: uuid("revision_id")
-    .notNull()
-    .references(() => revisions.id),
+  revisionId: uuid("revision_id").references(() => revisions.id),
   sourceType: text("source_type").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

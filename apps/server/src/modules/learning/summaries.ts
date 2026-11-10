@@ -155,11 +155,11 @@ export class SummaryService {
         }
       : null;
   }
-  async relevant(scope: StudentScope, revisionId: string) {
+  async relevant(scope: StudentScope, revisionId: string | null) {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);
     const tasks = (
       await this.db.pool.query(
-        "SELECT id FROM learning_tasks WHERE student_id=$1 AND revision_id=$2 AND status='completed' ORDER BY updated_at DESC LIMIT 3",
+        "SELECT id FROM learning_tasks WHERE student_id=$1 AND ($2::uuid IS NULL OR revision_id=$2) AND status='completed' ORDER BY updated_at DESC LIMIT 3",
         [scope.studentId, revisionId],
       )
     ).rows;

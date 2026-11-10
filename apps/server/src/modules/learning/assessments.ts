@@ -106,13 +106,15 @@ export class AssessmentService {
       throw new AppError("NOT_FOUND", 404, "作答不属于当前任务");
     const search = new TextbookSearch(this.catalog);
     let citationsValid = true;
-    try {
-      await search.validateCitations(
-        { student: scope, revisionId: a.revision_id },
-        v.referenceIds,
-      );
-    } catch {
-      citationsValid = false;
+    if (a.revision_id) {
+      try {
+        await search.validateCitations(
+          { student: scope, revisionId: a.revision_id },
+          v.referenceIds,
+        );
+      } catch {
+        citationsValid = false;
+      }
     }
     const invalid = (
       await this.db.pool.query(
