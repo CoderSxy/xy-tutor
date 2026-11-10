@@ -1,0 +1,48 @@
+apps/web/src/features/student-insights/filters.ts
+  s_7ddd7bcc8c3bb9::t_eea0192f8a5da4 15-18
+  s_7ddd7bcc8c3bb9::t_a84ab0350b8ad5 1-14,19-57
+apps/web/src/routes/admin/students/Overview.tsx
+  s_7ddd7bcc8c3bb9::t_ccb1d28971221e 1-250
+apps/web/src/features/student-insights/InsightFilters.tsx
+  s_7ddd7bcc8c3bb9::t_07a07a8894e66c 1-99
+apps/web/src/features/student-insights/api.ts
+  s_7ddd7bcc8c3bb9::t_c119b675445a88 1-116
+apps/web/src/App.tsx
+  s_7ddd7bcc8c3bb9::t_6bd31c341fdf1e 64-80
+  s_7ddd7bcc8c3bb9::t_932e18ea8f0dcf 8-11
+tests/e2e/admin-student-insights.spec.ts
+  s_7ddd7bcc8c3bb9::t_64ee50d78982cd 1-471
+apps/web/src/components/RequireAdmin.tsx
+  s_7ddd7bcc8c3bb9::t_4d1a754c6e56c8 1-16
+apps/web/src/routes/admin/students/Students.tsx
+  s_7ddd7bcc8c3bb9::t_ad43ede37fe345 1-346
+apps/web/src/routes/admin/students/StudentLayout.tsx
+  s_7ddd7bcc8c3bb9::t_510dfc6737f5c6 1-91
+apps/web/src/features/student-insights/InsightStatus.tsx
+  s_7ddd7bcc8c3bb9::t_6728764df978a2 1-68
+apps/web/src/features/student-insights/format.ts
+  s_7ddd7bcc8c3bb9::t_499c9c6de7226d 1-31
+apps/web/src/styles/global.css
+  s_7ddd7bcc8c3bb9::t_952bc8bc39f7d5 2399-2744
+apps/web/src/components/AppShell.tsx
+  s_7ddd7bcc8c3bb9::t_aa3739c024d579 63-66
+  s_7ddd7bcc8c3bb9::t_b03f2dcae1802a 12
+apps/web/src/features/student-insights/InsightTrend.tsx
+  s_7ddd7bcc8c3bb9::t_363f5ddcaa70c9 1-165
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "77d7002cc90d2095a6b9eee393010e6cc08f9980",
+  "prompts": {},
+  "sessions": {
+    "s_7ddd7bcc8c3bb9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "a6ad7a1a-2d0e-4a94-abd5-614bad109fd1",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
