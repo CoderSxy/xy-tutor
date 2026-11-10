@@ -1,0 +1,26 @@
+tests/integration/knowledge-base-review.test.ts
+  s_88c769acc0e1c6::t_dc78b34b559306 1-550
+apps/server/src/modules/knowledge-base/service.ts
+  s_88c769acc0e1c6::t_21a1409d83db7b 5,8,10-11
+  s_88c769acc0e1c6::t_cb6268005a2031 243-500
+  s_88c769acc0e1c6::t_49e07fc81a32ba 34-78
+apps/server/src/modules/knowledge-base/routes.ts
+  s_88c769acc0e1c6::t_12327169e78972 35-73
+  s_88c769acc0e1c6::t_b2ccd42f800021 4-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "fbf988c2ed28e79514d2bfa2a522760e0359a746",
+  "prompts": {},
+  "sessions": {
+    "s_88c769acc0e1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4497e957-dfb2-40a9-8e9b-cb11dfd0322a",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
