@@ -27,6 +27,7 @@ import { registerLearning } from "./modules/learning/routes.js";
 import { registerConversations } from "./modules/conversations/routes.js";
 import { CatalogService } from "./modules/catalog/service.js";
 import { registerCatalog } from "./modules/catalog/routes.js";
+import { registerStudentInsights } from "./modules/student-insights/routes.js";
 import { JobQueue } from "./jobs/queue.js";
 import { JobRunner } from "./jobs/runner.js";
 import { resourcesAvailable } from "./jobs/limits.js";
@@ -113,6 +114,7 @@ export function buildApp(deps: AppDependencies) {
       );
       registerUploads(scoped, uploads);
       registerCatalog(scoped, catalog);
+      registerStudentInsights(scoped, { database: deps.database! });
       const selections = new SelectionService(deps.database!, auth);
       scoped.get("/api/learning/selections", async (req) =>
         selections.list(await scopeForRequest(auth, req)),
