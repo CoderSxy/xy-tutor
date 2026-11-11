@@ -1,0 +1,115 @@
+apps/web/src/features/knowledge-base/status.ts
+  s_431ac4a96949d7::t_0f0cb8ccc731cc 32-40
+apps/server/src/app.ts
+  s_431ac4a96949d7::t_87534032d38418 174-179,181-183
+packages/contracts/src/knowledge-base.ts
+  s_431ac4a96949d7::t_cb8f6c7b96750b 48
+tests/integration/learning-unbound.test.ts
+  s_431ac4a96949d7::t_8807e32df136ff 112-113
+apps/server/src/modules/knowledge-base/service.ts
+  s_431ac4a96949d7::t_639a0afd8d4d2f 522,528
+  s_431ac4a96949d7::t_641ae493580284 68
+  s_431ac4a96949d7::t_b1543f826589a4 394,398-399,403,410
+  s_431ac4a96949d7::t_31bcac2f3cccdf 67,69-94
+  s_431ac4a96949d7::t_c347223a87c9c9 18
+  s_431ac4a96949d7::t_04a8962dbf96d4 230
+  s_431ac4a96949d7::t_2e099463d144a6 299,301
+  s_431ac4a96949d7::t_4e3f400e0277de 118,130
+  s_431ac4a96949d7::t_901e4dda1d4186 21
+apps/server/src/modules/knowledge-base/parser.ts
+  s_431ac4a96949d7::t_b28b2b426058fb 8-12
+  s_431ac4a96949d7::t_b5562b762372d8 25-28,58-65
+  s_431ac4a96949d7::t_834da26f5e77da 74,79,84-86,91,94,96,99,102
+  s_431ac4a96949d7::t_715b839ecc54b5 50-56
+  s_431ac4a96949d7::t_80c2ec9bc03df4 119
+  s_431ac4a96949d7::t_2d82ffcd4b061b 73,75-78,90,92-93,95,97-98,100-101,103-105,113
+  s_431ac4a96949d7::t_4b7ba76705aa06 150-154
+tests/integration/knowledge-parse-job.test.ts
+  s_431ac4a96949d7::t_9ee7701ad510f9 285,287-324,327-357
+  s_431ac4a96949d7::t_a1ba3e7a796dcc 286
+  s_431ac4a96949d7::t_3dd5f385aaba12 358-448
+  s_431ac4a96949d7::t_f43b85a12b19e3 325-326
+apps/server/src/modules/knowledge-base/search.ts
+  s_431ac4a96949d7::t_65ea071c44cafb 8-29,34-35,39-55,57
+apps/server/src/jobs/knowledge-parse-job.ts
+  s_431ac4a96949d7::t_d7bae51b49630b 10
+  s_431ac4a96949d7::t_31c3ab70250ab8 13
+  s_431ac4a96949d7::t_30cc4df461b61a 178-187,190,192-193
+  s_431ac4a96949d7::t_82e125adc1ca2d 100-107,131,146,159,161-165,169-177,188-189,191,195-196
+  s_431ac4a96949d7::t_54533cea396f68 85
+  s_431ac4a96949d7::t_4845ec707a357e 99,108-122,160
+  s_431ac4a96949d7::t_fa5eb3bc44696f 53-57
+  s_431ac4a96949d7::t_b5a4255f12addf 123,126-130,132-143,151-157
+  s_431ac4a96949d7::t_f65391befb2f8f 48-52,58-59
+  s_032df9fcb599ba::t_db76314e3790e0 98,194
+apps/server/src/agent/tools.ts
+  s_431ac4a96949d7::t_52f68e954d9420 39,43
+  s_431ac4a96949d7::t_47fbfd5de2362e 102-109
+  s_431ac4a96949d7::t_b6a2f817c05771 99
+  s_431ac4a96949d7::t_d7616f162153a2 97-98,100-101
+packages/db/src/schema/knowledge-base.ts
+  s_431ac4a96949d7::t_8555fd052ee6df 61
+apps/server/src/agent/context.ts
+  s_431ac4a96949d7::t_2d12ae980ea99a 107-108
+apps/web/src/routes/admin/Knowledge.tsx
+  s_431ac4a96949d7::t_f1b0d85eec64d1 81
+  s_431ac4a96949d7::t_8470f02ed34206 169-189,192-197,203
+  s_431ac4a96949d7::t_d3d7f700d726b1 69
+  s_431ac4a96949d7::t_b5d1889fa4b462 230-232
+  s_431ac4a96949d7::t_c4ae4587436899 30
+  s_431ac4a96949d7::t_02a35e3d1a01d1 337,342
+tests/unit/knowledge-parse.test.ts
+  s_431ac4a96949d7::t_6eefa47a959ec0 68-70
+  s_431ac4a96949d7::t_8583c74e36e3ee 103,117-120,124,131-132
+  s_431ac4a96949d7::t_8ab38f7ef0ce15 7
+  s_431ac4a96949d7::t_278b4f95a11627 72-95
+  s_032df9fcb599ba::t_e8868fe038aa6a 71
+tests/integration/knowledge-base-review.test.ts
+  s_431ac4a96949d7::t_a1a79cbc9b72bb 536-635
+apps/web/src/routes/admin/KnowledgeReview.tsx
+  s_431ac4a96949d7::t_90a7f925840c25 64,66
+  s_431ac4a96949d7::t_3837d15daa11b4 182
+  s_431ac4a96949d7::t_188e1a208e6fc6 248,252
+  s_431ac4a96949d7::t_23202c18efd49c 65
+  s_431ac4a96949d7::t_46ce0ffbced05a 26
+  s_431ac4a96949d7::t_0787a729fc4380 247,249-251,253-257
+  s_431ac4a96949d7::t_c70987642e0d28 47
+  s_431ac4a96949d7::t_4c9c227bf8346c 43,87,106,127,149
+  s_431ac4a96949d7::t_98a4c795f4e9d9 27-30
+  s_431ac4a96949d7::t_1513af49da9265 278
+apps/server/src/agent/prompts.ts
+  s_431ac4a96949d7::t_b0caa09d2e93a6 4
+packages/db/migrations/0022_knowledge_parse_notice.sql
+  s_431ac4a96949d7::t_97794965792993 1
+tests/integration/knowledge-search.test.ts
+  s_431ac4a96949d7::t_f0db176faf1571 198-214
+packages/db/migrations/meta/_journal.json
+  s_431ac4a96949d7::t_1e37e2b38f76a2 158-164
+apps/web/src/features/uploads/UploadInput.tsx
+  s_431ac4a96949d7::t_45de8aea66166d 43
+  s_431ac4a96949d7::t_22edc149e31bd0 144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a06b7144034824270b133c6dd26b4aea056eaccc",
+  "prompts": {},
+  "sessions": {
+    "s_032df9fcb599ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c511-73f4-7cf1-88ec-003ab80b37fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_431ac4a96949d7": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "2bcd83d4-a3ad-4ab4-adf6-874d148b87a4",
+        "model": "grok-4.7"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
