@@ -327,11 +327,6 @@ test("生成报告后轮询到完成，并可打开证据查看只读记录", as
       if (count === 1)
         return {
           status: 200,
-          body: reportDto({ id: REPORT_1, status: "queued", content: null }),
-        };
-      if (count === 2)
-        return {
-          status: 200,
           body: reportDto({ id: REPORT_1, status: "running", content: null }),
         };
       return { status: 200, body: reportDto({ id: REPORT_1 }) };

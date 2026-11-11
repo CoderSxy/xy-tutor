@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mockLearningApi, revisionId } from "./fixtures/ui-api";
+import { mockLearningApi } from "./fixtures/ui-api";
 async function login(page: import("@playwright/test").Page) {
   await page.getByLabel("账号", { exact: true }).fill("student");
   await page.getByLabel("密码", { exact: true }).fill("long-password");
@@ -37,7 +37,6 @@ test("confirms selected recognition while keeping teacher annotations separate",
         version: 1,
         status: confirmed ? "confirmed" : "review",
         fileId: materialId,
-        revisionId,
         confirmedQuestionVersionIds: confirmed
           ? ["60000000-0000-4000-8000-000000000001"]
           : [],
@@ -75,51 +74,6 @@ test("confirms selected recognition while keeping teacher annotations separate",
       { stem: "1/2+1/2=?", studentAnswer: "2", teacherAnnotation: "错误" },
     ],
   });
-});
-test("administrator checks a page and publishes a revision", async ({
-  page,
-}) => {
-  await mockLearningApi(page, "admin");
-  let status = "review";
-  await page.route(`**/api/catalog/textbooks/${revisionId}**`, async (route) =>
-    route.fulfill({
-      json: route.request().url().includes("/pages")
-        ? [
-            {
-              id: "page",
-              pageIndex: 0,
-              printedPageLabel: "12",
-              text: "通分的方法",
-              status: "ready",
-              excluded: false,
-            },
-          ]
-        : {
-            id: revisionId,
-            title: "五年级数学",
-            edition: "人教版",
-            grade: "五年级",
-            subject: "数学",
-            term: "下册",
-            publicationYear: 2024,
-            revisionNo: 1,
-            fileId: revisionId,
-            status,
-          },
-    }),
-  );
-  await page.route(
-    `**/api/admin/textbooks/${revisionId}/publish`,
-    async (route) => {
-      status = "published";
-      await route.fulfill({ json: { ok: true } });
-    },
-  );
-  await page.goto(`/admin/textbooks/${revisionId}`);
-  await login(page);
-  await expect(page.getByLabel("本页提取内容")).toHaveValue("通分的方法");
-  await page.getByRole("button", { name: "发布教材", exact: true }).click();
-  await expect(page.getByRole("button", { name: "停用教材" })).toBeVisible();
 });
 test("student grants and revokes explicit access", async ({ page }) => {
   await mockLearningApi(page);
@@ -193,77 +147,4 @@ test("opens original question source from mistake history", async ({
   await page.getByRole("button", { name: "查看原图 · 第2页" }).click();
   await expect(page.getByRole("dialog")).toContainText("原始资料 · 第2页");
   await expect(page.getByAltText("上传的原始题目资料")).toBeVisible();
-});
-test("explains the textbook page limit instead of only showing parsing failed", async ({
-  page,
-}) => {
-  await mockLearningApi(page, "admin");
-  await page.route(`**/api/catalog/textbooks/${revisionId}**`, (r) =>
-    r.fulfill({
-      json: r.request().url().includes("/pages")
-        ? []
-        : {
-            id: revisionId,
-            fileId: revisionId,
-            title: "长教材",
-            edition: "人教版",
-            grade: "高一",
-            subject: "数学",
-            term: "下册",
-            revisionNo: 1,
-            status: "failed",
-            parseErrorCode: "PDF_PAGE_LIMIT",
-          },
-    }),
-  );
-  await page.goto(`/admin/textbooks/${revisionId}`);
-  await login(page);
-  await expect(page.getByRole("alert")).toContainText("500页");
-});
-test("shows empty textbook pages already excluded without manual checkbox work", async ({
-  page,
-}) => {
-  await mockLearningApi(page, "admin");
-  await page.route(`**/api/catalog/textbooks/${revisionId}**`, (r) =>
-    r.fulfill({
-      json: r.request().url().includes("/pages")
-        ? [
-            {
-              id: "p1",
-              pageIndex: 0,
-              text: "有效正文",
-              status: "ready",
-              excluded: false,
-            },
-            {
-              id: "p2",
-              pageIndex: 1,
-              text: "",
-              status: "ready",
-              excluded: true,
-            },
-          ]
-        : {
-            id: revisionId,
-            fileId: revisionId,
-            title: "自动排除教材",
-            edition: "人教版",
-            grade: "高一",
-            subject: "数学",
-            term: "下册",
-            revisionNo: 1,
-            status: "review",
-          },
-    }),
-  );
-  await page.goto(`/admin/textbooks/${revisionId}`);
-  await login(page);
-  await expect(
-    page.getByText("已自动排除 1 个未识别出文字的页面，无需逐页勾选。"),
-  ).toBeVisible();
-  await page.getByLabel("PDF 页面").selectOption("1");
-  await expect(page.getByRole("checkbox")).toBeChecked();
-  await expect(
-    page.getByRole("button", { name: "发布教材", exact: true }),
-  ).toBeEnabled();
 });

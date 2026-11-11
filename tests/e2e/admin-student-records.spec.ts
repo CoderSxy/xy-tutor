@@ -414,12 +414,10 @@ async function mockRecords(page: Page): Promise<Mock> {
           404,
         );
       }
+      const textFile = fileId === "file-doc" || fileId === "file-material";
       return json({
-        url:
-          fileId === "file-doc"
-            ? "/test-assets/note.txt"
-            : "/test-assets/pixel.png",
-        contentType: fileId === "file-doc" ? "text/plain" : "image/png",
+        url: textFile ? "/test-assets/note.txt" : "/test-assets/pixel.png",
+        contentType: textFile ? "text/plain" : "image/png",
         expiresAt: "2099-01-01T00:00:00.000Z",
       });
     }
@@ -721,7 +719,10 @@ test("切换学生后不残留上一学生的任务与图片", async ({ page }) 
     .locator(".insight-student", { hasText: "王芳" })
     .getByRole("link", { name: "查看学情" })
     .click();
-  await page.getByRole("link", { name: "学习记录" }).click();
+  await page
+    .getByRole("navigation", { name: "学生学情页签" })
+    .getByRole("link", { name: "学习记录" })
+    .click();
   await expect(page.getByRole("link", { name: "B 的任务" })).toBeVisible();
   await expect(page.getByRole("link", { name: "错题复习" })).toHaveCount(0);
   await expect(page.locator("img[alt='错题照片']")).toHaveCount(0);
@@ -764,7 +765,7 @@ test("浏览记录、错题、资料和活跃页面时不发送任何学生写�
   await page.goto(`/admin/students/${STUDENT_A}/records/${TASK_A}`);
   await expect(page.getByRole("heading", { name: "分数练习" })).toBeVisible();
   await page.goto(`/admin/students/${STUDENT_A}/mistakes/${MISTAKE_ID}`);
-  await expect(page.getByText("第一页事件 1")).toBeVisible();
+  await expect(page.getByText("第一页事件 1", { exact: true })).toBeVisible();
   await page.goto(`/admin/students/${STUDENT_A}/materials/${MATERIAL_ID}`);
   await expect(page.getByRole("heading", { name: "第三单元作业" })).toBeVisible();
   await page.goto(`/admin/students/${STUDENT_A}/activity`);

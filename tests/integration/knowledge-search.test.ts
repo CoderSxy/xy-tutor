@@ -125,6 +125,28 @@ it("orders title matches before summary matches and newer first", async () =>
     ]);
   }));
 
+it("reflects edits to a published summary in later searches", async () =>
+  withTestDb(async (db) => {
+    const { item } = await source(db);
+    const id = await item({ title: "通分", summary: "统一分母" });
+
+    expect(
+      await searchPublishedKnowledge(db, { keywords: "最简", limit: 5 }),
+    ).toEqual([]);
+
+    await db.pool.query(
+      "UPDATE knowledge_items SET summary=$2, updated_at=now() WHERE id=$1",
+      [id, "先统一分母，再化为最简分数"],
+    );
+
+    const hits = await searchPublishedKnowledge(db, {
+      keywords: "最简",
+      limit: 5,
+    });
+    expect(hits.map((hit) => hit.id)).toEqual([id]);
+    expect(hits[0]?.summary).toBe("先统一分母，再化为最简分数");
+  }));
+
 it("treats percent and underscore as literal characters", async () =>
   withTestDb(async (db) => {
     const { item } = await source(db);

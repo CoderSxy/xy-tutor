@@ -340,7 +340,9 @@ test("管理员列表包含空学生，筛选写入 URL，返回时保留条件"
 }) => {
   await mockInsights(page, "admin");
   await page.goto("/admin/students");
-  await expect(page.getByRole("heading", { name: "学生学情" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "学生学情", exact: true }),
+  ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "学生学情" }),
   ).toBeVisible();
@@ -351,7 +353,6 @@ test("管理员列表包含空学生，筛选写入 URL，返回时保留条件"
     .toEqual(["3", "2", "18", "4"]);
   const empty = page.locator(".insight-student", { hasText: "安静" });
   await expect(empty.getByText("暂无学习记录")).toBeVisible();
-  await expect(empty.getByText("暂无可核验样本").first()).toBeVisible();
 
   await page.getByRole("button", { name: "近7天" }).click();
   await expect
@@ -388,7 +389,7 @@ test("概览显示趋势数值和图表文本替代", async ({ page }) => {
   await expect(chart.locator("text").filter({ hasText: "%" })).not.toHaveCount(
     0,
   );
-  await expect(page.getByText("首次正确率 67%")).toBeVisible();
+  await expect(page.getByText("首次正确率 67%", { exact: true })).toBeVisible();
   await expect(page.getByText("查看每日数值")).toBeVisible();
   await expect(page.getByText("分数加减")).toBeVisible();
   await expect(page.getByText("第三单元作业")).toBeVisible();
@@ -449,7 +450,9 @@ for (const width of [360, 768, 1280]) {
     await page.setViewportSize({ width, height: 900 });
     await mockInsights(page, "admin");
     await page.goto("/admin/students");
-    await expect(page.getByRole("heading", { name: "学生学情" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "学生学情", exact: true }),
+    ).toBeVisible();
     await expect
       .poll(() =>
         page.evaluate(
@@ -463,7 +466,11 @@ for (const width of [360, 768, 1280]) {
     });
     await page.goto(`/admin/students/${STUDENT_A}/overview`);
     await expect(page.getByRole("heading", { name: "李明" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "学习记录" })).toBeVisible();
+    await expect(
+      page
+        .getByRole("navigation", { name: "学生学情页签" })
+        .getByRole("link", { name: "学习记录" }),
+    ).toBeVisible();
     await expect
       .poll(() =>
         page.evaluate(

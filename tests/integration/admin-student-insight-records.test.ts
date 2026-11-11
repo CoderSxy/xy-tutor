@@ -664,7 +664,7 @@ it("资料题目去重计数，文件签名 300 秒且不含 object_key", () =>
     );
     const crossStudent = await get(
       app,
-      `/api/admin/student-insights/students/${fixture.studentB.studentId}/files/${foreignFile.id}/download`,
+      `${base}/files/${foreignFile.id}/download`,
       cookie,
     );
     expect(crossStudent.statusCode).toBe(404);

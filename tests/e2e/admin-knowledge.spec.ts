@@ -27,7 +27,12 @@ async function login(page: Page) {
 
 async function mockKnowledgeApi(
   page: Page,
-  initial: { items?: MockItem[]; runStatus?: string; errorCode?: string } = {},
+  initial: {
+    items?: MockItem[];
+    runStatus?: string;
+    errorCode?: string;
+    parseTitles?: string[];
+  } = {},
 ) {
   const state = {
     created: false,
@@ -62,20 +67,19 @@ async function mockKnowledgeApi(
     let body: unknown = {};
     if (path === "/api/admin/knowledge/batches" && method === "POST") {
       state.created = true;
-      state.items = [
-        {
-          id: itemId,
-          batchId,
-          parseRunId: runId,
-          title: "分数加减法",
-          summary: "同分母分数相加减。",
-          status: "pending_review",
-          replacesItemId: null,
-          publishedAt: null,
-          createdAt: now,
-          updatedAt: now,
-        },
-      ];
+      const titles = initial.parseTitles ?? ["分数加减法"];
+      state.items = titles.map((title, index) => ({
+        id: index === 0 ? itemId : `${itemId.slice(0, -1)}${index + 1}`,
+        batchId,
+        parseRunId: runId,
+        title,
+        summary: `${title}的要点。`,
+        status: "pending_review",
+        replacesItemId: null,
+        publishedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      }));
       body = batch();
     } else if (path === "/api/admin/knowledge/batches") {
       body = { items: state.created ? [batch()] : [], total: state.created ? 1 : 0 };
@@ -163,6 +167,39 @@ test("uploads source text, reviews pending items and publishes them", async ({
   await page.getByRole("link", { name: "返回知识点列表" }).click();
   await expect(page).toHaveURL(/\/admin\/knowledge$/);
   await expect(page.getByText("同分母分数加减法")).toBeVisible();
+});
+
+test("one upload splits into several knowledge items confirmed together", async ({
+  page,
+}) => {
+  await mockLearningApi(page, "admin");
+  await mockKnowledgeApi(page, { parseTitles: ["分数加法", "分数减法"] });
+  await page.goto("/admin/knowledge");
+  await login(page);
+  await page.getByRole("button", { name: "上传知识点资料" }).click();
+  await page
+    .getByLabel("粘贴知识点内容")
+    .fill("同分母分数相加，分母不变；同分母分数相减，分母不变。");
+  await page.getByRole("button", { name: "解析为知识点" }).click();
+  await expect(page).toHaveURL(new RegExp(`/admin/knowledge/${batchId}$`));
+  await expect(
+    page.getByRole("heading", { name: "检查知识点", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("标题 1")).toHaveValue("分数加法");
+  await expect(page.getByLabel("标题 2")).toHaveValue("分数减法");
+  await expect(page.getByText(/待确认 2/)).toBeVisible();
+
+  const boxes = page.getByRole("checkbox");
+  await expect(boxes).toHaveCount(2);
+  await boxes.nth(0).check();
+  await boxes.nth(1).check();
+  await page.getByRole("button", { name: "确认发布所选" }).click();
+  await expect(page.getByText("已发布 2 个知识点")).toBeVisible();
+
+  await page.getByRole("link", { name: "返回知识点列表" }).click();
+  await expect(page).toHaveURL(/\/admin\/knowledge$/);
+  await expect(page.getByText("分数加法", { exact: true })).toBeVisible();
+  await expect(page.getByText("分数减法", { exact: true })).toBeVisible();
 });
 
 test("filters published items, edits them and requests a reparse", async ({
