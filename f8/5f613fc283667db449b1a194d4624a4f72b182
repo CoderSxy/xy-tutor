@@ -1,0 +1,23 @@
+apps/server/src/modules/student-insights/policy.ts
+  s_88c769acc0e1c6::t_2c8c296c651a88 15-16
+  s_88c769acc0e1c6::t_f88b7f92efc644 25-30,37-59
+apps/server/src/modules/student-insights/records.ts
+  s_88c769acc0e1c6::t_5515c601a4193a 512
+  s_88c769acc0e1c6::t_6a2f69f26410b7 26-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f85f613fc283667db449b1a194d4624a4f72b182",
+  "prompts": {},
+  "sessions": {
+    "s_88c769acc0e1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4497e957-dfb2-40a9-8e9b-cb11dfd0322a",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
