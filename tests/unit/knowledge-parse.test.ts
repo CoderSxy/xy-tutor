@@ -4,6 +4,7 @@ import {
   MAX_KNOWLEDGE_TEXT,
   extractBatchText,
   parseKnowledgeItemsResponse,
+  readKnowledgeItems,
 } from "../../apps/server/src/modules/knowledge-base/parser.js";
 
 describe("parseKnowledgeItemsResponse", () => {
@@ -64,6 +65,34 @@ describe("parseKnowledgeItemsResponse", () => {
     expect(parsed).toHaveLength(MAX_KNOWLEDGE_ITEMS);
     expect(parsed[0]!.title).toBe("知识点 0");
     expect(parsed.at(-1)!.title).toBe(`知识点 ${MAX_KNOWLEDGE_ITEMS - 1}`);
+    expect(readKnowledgeItems(JSON.stringify({ items })).omittedItemCount).toBe(
+      7,
+    );
+  });
+
+  it("keeps a source title used to revise a published item", () => {
+    expect(
+      readKnowledgeItems(
+        JSON.stringify({
+          items: [
+            {
+              title: "找公分母",
+              summary: "先找最小公倍数",
+              sourceTitle: " 通分 ",
+            },
+          ],
+        }),
+      ).items,
+    ).toEqual([
+      { title: "找公分母", summary: "先找最小公倍数", sourceTitle: "通分" },
+    ]);
+    expect(
+      parseKnowledgeItemsResponse(
+        JSON.stringify({
+          items: [{ title: "通分", summary: "总结", sourceTitle: "   " }],
+        }),
+      ),
+    ).toEqual([{ title: "通分", summary: "总结" }]);
   });
 });
 
@@ -71,7 +100,7 @@ describe("extractBatchText", () => {
   const signal = new AbortController().signal;
 
   it("combines batch text with UTF-8 text files in order", async () => {
-    const text = await extractBatchText(
+    const extracted = await extractBatchText(
       {
         textContent: "分数加减法",
         files: [
@@ -85,17 +114,21 @@ describe("extractBatchText", () => {
         signal,
       },
     );
-    expect(text).toBe("分数加减法\n\n# 通分\n先找公分母\n\n约分");
+    expect(extracted).toEqual({
+      text: "分数加减法\n\n# 通分\n先找公分母\n\n约分",
+      truncated: false,
+    });
   });
 
   it("truncates combined text at 80,000 characters", async () => {
-    const text = await extractBatchText(
+    const extracted = await extractBatchText(
       {
         textContent: "甲".repeat(MAX_KNOWLEDGE_TEXT + 50_000),
         files: [{ content_type: "text/plain", object_key: "knowledge_source/a" }],
       },
       { read: async () => Buffer.from("乙乙乙"), signal },
     );
-    expect(text).toHaveLength(MAX_KNOWLEDGE_TEXT);
+    expect(extracted.truncated).toBe(true);
+    expect(extracted.text).toHaveLength(MAX_KNOWLEDGE_TEXT);
   });
 });

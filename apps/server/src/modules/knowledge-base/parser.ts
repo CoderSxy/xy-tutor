@@ -5,7 +5,11 @@ import type { OcrProvider } from "../../jobs/parsers/ocr.js";
 export const MAX_KNOWLEDGE_ITEMS = 30;
 export const MAX_KNOWLEDGE_TEXT = 80_000;
 
-export type KnowledgeProposal = { title: string; summary: string };
+export type KnowledgeProposal = {
+  title: string;
+  summary: string;
+  sourceTitle?: string;
+};
 
 export type KnowledgeBatchSource = {
   textContent: string | null;
@@ -18,7 +22,10 @@ export type KnowledgeTextReader = {
   signal: AbortSignal;
 };
 
-export function parseKnowledgeItemsResponse(text: string): KnowledgeProposal[] {
+export function readKnowledgeItems(text: string): {
+  items: KnowledgeProposal[];
+  omittedItemCount: number;
+} {
   let value: unknown;
   try {
     value = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ""));
@@ -40,9 +47,22 @@ export function parseKnowledgeItemsResponse(text: string): KnowledgeProposal[] {
         : "";
     if (!title || title.length > 200 || !summary || summary.length > 20_000)
       throw Error("PARSE_INVALID_OUTPUT");
-    parsed.push({ title, summary });
+    const source = (item as { sourceTitle?: unknown }).sourceTitle;
+    const sourceTitle = typeof source === "string" ? source.trim() : "";
+    parsed.push(
+      sourceTitle && sourceTitle.length <= 200
+        ? { title, summary, sourceTitle }
+        : { title, summary },
+    );
   }
-  return parsed;
+  return {
+    items: parsed,
+    omittedItemCount: Math.max(0, items.length - MAX_KNOWLEDGE_ITEMS),
+  };
+}
+
+export function parseKnowledgeItemsResponse(text: string): KnowledgeProposal[] {
+  return readKnowledgeItems(text).items;
 }
 
 export async function proposeKnowledgeItems(
@@ -50,17 +70,39 @@ export async function proposeKnowledgeItems(
   text: string,
   extraPrompt: string | null,
   signal: AbortSignal,
-): Promise<KnowledgeProposal[]> {
+  options: {
+    focus?: { title: string; summary: string };
+    publishedItems?: { title: string; summary: string }[];
+  } = {},
+): Promise<{ items: KnowledgeProposal[]; omittedItemCount: number }> {
+  const publishedItems = options.publishedItems ?? [];
+  const revisingList = publishedItems.length > 0;
   const response = await gateway.complete(
     {
       priority: "background",
       context: {
-        systemPrompt:
-          '你是知识点整理助手。只依据给定材料拆分知识点，使用中文，只输出 JSON 对象 {"items":[{"title":"...","summary":"..."}]}，不要编造材料中不存在的内容，不要输出 JSON 以外的文字。',
+        systemPrompt: revisingList
+          ? '你是知识点整理助手。只依据给定材料整理知识点，使用中文，只输出 JSON 对象 {"items":[{"title":"...","summary":"...","sourceTitle":"原标题或省略"}]}。修订已有条目时 sourceTitle 必须等于该条原标题，title 可以修改；全新知识点不要带 sourceTitle。不要编造材料中不存在的内容，不要输出 JSON 以外的文字。'
+          : '你是知识点整理助手。只依据给定材料拆分知识点，使用中文，只输出 JSON 对象 {"items":[{"title":"...","summary":"..."}]}，不要编造材料中不存在的内容，不要输出 JSON 以外的文字。',
         messages: [
           {
             role: "user",
-            content: JSON.stringify({ text, extraPrompt: extraPrompt ?? null }),
+            content: JSON.stringify({
+              ...(options.focus ? { focus: options.focus } : {}),
+              text,
+              extraPrompt: extraPrompt ?? null,
+              ...(options.focus
+                ? {
+                    note: "只修订 focus 这一条。text 是同一批原始资料，只能用来补充这一条的细节，不要输出资料里的其他知识点。可以拆成多条，但每条都必须是这一条的细化。",
+                  }
+                : {}),
+              ...(revisingList
+                ? {
+                    publishedItems,
+                    note: "修订上面某条已发布知识点时，必须带 sourceTitle 且等于它的原标题，title 可以改。没有 sourceTitle 的条目会作为全新知识点，已发布内容会保留。",
+                  }
+                : {}),
+            }),
             timestamp: Date.now(),
           },
         ],
@@ -68,13 +110,13 @@ export async function proposeKnowledgeItems(
     },
     signal,
   );
-  return parseKnowledgeItemsResponse(response.text);
+  return readKnowledgeItems(response.text);
 }
 
 export async function extractBatchText(
   batch: KnowledgeBatchSource,
   reader: KnowledgeTextReader,
-): Promise<string> {
+): Promise<{ text: string; truncated: boolean }> {
   const parts: string[] = [];
   const push = (part: string) => {
     const trimmed = part.trim();
@@ -105,5 +147,9 @@ export async function extractBatchText(
     }
     throw Error("INVALID_KNOWLEDGE_SOURCE");
   }
-  return parts.join("\n\n").slice(0, MAX_KNOWLEDGE_TEXT);
+  const combined = parts.join("\n\n");
+  return {
+    text: combined.slice(0, MAX_KNOWLEDGE_TEXT),
+    truncated: combined.length > MAX_KNOWLEDGE_TEXT,
+  };
 }

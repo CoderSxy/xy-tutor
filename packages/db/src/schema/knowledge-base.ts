@@ -58,6 +58,7 @@ export const knowledgeParseRuns = pgTable(
     model: text(),
     status: text().notNull(),
     errorCode: text("error_code"),
+    notice: text("notice"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

@@ -282,3 +282,167 @@ it("reads file batches through the configured store", async () =>
       ).rows[0].status,
     ).toBe("succeeded");
   }));
+
+it("revises one published item using the batch source", async () =>
+  withTestDb(async (db) => {
+    const f = await fixture(db);
+    const { batchId, runId } = await f.batch({
+      text: "这一整章讲一元一次方程、二元一次方程和不等式。",
+    });
+    const published = (
+      await db.pool.query<{ id: string }>(
+        "INSERT INTO knowledge_items(batch_id,parse_run_id,title,summary,status,published_at) VALUES($1,$2,'一元一次方程','移项后合并同类项','published',now()) RETURNING id",
+        [batchId, runId],
+      )
+    ).rows[0]!.id;
+    await db.pool.query(
+      "UPDATE knowledge_parse_runs SET status='succeeded',completed_at=now() WHERE id=$1",
+      [runId],
+    );
+    const revision = (
+      await db.pool.query<{ id: string }>(
+        "INSERT INTO knowledge_parse_runs(batch_id,extra_prompt,status) VALUES($1,'把步骤拆细','queued') RETURNING id",
+        [batchId],
+      )
+    ).rows[0]!.id;
+    const requests: unknown[] = [];
+    const gateway = fakeGateway(
+      itemsResponse([
+        { title: "移项", summary: "把未知数留在一边" },
+        { title: "合并同类项", summary: "系数相加" },
+      ]),
+      requests,
+    );
+
+    await parseKnowledgeRun(db, gateway, new UploadService(db, f.auth), revision, signal, {
+      replacesItemId: published,
+    });
+
+    const content = (
+      requests[0] as { context: { messages: { content: string }[] } }
+    ).context.messages[0]!.content;
+    expect(content).toContain("移项后合并同类项");
+    expect(content).toContain("二元一次方程");
+    expect(content).toContain("只修订 focus 这一条");
+    const items = (
+      await db.pool.query<{ title: string; replaces_item_id: string | null }>(
+        "SELECT title,replaces_item_id FROM knowledge_items WHERE parse_run_id=$1 ORDER BY title",
+        [revision],
+      )
+    ).rows;
+    expect(items).toEqual([
+      { title: "合并同类项", replaces_item_id: null },
+      { title: "移项", replaces_item_id: published },
+    ]);
+    expect(
+      (
+        await db.pool.query(
+          "SELECT title,summary,status FROM knowledge_items WHERE id=$1",
+          [published],
+        )
+      ).rows[0],
+    ).toMatchObject({
+      title: "一元一次方程",
+      summary: "移项后合并同类项",
+      status: "published",
+    });
+    expect(
+      (
+        await db.pool.query(
+          "SELECT notice FROM knowledge_parse_runs WHERE id=$1",
+          [revision],
+        )
+      ).rows[0].notice,
+    ).toBeNull();
+  }));
+
+it("links a retitled batch result to the published item named by sourceTitle", async () =>
+  withTestDb(async (db) => {
+    const f = await fixture(db);
+    const { batchId, runId } = await f.batch({
+      text: "通分时先找公分母，再把分子按倍数放大。",
+    });
+    const published = (
+      await db.pool.query<{ id: string }>(
+        "INSERT INTO knowledge_items(batch_id,parse_run_id,title,summary,status,published_at) VALUES($1,$2,'通分','旧总结','published',now()) RETURNING id",
+        [batchId, runId],
+      )
+    ).rows[0]!.id;
+    await db.pool.query(
+      "UPDATE knowledge_parse_runs SET status='succeeded',completed_at=now() WHERE id=$1",
+      [runId],
+    );
+    const revision = (
+      await db.pool.query<{ id: string }>(
+        "INSERT INTO knowledge_parse_runs(batch_id,extra_prompt,status) VALUES($1,'写清步骤','queued') RETURNING id",
+        [batchId],
+      )
+    ).rows[0]!.id;
+    const gateway = fakeGateway({
+      text: JSON.stringify({
+        items: [
+          {
+            title: "找公分母",
+            summary: "先找两个分母的最小公倍数",
+            sourceTitle: "通分",
+          },
+        ],
+      }),
+    });
+
+    await parseKnowledgeRun(
+      db,
+      gateway,
+      new UploadService(db, f.auth),
+      revision,
+      signal,
+    );
+
+    const draft = (
+      await db.pool.query<{ title: string; replaces_item_id: string | null }>(
+        "SELECT title,replaces_item_id FROM knowledge_items WHERE parse_run_id=$1",
+        [revision],
+      )
+    ).rows[0];
+    expect(draft).toEqual({ title: "找公分母", replaces_item_id: published });
+  }));
+
+it("does not invent a replacement when a retitled result omits sourceTitle", async () =>
+  withTestDb(async (db) => {
+    const f = await fixture(db);
+    const { batchId, runId } = await f.batch({ text: "通分时先找公分母。" });
+    await db.pool.query(
+      "INSERT INTO knowledge_items(batch_id,parse_run_id,title,summary,status,published_at) VALUES($1,$2,'通分','旧总结','published',now())",
+      [batchId, runId],
+    );
+    await db.pool.query(
+      "UPDATE knowledge_parse_runs SET status='succeeded',completed_at=now() WHERE id=$1",
+      [runId],
+    );
+    const revision = (
+      await db.pool.query<{ id: string }>(
+        "INSERT INTO knowledge_parse_runs(batch_id,status) VALUES($1,'queued') RETURNING id",
+        [batchId],
+      )
+    ).rows[0]!.id;
+    const gateway = fakeGateway(
+      itemsResponse([{ title: "找公分母", summary: "先找最小公倍数" }]),
+    );
+
+    await parseKnowledgeRun(
+      db,
+      gateway,
+      new UploadService(db, f.auth),
+      revision,
+      signal,
+    );
+
+    expect(
+      (
+        await db.pool.query(
+          "SELECT replaces_item_id FROM knowledge_items WHERE parse_run_id=$1",
+          [revision],
+        )
+      ).rows[0].replaces_item_id,
+    ).toBeNull();
+  }));

@@ -109,7 +109,8 @@ it("opens an old conversation that still carries a revision", async () =>
       conversation.id,
       8000,
     );
-    expect(context.revisionId).toBe(revision.id);
+    expect(context.revisionId).toBeUndefined();
+    expect(context.systemContext).not.toContain(revision.id);
     expect(
       (await db.pool.query("SELECT count(*)::int AS n FROM messages")).rows[0]
         .n,

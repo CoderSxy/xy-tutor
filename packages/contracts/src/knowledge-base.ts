@@ -45,6 +45,7 @@ export type KnowledgeParseRunDTO = {
   status: ParseRunStatus;
   errorCode: string | null;
   itemCount: number;
+  notice: string | null;
   createdAt: string;
   completedAt: string | null;
 };

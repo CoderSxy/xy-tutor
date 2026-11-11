@@ -171,13 +171,16 @@ export function buildApp(deps: AppDependencies) {
           z.object({ id: z.uuid() }).parse(req.params).id,
         ),
       );
-      scoped.get("/api/knowledge", async (req) =>
-        knowledge.get(
+      scoped.get("/api/knowledge", async (req) => {
+        const query = z
+          .object({ revisionId: z.uuid().optional() })
+          .passthrough()
+          .parse(req.query);
+        return knowledge.get(
           await scopeForRequest(auth, req),
-          z.object({ revisionId: z.uuid() }).passthrough().parse(req.query)
-            .revisionId,
-        ),
-      );
+          query.revisionId ?? null,
+        );
+      });
       scoped.get("/api/review/due", async (req) =>
         new ReviewService(mistakes).listDue(
           await scopeForRequest(auth, req),

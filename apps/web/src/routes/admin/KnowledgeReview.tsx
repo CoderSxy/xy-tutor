@@ -23,6 +23,11 @@ export function KnowledgeReview() {
   const { batchId } = useParams();
   const batch = useKnowledgeBatch(batchId);
   const items = useKnowledgeItems({ batchId, limit: 100 });
+  const publishedItems = useKnowledgeItems({
+    batchId,
+    status: "published",
+    limit: 100,
+  });
   const [selected, setSelected] = useState<string[]>([]);
   const [reparsePrompt, setReparsePrompt] = useState("");
   const [busy, setBusy] = useState(false);
@@ -35,10 +40,11 @@ export function KnowledgeReview() {
       const timer = setTimeout(() => {
         batch.reload();
         items.reload();
+        publishedItems.reload();
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [runStatus, batch.reload, items.reload]);
+  }, [runStatus, batch.reload, items.reload, publishedItems.reload]);
 
   if (a.session?.actor.role !== "admin")
     return <StatusPanel state="error" title="需要管理员权限" />;
@@ -55,6 +61,9 @@ export function KnowledgeReview() {
 
   const batchData = batch.data;
   const run = batchData.latestRun;
+  const publishedTitle = new Map(
+    (publishedItems.data?.items ?? []).map((item) => [item.id, item.title]),
+  );
   const pending = (items.data?.items ?? []).filter(
     (item) => item.status === "pending_review",
   );
@@ -75,6 +84,7 @@ export function KnowledgeReview() {
       });
       setStatus("知识点已保存");
       items.reload();
+      publishedItems.reload();
       batch.reload();
     } catch (e) {
       setError(errorMessage(e));
@@ -93,6 +103,7 @@ export function KnowledgeReview() {
       setSelected([]);
       setStatus(`已发布 ${published.length} 个知识点`);
       items.reload();
+      publishedItems.reload();
       batch.reload();
     } catch (e) {
       setError(errorMessage(e));
@@ -113,6 +124,7 @@ export function KnowledgeReview() {
       setStatus(`已丢弃 ${selected.length} 个知识点`);
       setSelected([]);
       items.reload();
+      publishedItems.reload();
       batch.reload();
     } catch (e) {
       setError(errorMessage(e));
@@ -134,6 +146,7 @@ export function KnowledgeReview() {
       setStatus(REPARSE_SUBMITTED);
       batch.reload();
       items.reload();
+      publishedItems.reload();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -166,6 +179,7 @@ export function KnowledgeReview() {
           {batchData.pendingCount} · 已发布 {batchData.publishedCount}
         </span>
       </div>
+      {run?.notice && <p className="notice">{run.notice}</p>}
       {run?.status === "failed" && (
         <p className="notice error-text" role="alert">
           {knowledgeParseError(run.errorCode)}
@@ -230,6 +244,17 @@ export function KnowledgeReview() {
                 选择此知识点
               </label>
               <span className="badge">{knowledgeStatus[item.status]}</span>
+              {item.replacesItemId ? (
+                <p className="muted text-small">
+                  确认后将更新「
+                  {publishedTitle.get(item.replacesItemId) ?? "已发布知识点"}
+                  」，不另外新增。
+                </p>
+              ) : batchData.publishedCount > 0 ? (
+                <p className="muted text-small">
+                  确认后将新增一条，已发布的知识点会保留。
+                </p>
+              ) : null}
               <div className="grow">
                 <KnowledgeItemEditor
                   item={item}
@@ -250,7 +275,7 @@ export function KnowledgeReview() {
       <section className="panel section-spacer">
         <Field
           label="补充解析要求"
-          hint="重新解析只生成待确认条目，重新确认前保留已发布内容。"
+          hint="重新解析会带上原始资料。标明了原标题的条目，确认后就地更新那一条；没有对应到来源的，确认后会新增，已发布内容仍保留。"
         >
           <Textarea
             value={reparsePrompt}

@@ -36,10 +36,11 @@ export function createTeachingTools(
     label: string,
     schema: z.ZodType,
     run: (params: unknown) => Promise<unknown>,
+    description = label,
   ): AgentTool<object, unknown> => ({
     name,
     label,
-    description: label,
+    description,
     parameters: z.toJSONSchema(schema),
     replay: "never",
     async execute(_callId, params, signal) {
@@ -93,16 +94,19 @@ export function createTeachingTools(
         )
       ).rows,
     })),
-    tool("search_knowledge", "检索已发布知识点", searchInput, async (p) => {
-      const items = await searchPublishedKnowledge(
-        db,
-        searchInput.parse(p),
-      );
-      return {
-        status: items.length ? "found" : "insufficient_evidence",
-        items,
-      };
-    }),
+    tool(
+      "search_knowledge",
+      "检索已发布知识点",
+      searchInput,
+      async (p) => {
+        const items = await searchPublishedKnowledge(db, searchInput.parse(p));
+        return {
+          status: items.length ? "found" : "insufficient_evidence",
+          items,
+        };
+      },
+      "检索已发布知识点。keywords 传学生的原问题或关键词，按标题和总结匹配。",
+    ),
     tool(
       "get_material_question",
       "读取当前学生已确认题目",

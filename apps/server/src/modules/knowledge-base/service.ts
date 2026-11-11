@@ -15,8 +15,10 @@ import {
   inTransaction,
   type Database,
 } from "../../../../../packages/db/src/client.js";
+import type { PoolClient } from "pg";
 import type { JobQueue } from "../../jobs/queue.js";
 import { requireAdmin } from "../auth/policy.js";
+import { escapeLike } from "./search.js";
 
 type BatchRow = {
   id: string;
@@ -62,6 +64,34 @@ export const reparsePromptInput = z
   .object({ extraPrompt: z.string().trim().min(1).max(4000) })
   .strict();
 
+async function replacementTarget(
+  tx: PoolClient,
+  candidate: ItemRow,
+  replaced: Set<string>,
+): Promise<string | null> {
+  if (candidate.replaces_item_id && !replaced.has(candidate.replaces_item_id)) {
+    const target = (
+      await tx.query<{ id: string; status: string }>(
+        "SELECT id,status FROM knowledge_items WHERE id=$1 FOR UPDATE",
+        [candidate.replaces_item_id],
+      )
+    ).rows[0];
+    if (!target || target.status !== "published")
+      throw new AppError("CONFLICT", 409, "被替换的知识点未发布");
+    return target.id;
+  }
+  const matches = (
+    await tx.query<{ id: string }>(
+      `SELECT id FROM knowledge_items
+       WHERE batch_id=$1 AND status='published' AND title=$2
+         AND NOT (id = ANY($3::uuid[]))
+       FOR UPDATE`,
+      [candidate.batch_id, candidate.title, [...replaced]],
+    )
+  ).rows;
+  return matches.length === 1 ? matches[0]!.id : null;
+}
+
 function itemDTO(row: ItemRow): KnowledgeItemDTO {
   return {
     id: row.id,
@@ -85,6 +115,7 @@ function parseRunDTO(row: {
   status: string;
   error_code: string | null;
   item_count: number;
+  notice: string | null;
   created_at: Date;
   completed_at: Date | null;
 }): KnowledgeParseRunDTO {
@@ -96,6 +127,7 @@ function parseRunDTO(row: {
     status: row.status as KnowledgeParseRunDTO["status"],
     errorCode: row.error_code,
     itemCount: row.item_count,
+    notice: row.notice,
     createdAt: row.created_at.toISOString(),
     completedAt: row.completed_at?.toISOString() ?? null,
   };
@@ -195,7 +227,7 @@ export class KnowledgeBaseService {
     const runs = await this.db.pool.query(
       `SELECT r.id,r.batch_id,r.extra_prompt,r.model,r.status,r.error_code,
         (SELECT count(*)::int FROM knowledge_items i WHERE i.parse_run_id=r.id) AS item_count,
-        r.created_at,r.completed_at
+        r.notice,r.created_at,r.completed_at
        FROM knowledge_parse_runs r WHERE r.batch_id=$1
        ORDER BY r.created_at DESC, r.id DESC LIMIT 1`,
       [batchId],
@@ -264,9 +296,9 @@ export class KnowledgeBaseService {
       filters.push(`batch_id=$${params.length}`);
     }
     if (query.q) {
-      params.push(`%${query.q}%`);
+      params.push(`%${escapeLike(query.q)}%`);
       filters.push(
-        `(title ILIKE $${params.length} OR summary ILIKE $${params.length})`,
+        `(title ILIKE $${params.length} ESCAPE '\\' OR summary ILIKE $${params.length} ESCAPE '\\')`,
       );
     }
     const where = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
@@ -359,28 +391,23 @@ export class KnowledgeBaseService {
       if (rows.some((row) => row.status !== "pending_review"))
         throw new AppError("CONFLICT", 409, "只有待确认的知识点可以发布");
       const byId = new Map(rows.map((row) => [row.id, row]));
+      const replaced = new Set<string>();
       const published: KnowledgeItemDTO[] = [];
       for (const id of unique) {
         const candidate = byId.get(id)!;
-        if (candidate.replaces_item_id) {
-          const target = (
-            await tx.query<ItemRow>(
-              "SELECT id,batch_id,parse_run_id,title,summary,status,replaces_item_id,published_at,created_at,updated_at FROM knowledge_items WHERE id=$1 FOR UPDATE",
-              [candidate.replaces_item_id],
-            )
-          ).rows[0];
-          if (!target || target.status !== "published")
-            throw new AppError("CONFLICT", 409, "被替换的知识点未发布");
+        const targetId = await replacementTarget(tx, candidate, replaced);
+        if (targetId) {
           const updated = (
             await tx.query<ItemRow>(
               "UPDATE knowledge_items SET title=$2,summary=$3,updated_at=now() WHERE id=$1 RETURNING id,batch_id,parse_run_id,title,summary,status,replaces_item_id,published_at,created_at,updated_at",
-              [target.id, candidate.title, candidate.summary],
+              [targetId, candidate.title, candidate.summary],
             )
           ).rows[0]!;
           await tx.query(
             "UPDATE knowledge_items SET status='discarded',updated_at=now() WHERE id=$1",
             [candidate.id],
           );
+          replaced.add(targetId);
           published.push(itemDTO(updated));
           continue;
         }
@@ -492,12 +519,13 @@ export class KnowledgeBaseService {
         status: string;
         error_code: string | null;
         item_count: number;
+        notice: string | null;
         created_at: Date;
         completed_at: Date | null;
       }>(
         `SELECT r.id,r.batch_id,r.extra_prompt,r.model,r.status,r.error_code,
           (SELECT count(*)::int FROM knowledge_items i WHERE i.parse_run_id=r.id) AS item_count,
-          r.created_at,r.completed_at
+          r.notice,r.created_at,r.completed_at
          FROM knowledge_parse_runs r WHERE r.id=$1`,
         [runId],
       )

@@ -195,6 +195,23 @@ it("honors the result limit", async () =>
     ]);
   }));
 
+it("matches a question that contains a published title", async () =>
+  withTestDb(async (db) => {
+    const { item } = await source(db);
+    const addition = await item({
+      title: "异分母分数加法",
+      summary: "先通分再相加",
+    });
+    await item({ title: "三角形内角和", summary: "三个内角相加为180度" });
+
+    const hits = await searchPublishedKnowledge(db, {
+      keywords: "怎么做异分母分数加法",
+      limit: 5,
+    });
+    expect(hits[0]?.id).toBe(addition);
+    expect(hits.map((hit) => hit.title)).not.toContain("三角形内角和");
+  }));
+
 it("returns only the public fields of each hit", async () =>
   withTestDb(async (db) => {
     const { item } = await source(db);

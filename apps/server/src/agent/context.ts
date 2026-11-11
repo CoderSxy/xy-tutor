@@ -104,14 +104,8 @@ export async function buildContext(
         )
       ).rows
     : [];
-  const summaries = await new SummaryService(db, auth).relevant(
-    scope,
-    c.revision_id,
-  );
-  const knowledge = await new KnowledgeService(db, auth).get(
-    scope,
-    c.revision_id,
-  );
+  const summaries = await new SummaryService(db, auth).relevant(scope, null);
+  const knowledge = await new KnowledgeService(db, auth).get(scope, null);
   const systemContext = JSON.stringify({
     学生: profile,
     知识点检索说明:
@@ -215,7 +209,6 @@ export async function buildContext(
     systemContext,
     messages: selected,
     taskId: c.task_id,
-    ...(c.revision_id ? { revisionId: c.revision_id as string } : {}),
     studentId: c.student_id,
     currentQuestionVersionId: current?.question_version_id,
     inputContent:

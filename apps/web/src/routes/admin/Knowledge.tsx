@@ -27,7 +27,7 @@ export function Knowledge() {
   const [creating, setCreating] = useState(false);
   const [text, setText] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [fileIds, setFileIds] = useState<string[]>([]);
+  const [files, setFiles] = useState<{ id: string; name: string }[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
   const [appliedSearch, setAppliedSearch] = useState("");
@@ -66,7 +66,7 @@ export function Knowledge() {
 
   const create = async (e?: FormEvent) => {
     e?.preventDefault();
-    if (!text.trim() && fileIds.length === 0) {
+    if (!text.trim() && files.length === 0) {
       setError("请粘贴知识点内容或上传资料文件。");
       return;
     }
@@ -78,7 +78,7 @@ export function Knowledge() {
         method: "POST",
         ...jsonBody({
           ...(text.trim() ? { text: text.trim() } : {}),
-          fileIds,
+          fileIds: files.map((file) => file.id),
           ...(prompt.trim() ? { extraPrompt: prompt.trim() } : {}),
         }),
       });
@@ -166,21 +166,41 @@ export function Knowledge() {
               />
             </Field>
           </form>
-          {fileIds.length ? (
-            <p role="status" className="notice">
-              已上传 {fileIds.length} 个资料文件，可与文本一起解析。
-            </p>
-          ) : (
+          {files.length > 0 && (
+            <ul className="stack">
+              {files.map((file) => (
+                <li className="list-row" key={file.id}>
+                  <span className="grow">{file.name}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() =>
+                      setFiles((current) =>
+                        current.filter((item) => item.id !== file.id),
+                      )
+                    }
+                  >
+                    移除
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {files.length < 10 && (
             <UploadInput
               purpose="knowledge_source"
-              onUploaded={async (id) =>
-                setFileIds((ids) => [...ids, id])
+              onUploaded={async (id, name) =>
+                setFiles((current) =>
+                  current.some((file) => file.id === id)
+                    ? current
+                    : [...current, { id, name: name ?? "资料文件" }],
+                )
               }
             />
           )}
           <div className="form-actions">
             <Button
-              disabled={busy || (!text.trim() && fileIds.length === 0)}
+              disabled={busy || (!text.trim() && files.length === 0)}
               onClick={() => void create()}
             >
               {busy ? "正在提交…" : "解析为知识点"}
@@ -207,6 +227,9 @@ export function Knowledge() {
                   {new Date(batch.createdAt).toLocaleString()} · 待确认{" "}
                   {batch.pendingCount} · 已发布 {batch.publishedCount}
                 </p>
+                {batch.latestRun?.notice && (
+                  <p className="notice">{batch.latestRun.notice}</p>
+                )}
               </div>
               <span className="badge">
                 {batch.latestRun
@@ -311,12 +334,12 @@ export function Knowledge() {
                 <div className="panel section-spacer">
                   <Field
                     label="补充解析要求"
-                    hint="重新解析只生成待确认条目，完成前保留当前已发布内容。"
+                    hint="重新解析会带上这一条和同一批原始资料。确认后第一条更新当前知识点，拆出来的其余条目作为新知识点。"
                   >
                     <Textarea
                       value={reparsePrompt}
                       onChange={(e) => setReparsePrompt(e.target.value)}
-                      placeholder="例如：把通分步骤拆得更细"
+                      placeholder="例如：根据原文把通分步骤写完整"
                     />
                   </Field>
                   <div className="form-actions">

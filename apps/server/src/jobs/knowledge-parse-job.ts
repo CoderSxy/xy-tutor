@@ -7,8 +7,10 @@ import { PermanentJobError } from "./errors.js";
 import type { JobHandler } from "./runner.js";
 import type { OcrProvider } from "./parsers/ocr.js";
 import {
+  MAX_KNOWLEDGE_ITEMS,
   extractBatchText,
   proposeKnowledgeItems,
+  type KnowledgeProposal,
 } from "../modules/knowledge-base/parser.js";
 
 type RunRow = {
@@ -43,6 +45,18 @@ const RUN_ERROR_CODES = new Set([
   "EMPTY_KNOWLEDGE_SOURCE",
 ]);
 
+function publishedReplacementId(
+  item: KnowledgeProposal,
+  published: { id: string; title: string }[],
+  claimed: Set<string>,
+): string | null {
+  const title = item.sourceTitle ?? item.title;
+  const hits = published.filter(
+    (row) => row.title === title && !claimed.has(row.id),
+  );
+  return hits.length === 1 ? hits[0]!.id : null;
+}
+
 function runErrorCode(error: unknown): string {
   return error instanceof Error && RUN_ERROR_CODES.has(error.message)
     ? error.message
@@ -68,7 +82,7 @@ export async function parseKnowledgeRun(
   if (!run) throw new PermanentJobError("INVALID_KNOWLEDGE_RUN");
   if (run.status === "succeeded") return;
   await db.pool.query(
-    "UPDATE knowledge_parse_runs SET status='processing',error_code=NULL,completed_at=NULL WHERE id=$1",
+    "UPDATE knowledge_parse_runs SET status='processing',error_code=NULL,notice=NULL,completed_at=NULL WHERE id=$1",
     [runId],
   );
 
@@ -81,42 +95,105 @@ export async function parseKnowledgeRun(
         [run.batch_id],
       )
     ).rows;
+    const store = uploads.store;
+    let focus: { title: string; summary: string } | undefined;
+    if (options.replacesItemId) {
+      const source = (
+        await db.pool.query<{ title: string; summary: string }>(
+          "SELECT title,summary FROM knowledge_items WHERE id=$1",
+          [options.replacesItemId],
+        )
+      ).rows[0];
+      if (!source) throw new PermanentJobError("INVALID_KNOWLEDGE_RUN");
+      focus = source;
+    }
+    const publishedItems = focus
+      ? []
+      : (
+          await db.pool.query<{ id: string; title: string; summary: string }>(
+            `SELECT id,title,summary FROM knowledge_items
+             WHERE batch_id=$1 AND status='published'
+             ORDER BY updated_at DESC, id DESC LIMIT 30`,
+            [run.batch_id],
+          )
+        ).rows;
+    let text = focus ? `标题：${focus.title}\n总结：${focus.summary}` : "";
+    let truncated = false;
+    let sourceNotice: string | null = null;
+    const readableFiles = files.length > 0 && !store ? [] : files;
     if (files.some((file) => file.status !== "ready"))
       throw new PermanentJobError("INVALID_KNOWLEDGE_SOURCE");
-    const store = uploads.store;
-    if (files.length && !store) throw Error("OSS_NOT_CONFIGURED");
-    const text = await extractBatchText(
-      { textContent: run.text_content, files },
-      {
-        read: (key) => store!.read(key),
-        signal,
-        ocr: options.ocr,
-      },
-    );
+    if (files.length && !store) {
+      if (!focus) throw Error("OSS_NOT_CONFIGURED");
+      sourceNotice = run.text_content
+        ? "未能读取原始文件，本次只附带了批次中的文本。"
+        : "未能读取原始文件，本次只依据当前知识点修订。";
+    }
+    if (!focus || run.text_content || readableFiles.length) {
+      const extracted = await extractBatchText(
+        { textContent: run.text_content, files: readableFiles },
+        {
+          read: (key) => store!.read(key),
+          signal,
+          ocr: options.ocr,
+        },
+      );
+      if (extracted.text.trim()) text = extracted.text;
+      truncated = extracted.truncated;
+    }
     if (!text.trim()) throw new PermanentJobError("EMPTY_KNOWLEDGE_SOURCE");
 
-    const items = await proposeKnowledgeItems(
+    const proposed = await proposeKnowledgeItems(
       gateway,
       text,
       run.extra_prompt,
       signal,
+      {
+        focus,
+        publishedItems: publishedItems.map(({ title, summary }) => ({
+          title,
+          summary,
+        })),
+      },
     );
+    const notices = [
+      sourceNotice ?? "",
+      truncated ? "资料超过 8 万字，已截断后继续解析。" : "",
+      proposed.omittedItemCount > 0
+        ? `解析结果超过 ${MAX_KNOWLEDGE_ITEMS} 条，只保留前 ${MAX_KNOWLEDGE_ITEMS} 条。`
+        : "",
+    ].filter(Boolean);
 
     await inTransaction(db, async (tx) => {
-      for (const item of items)
-        await tx.query(
-          "INSERT INTO knowledge_items(batch_id,parse_run_id,title,summary,status,replaces_item_id) VALUES($1,$2,$3,$4,'pending_review',$5)",
-          [
-            run.batch_id,
-            runId,
-            item.title,
-            item.summary,
-            options.replacesItemId ?? null,
-          ],
-        );
       await tx.query(
-        "UPDATE knowledge_parse_runs SET status='succeeded',model=$2,error_code=NULL,completed_at=now() WHERE id=$1",
-        [runId, gateway.runtime.model.id],
+        "SELECT id FROM knowledge_parse_runs WHERE id=$1 FOR UPDATE",
+        [runId],
+      );
+      const existing = (
+        await tx.query<{ n: number }>(
+          "SELECT count(*)::int AS n FROM knowledge_items WHERE parse_run_id=$1",
+          [runId],
+        )
+      ).rows[0]!.n;
+      if (!existing) {
+        const claimed = new Set<string>();
+        for (const [index, item] of proposed.items.entries()) {
+          const replacesItemId =
+            options.replacesItemId && index === 0
+              ? options.replacesItemId
+              : options.replacesItemId
+                ? null
+                : publishedReplacementId(item, publishedItems, claimed);
+          if (replacesItemId) claimed.add(replacesItemId);
+          await tx.query(
+            "INSERT INTO knowledge_items(batch_id,parse_run_id,title,summary,status,replaces_item_id) VALUES($1,$2,$3,$4,'pending_review',$5)",
+            [run.batch_id, runId, item.title, item.summary, replacesItemId],
+          );
+        }
+      }
+      await tx.query(
+        "UPDATE knowledge_parse_runs SET status='succeeded',model=$2,error_code=NULL,notice=$3,completed_at=now() WHERE id=$1",
+        [runId, gateway.runtime.model.id, notices.join("") || null],
       );
     });
   } catch (error) {

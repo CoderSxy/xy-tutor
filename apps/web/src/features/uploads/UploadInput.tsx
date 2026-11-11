@@ -40,7 +40,7 @@ export function UploadInput({
   onUploaded,
 }: {
   purpose: "textbook" | "student_material" | "knowledge_source";
-  onUploaded: (id: string) => Promise<void>;
+  onUploaded: (id: string, name?: string) => Promise<void>;
 }) {
   const a = useAuth();
   const ref = useRef<HTMLInputElement>(null),
@@ -141,7 +141,7 @@ export function UploadInput({
       await api(a.scoped(`/api/uploads/${grant.fileId}/complete`), {
         method: "POST",
       });
-      await onUploaded(grant.fileId);
+      await onUploaded(grant.fileId, file.name);
       setFile(undefined);
       if (preview) URL.revokeObjectURL(preview);
       setPreview("");

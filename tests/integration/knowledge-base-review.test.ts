@@ -533,6 +533,106 @@ it("confirms a replacement by updating the published item in place", async () =>
     }
   }));
 
+it("publishes extra replacements as new items instead of overwriting", async () =>
+  withTestDb(async (db) => {
+    const f = await fixture(db);
+    const { batchId, runId } = await f.source();
+    const original = await f.item({
+      batchId,
+      runId,
+      title: "分数加减法",
+      summary: "旧总结",
+      status: "published",
+    });
+    const first = await f.item({
+      batchId,
+      runId,
+      title: "通分",
+      summary: "先把分母化成相同",
+      replacesItemId: original,
+    });
+    const second = await f.item({
+      batchId,
+      runId,
+      title: "分子相加减",
+      summary: "通分后再计算分子",
+      replacesItemId: original,
+    });
+    const app = build(db);
+    const headers = { ...sessionCookie(f.adminToken), origin: config.origin };
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/admin/knowledge/items/publish",
+        headers,
+        payload: { ids: [first, second] },
+      });
+      expect(response.statusCode).toBe(200);
+      const published = await db.pool.query<{ id: string; title: string }>(
+        "SELECT id,title FROM knowledge_items WHERE status='published' ORDER BY title",
+      );
+      expect(published.rows).toEqual([
+        { id: second, title: "分子相加减" },
+        { id: original, title: "通分" },
+      ]);
+      expect(
+        (
+          await db.pool.query(
+            "SELECT status FROM knowledge_items WHERE id=$1",
+            [first],
+          )
+        ).rows[0].status,
+      ).toBe("discarded");
+    } finally {
+      await app.close();
+    }
+  }));
+
+it("updates a published item when a draft reuses its title", async () =>
+  withTestDb(async (db) => {
+    const f = await fixture(db);
+    const { batchId, runId } = await f.source();
+    const original = await f.item({
+      batchId,
+      runId,
+      title: "通分",
+      summary: "旧总结",
+      status: "published",
+    });
+    const draft = await f.item({
+      batchId,
+      runId,
+      title: "通分",
+      summary: "先找公分母，再把分子按倍数放大",
+    });
+    const app = build(db);
+    const headers = { ...sessionCookie(f.adminToken), origin: config.origin };
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/admin/knowledge/items/publish",
+        headers,
+        payload: { ids: [draft] },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()[0]).toMatchObject({
+        id: original,
+        title: "通分",
+        summary: "先找公分母，再把分子按倍数放大",
+        status: "published",
+      });
+      expect(
+        (
+          await db.pool.query(
+            "SELECT count(*)::int AS n FROM knowledge_items WHERE status='published'",
+          )
+        ).rows[0].n,
+      ).toBe(1);
+    } finally {
+      await app.close();
+    }
+  }));
+
 it("records a failed reparse when the model is not configured", async () =>
   withTestDb(async (db) => {
     const f = await fixture(db);
