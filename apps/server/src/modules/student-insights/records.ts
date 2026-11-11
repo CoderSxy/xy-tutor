@@ -23,6 +23,15 @@ import { resolveInsightRange, type ResolvedRange } from "./metrics.js";
 import { auditInsight } from "./policy.js";
 import { metaFor, readCoverage } from "./queries.js";
 
+// 待核验不是最终结论，详情里不当作已有核验展示；一旦核验完成再显示最新结果。
+const LATEST_FINAL_ASSESSMENT = `LEFT JOIN LATERAL (
+  SELECT s.id, s.correctness, s.verification, s.hint_dependency, s.created_at
+  FROM assessments s
+  WHERE s.attempt_id = a.id AND s.verification <> 'pending'
+  ORDER BY s.created_at DESC, s.id DESC
+  LIMIT 1
+) s ON true`;
+
 const TASK_WHERE = `t.student_id = $1 AND t.deleted_at IS NULL
   AND t.created_at >= $2 AND t.created_at < $3
   AND ($4::uuid IS NULL OR t.revision_id = $4)
@@ -500,7 +509,7 @@ export class InsightRecordService {
          FROM attempts a
          JOIN question_versions v ON v.id = a.question_version_id
          LEFT JOIN learning_tasks t ON t.id = a.task_id
-         ${LATEST_ASSESSMENT}
+         ${LATEST_FINAL_ASSESSMENT}
          WHERE a.student_id = $1 AND a.task_id = $2
            AND (a.task_id IS NULL OR t.deleted_at IS NULL)
            AND ${VALID_ATTEMPT}
