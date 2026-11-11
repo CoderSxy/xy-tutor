@@ -25,7 +25,6 @@ import { StatusPanel } from "./components/StatusPanel";
 import { DesignPreview } from "./components/DesignPreview";
 import { Login } from "./routes/Login";
 import { Activate } from "./routes/Activate";
-import { StudyEntry, RequireTextbook } from "./routes/StudyEntry";
 import { Home } from "./routes/Home";
 import { Study } from "./routes/Study";
 import { TaskHistory } from "./routes/TaskHistory";
@@ -54,15 +53,8 @@ export function App() {
         <Route path="/activate" element={<Activate />} />
         <Route path="/reset" element={<Activate />} />
         <Route element={<Layout />}>
-          <Route
-            index
-            element={
-              <RequireTextbook>
-                <Home />
-              </RequireTextbook>
-            }
-          />
-          <Route path="/select" element={<StudyEntry />} />
+          <Route index element={<Home />} />
+          <Route path="/select" element={<Navigate to="/" replace />} />
           <Route path="/study/:id" element={<Study />} />
           <Route path="/history" element={<TaskHistory />} />
           <Route path="/profile" element={<Profile />} />

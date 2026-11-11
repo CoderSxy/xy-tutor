@@ -1,4 +1,4 @@
-import type { RevisionDTO, TaskDTO } from "./types";
+import type { TaskDTO } from "./types";
 import { kindLabels } from "./types";
 
 export const statusLabels: Record<TaskDTO["status"], string> = {
@@ -36,10 +36,4 @@ export function fullDate(iso: string) {
 export function sessionTitle(t: TaskDTO) {
   if (t.kind === "free_question" && !t.title?.trim()) return "未开始";
   return t.title?.trim() || `${kindLabels[t.kind]} · ${shortDate(t.createdAt)}`;
-}
-
-export function bookMeta(r: RevisionDTO) {
-  return [r.edition, r.grade, r.subject, r.term, `${r.publicationYear}年版`]
-    .filter(Boolean)
-    .join(" · ");
 }

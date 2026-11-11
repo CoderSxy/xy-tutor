@@ -22,12 +22,9 @@ export function Mistakes() {
     setBusy(m.id);
     setError("");
     try {
-      const q = await api<{ revisionId: string }>(
-        a.scoped(`/api/question-versions/${m.questionVersionId}`),
-      );
       const task = await api<TaskDTO>(a.scoped("/api/tasks"), {
         method: "POST",
-        ...jsonBody({ revisionId: q.revisionId, kind: "mistake_review" }),
+        ...jsonBody({ kind: "mistake_review" }),
       });
       await api(a.scoped(`/api/tasks/${task.id}/attach-questions`), {
         method: "POST",

@@ -13,14 +13,11 @@ test("a retry after a lost response keeps the same request key", async ({
   await page.getByLabel("账号", { exact: true }).fill("student");
   await page.getByLabel("密码", { exact: true }).fill("long-password");
   await page.getByRole("button", { name: "登录", exact: true }).click();
-  await page
-    .getByRole("button", { name: "选择年级和科目", exact: true })
-    .click();
-  await page.getByLabel("教材版本").selectOption("人教版");
-  await page.getByLabel("年级", { exact: true }).selectOption("五年级");
-  await page.getByLabel("科目", { exact: true }).selectOption("数学");
-  await page.getByRole("button", { name: "进入学习空间" }).click();
-  await page.getByRole("button", { name: "开始每日5练" }).click();
+  await page.getByRole("button", { name: "每日5练" }).click();
+  await expect(page).toHaveURL(/\/study\//);
+  await expect(
+    page.getByRole("button", { name: "开始本次辅导" }),
+  ).toBeVisible();
   await page.getByLabel("你的回答").fill("开始学习");
   await page.getByRole("button", { name: "发送消息" }).click();
   await expect(page.getByRole("alert")).toBeVisible();

@@ -16,42 +16,18 @@ async function login(page: Page, account: string) {
   await page.getByLabel("密码", { exact: true }).fill("e2e-only-password");
   await page.getByRole("button", { name: "登录", exact: true }).click();
 }
-test("real API and PostgreSQL: publish, tutor, correct, import and authorize", async ({
+test("real API and PostgreSQL: tutor, correct, import and authorize", async ({
   page,
   browser,
 }) => {
   test.setTimeout(120000);
-  await page.goto("/admin/textbooks");
+  await page.goto("/admin/knowledge");
   await login(page, "e2e-admin");
-  await page.getByRole("button", { name: "上传电子教材" }).click();
-  await page.getByLabel("教材名称").fill("端到端数学教材");
-  await page.getByLabel("选择上传文件").setInputFiles({
-    name: "textbook.pdf",
-    mimeType: "application/pdf",
-    buffer: await pdf(),
-  });
-  await page.getByRole("button", { name: "确认上传", exact: true }).click();
-  await expect(
-    page.getByText("教材原文件已上传并封存，可以创建教材并解析。"),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "创建教材并解析" }).click();
-  await expect(
-    page.getByRole("button", { name: "发布教材", exact: true }),
-  ).toBeVisible({ timeout: 20000 });
-  await page.getByRole("button", { name: "发布教材", exact: true }).click();
-  await expect(page.getByRole("button", { name: "停用教材" })).toBeVisible();
   const context = await browser.newContext();
   const student = await context.newPage();
   await student.goto("http://localhost:5175/");
   await login(student, "e2e-student");
-  await student
-    .getByRole("button", { name: "选择年级和科目", exact: true })
-    .click();
-  await student.getByLabel("教材版本").selectOption("人教版");
-  await student.getByLabel("年级", { exact: true }).selectOption("五年级");
-  await student.getByLabel("科目", { exact: true }).selectOption("数学");
-  await student.getByRole("button", { name: "进入学习空间" }).click();
-  await student.getByRole("button", { name: "开始每日5练" }).click();
+  await student.getByRole("button", { name: "每日5练" }).click();
   await student.waitForURL("**/study/*");
   const studyUrl = student.url();
   await student.getByRole("button", { name: "开始本次辅导" }).click();

@@ -15,7 +15,6 @@ type Extraction = {
   version: number;
   status: string;
   fileId: string;
-  revisionId: string;
   confirmedQuestionVersionIds: string[];
   payload?: {
     pages: { pdfPageIndex: number; status: string; text: string }[];
@@ -106,10 +105,7 @@ export function MaterialReview() {
     try {
       const task = await api<TaskDTO>(a.scoped("/api/tasks"), {
         method: "POST",
-        ...jsonBody({
-          revisionId: remote.data.revisionId,
-          kind: "material_tutoring",
-        }),
+        ...jsonBody({ kind: "material_tutoring" }),
       });
       await api(a.scoped(`/api/tasks/${task.id}/attach-questions`), {
         method: "POST",

@@ -20,7 +20,7 @@ const quickStarts: {
   {
     kind: "daily_practice",
     label: "每日5练",
-    description: "按当前教材练5题",
+    description: "按已发布知识点练5题",
     icon: Sparkles,
   },
   {
@@ -55,12 +55,11 @@ export function Home() {
   if (!firstMessage.current)
     firstMessage.current = sessionStarter(
       async (scope, creationKey) => {
-        const [studentId, revisionId] = scope.split(":");
         const task = await api<TaskDTO>(
-          `/api/tasks?studentId=${encodeURIComponent(studentId!)}`,
+          `/api/tasks?studentId=${encodeURIComponent(scope)}`,
           {
             method: "POST",
-            ...jsonBody({ revisionId, kind: "free_question", creationKey }),
+            ...jsonBody({ kind: "free_question", creationKey }),
           },
         );
         setRailRefresh((value) => value + 1);
@@ -68,7 +67,7 @@ export function Home() {
       },
       async (conversationId, submission, requestKey, scope) => {
         const result = await api<{ runId: string }>(
-          `/api/conversations/${conversationId}/runs?studentId=${encodeURIComponent(scope.split(":")[0]!)}`,
+          `/api/conversations/${conversationId}/runs?studentId=${encodeURIComponent(scope)}`,
           {
             method: "POST",
             ...jsonBody({
@@ -84,26 +83,20 @@ export function Home() {
     );
   const images = useImageAttachments({
     studentId: a.studentId,
-    identity: a.selected?.id,
+    identity: a.studentId,
     enabled: a.capabilities?.images !== "disabled",
     ensureConversation: () =>
-      firstMessage.current!.ensureConversation(
-        `${a.studentId}:${a.selected!.id}`,
-      ),
+      firstMessage.current!.ensureConversation(a.studentId!),
   });
   const createSession = async (kind: TaskKind, submission?: ImageSubmission) => {
-    if (!a.selected) return;
     if (submission) {
-      const id = await firstMessage.current!.send(
-        `${a.studentId}:${a.selected.id}`,
-        submission,
-      );
+      const id = await firstMessage.current!.send(a.studentId!, submission);
       navigate(`/study/${id}`);
       return;
     }
     const t = await api<TaskDTO>(a.scoped("/api/tasks"), {
       method: "POST",
-      ...jsonBody({ revisionId: a.selected.id, kind }),
+      ...jsonBody({ kind }),
     });
     navigate(`/study/${t.id}`);
   };
@@ -144,10 +137,10 @@ export function Home() {
       <>
         <div className="page-heading">
           <h1>欢迎使用 XY Tutor</h1>
-          <p>先发布教材并邀请学习账号，即可开始使用。</p>
+          <p>先整理并发布知识点，再邀请学习账号，即可开始使用。</p>
         </div>
         <Button asChild>
-          <Link to="/admin/textbooks">管理电子教材</Link>
+          <Link to="/admin/knowledge">管理知识点</Link>
         </Button>
       </>
     );
@@ -162,7 +155,7 @@ export function Home() {
         <div className="notice">
           <MessageCircle size={20} />
           <span>
-            辅导服务尚未启用。你可以先查看教材、整理错题，启用后继续学习。
+            辅导服务尚未启用。你可以先整理错题，启用后继续学习。
           </span>
         </div>
       )}

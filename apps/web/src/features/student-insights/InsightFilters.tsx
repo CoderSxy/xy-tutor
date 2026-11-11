@@ -1,7 +1,6 @@
 import type { InsightFilter } from "../../../../../packages/contracts/src/student-insights.js";
 import { Button } from "../../components/ui/button";
-import { Field, Input, Select } from "../../components/ui/field";
-import { useAuth } from "../../lib/auth";
+import { Field, Input } from "../../components/ui/field";
 import { addDays, shanghaiToday } from "./filters";
 
 const PRESETS = [7, 30] as const;
@@ -13,7 +12,6 @@ export function InsightFilters({
   filter: InsightFilter;
   onChange: (filter: InsightFilter) => void;
 }) {
-  const { catalog } = useAuth();
   const today = shanghaiToday();
   const preset = PRESETS.find(
     (days) =>
@@ -73,26 +71,6 @@ export function InsightFilters({
           max={today}
           onChange={(event) => setTo(event.target.value)}
         />
-      </Field>
-      <Field label="教材">
-        <Select
-          value={filter.revisionId ?? ""}
-          onChange={(event) =>
-            onChange({
-              ...filter,
-              ...(event.target.value
-                ? { revisionId: event.target.value }
-                : {}),
-            })
-          }
-        >
-          <option value="">全部教材</option>
-          {catalog.map((revision) => (
-            <option key={revision.id} value={revision.id}>
-              {revision.title} · 第{revision.revisionNo}版
-            </option>
-          ))}
-        </Select>
       </Field>
     </div>
   );

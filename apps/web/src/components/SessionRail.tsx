@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type UIEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Check, Pencil, Trash2, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Check, Pencil, Trash2, X } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { api, jsonBody, errorMessage } from "../lib/api";
 import { usePaged } from "../lib/usePaged";
@@ -21,13 +21,7 @@ export function SessionRail({
   const a = useAuth();
   const navigate = useNavigate();
   const tasks = usePaged<TaskDTO>(
-    a.studentId && !a.catalogLoading
-      ? a.scoped(
-          a.selected
-            ? `/api/tasks?revisionId=${encodeURIComponent(a.selected.id)}`
-            : "/api/tasks",
-        )
-      : null,
+    a.studentId ? a.scoped("/api/tasks") : null,
     10,
   );
   useEffect(() => {
@@ -251,19 +245,6 @@ export function SessionRail({
           </StatusPanel>
         )}
       </div>
-      <footer className="session-rail-foot">
-        <div className="session-rail-foot-head">
-          <span>当前教材</span>
-          <Link className="session-rail-switch" to="/select">
-            更换教材
-            <ArrowRight size={13} />
-          </Link>
-        </div>
-        <strong>{a.selected?.title}</strong>
-        <span>
-          {a.selected?.edition} · {a.selected?.term}
-        </span>
-      </footer>
     </aside>
   );
 }

@@ -13,7 +13,6 @@ type Material = {
   name: string;
   type: string;
   status: string;
-  revisionId: string;
 };
 export function Materials() {
   const a = useAuth(),
@@ -46,12 +45,6 @@ export function Materials() {
       <section className="panel upload-panel">
         {a.capabilities && !a.capabilities.uploadsConfigured ? (
           <UploadInput purpose="student_material" onUploaded={async () => {}} />
-        ) : !a.selected ? (
-          <StatusPanel title="先选择对应教材">
-            <Button asChild variant="outline">
-              <Link to="/select">选择教材版本、年级和科目</Link>
-            </Button>
-          </StatusPanel>
         ) : (
           <>
             <Field label="资料类型">
@@ -69,7 +62,7 @@ export function Materials() {
                   a.scoped("/api/materials"),
                   {
                     method: "POST",
-                    ...jsonBody({ fileId, type, revisionId: a.selected!.id }),
+                    ...jsonBody({ fileId, type }),
                   },
                 );
                 navigate(`/materials/${result.id}`);

@@ -326,16 +326,6 @@ async function openHome(page: Page) {
   await page.getByLabel("密码", { exact: true }).fill("long-password");
   await page.getByRole("button", { name: "登录", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "选择你的教材" }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "选择年级和科目", exact: true })
-    .click();
-  await page.getByLabel("教材版本").selectOption("人教版");
-  await page.getByLabel("年级", { exact: true }).selectOption("五年级");
-  await page.getByLabel("科目", { exact: true }).selectOption("数学");
-  await page.getByRole("button", { name: "进入学习空间" }).click();
-  await expect(
     page.getByRole("heading", { name: "选一个方向，或者直接说出来。" }),
   ).toBeVisible();
 }

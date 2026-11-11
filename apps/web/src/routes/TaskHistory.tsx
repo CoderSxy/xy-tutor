@@ -5,18 +5,12 @@ import { useAuth } from "../lib/auth";
 import { usePaged } from "../lib/usePaged";
 import type { TaskDTO } from "../lib/types";
 import { kindLabels } from "../lib/types";
-import {
-  bookMeta,
-  fullDate,
-  sessionTitle,
-  statusLabels,
-} from "../lib/taskFormat";
+import { fullDate, sessionTitle, statusLabels } from "../lib/taskFormat";
 import { Button } from "../components/ui/button";
 import { StatusPanel } from "../components/StatusPanel";
 
 export function TaskHistory() {
   const a = useAuth();
-  const [revisionId, setRevisionId] = useState("");
   const [search, setSearch] = useState("");
   const [query, setQuery] = useState("");
 
@@ -25,48 +19,14 @@ export function TaskHistory() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  const params = new URLSearchParams();
-  if (revisionId) params.set("revisionId", revisionId);
-  if (query) params.set("q", query);
-  const suffix = params.toString();
   const path = a.studentId
-    ? a.scoped(`/api/tasks${suffix ? `?${suffix}` : ""}`)
+    ? a.scoped(`/api/tasks${query ? `?q=${encodeURIComponent(query)}` : ""}`)
     : null;
   const paged = usePaged<TaskDTO>(path, 10);
-  const revisions = new Map(a.catalog.map((r) => [r.id, r]));
-  const tabs = a.selectionHistory.map((s) => ({
-    id: s.revisionId,
-    label: `${s.grade} · ${s.subject}`,
-    title: s.title,
-  }));
-  const filtered = !!revisionId || !!query;
+  const filtered = !!query;
   return (
     <section className="panel history-panel">
       <div className="history-toolbar">
-        <div className="history-tabs" role="tablist" aria-label="按教材筛选">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={!revisionId}
-            className={`history-tab ${revisionId ? "" : "is-active"}`}
-            onClick={() => setRevisionId("")}
-          >
-            全部
-          </button>
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              title={tab.title}
-              aria-selected={revisionId === tab.id}
-              className={`history-tab ${revisionId === tab.id ? "is-active" : ""}`}
-              onClick={() => setRevisionId(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
         <label className="history-search">
           <Search size={15} aria-hidden />
           <input
@@ -98,42 +58,33 @@ export function TaskHistory() {
             onRetry={paged.reload}
           />
         ) : paged.items.length ? (
-          paged.items.map((t) => {
-            const rev = t.revisionId ? revisions.get(t.revisionId) : undefined;
-            return (
-              <div className="list-row" key={t.id}>
-                <div className="history-info">
-                  <h3>{sessionTitle(t)}</h3>
-                  <p className="history-meta">
-                    <span className={`session-dot ${t.status}`} />
-                    {kindLabels[t.kind]} · {statusLabels[t.status]} ·{" "}
-                    {fullDate(t.updatedAt)}
-                  </p>
-                  <p className="history-book">
-                    <BookOpen size={14} />
-                    {rev
-                      ? `${rev.title} · ${bookMeta(rev)}`
-                      : t.revisionId
-                        ? a.catalogLoading
-                          ? "正在读取教材信息"
-                          : "教材信息已不可用"
-                        : "未绑定教材"}
-                  </p>
-                </div>
-                <Button asChild variant="outline">
-                  <Link to={`/study/${t.id}`}>
-                    {t.status === "completed" ? "查看记录" : "继续学习"}
-                  </Link>
-                </Button>
+          paged.items.map((t) => (
+            <div className="list-row" key={t.id}>
+              <div className="history-info">
+                <h3>{sessionTitle(t)}</h3>
+                <p className="history-meta">
+                  <span className={`session-dot ${t.status}`} />
+                  {kindLabels[t.kind]} · {statusLabels[t.status]} ·{" "}
+                  {fullDate(t.updatedAt)}
+                </p>
+                <p className="history-book">
+                  <BookOpen size={14} />
+                  未绑定教材
+                </p>
               </div>
-            );
-          })
+              <Button asChild variant="outline">
+                <Link to={`/study/${t.id}`}>
+                  {t.status === "completed" ? "查看记录" : "继续学习"}
+                </Link>
+              </Button>
+            </div>
+          ))
         ) : (
           <StatusPanel
             title={filtered ? "没有符合条件的学习记录" : "还没有学习记录"}
           >
             {filtered
-              ? "换个教材标签，或者换一个搜索词试试。"
+              ? "换一个搜索词试试。"
               : "从首页开始一个任务，进度会自动保存在这里。"}
           </StatusPanel>
         )}
