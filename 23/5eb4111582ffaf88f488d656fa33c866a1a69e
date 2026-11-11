@@ -1,0 +1,51 @@
+docs/runbooks/deployment.md
+  s_88c769acc0e1c6::t_b844367bdc7d3d 40
+  s_88c769acc0e1c6::t_2fbde24b5835b4 36
+docs/architecture.md
+  s_88c769acc0e1c6::t_67403505fd0b9b 11
+  s_88c769acc0e1c6::t_1028864009a3aa 39
+  s_88c769acc0e1c6::t_ef389a69cb9261 28,30
+  s_88c769acc0e1c6::t_9d834ce3e5743d 20,23
+  s_88c769acc0e1c6::t_6122c9e2b44bc0 8
+docs/runbooks/external-services.md
+  s_88c769acc0e1c6::t_e820c4efcee10a 40
+  s_88c769acc0e1c6::t_aadea0396b50cb 61
+  s_88c769acc0e1c6::t_cc3edebe580d26 16
+docs/runbooks/operations.md
+  s_88c769acc0e1c6::t_60100355a359f6 3
+  s_88c769acc0e1c6::t_fa71c824b87097 15
+  s_88c769acc0e1c6::t_9d5183fe5ebc03 5
+docs/runbooks/backup-restore.md
+  s_88c769acc0e1c6::t_d62d1238035b78 7
+docs/qa/knowledge-base-acceptance.md
+  s_88c769acc0e1c6::t_466ece1aebf794 1-17,19,22-31
+  s_88c769acc0e1c6::t_046b77ae9b9de4 18,20-21
+README.md
+  s_88c769acc0e1c6::t_23439d8561e6ab 53
+  s_88c769acc0e1c6::t_45cdc1dfe05e84 22-28
+  s_88c769acc0e1c6::t_dc53b652f6c07e 3,5
+PRODUCT.md
+  s_88c769acc0e1c6::t_d55508ac31bae5 23
+  s_88c769acc0e1c6::t_fa0bbbdc9df0df 15
+  s_88c769acc0e1c6::t_e46979e4a51183 35
+  s_88c769acc0e1c6::t_a5f2b41c99dbfd 19
+  s_88c769acc0e1c6::t_90708588e8c4f1 51
+docs/runbooks/ecs-native-minimal.md
+  s_88c769acc0e1c6::t_8f3efd0d5902ef 177
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "235eb4111582ffaf88f488d656fa33c866a1a69e",
+  "prompts": {},
+  "sessions": {
+    "s_88c769acc0e1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4497e957-dfb2-40a9-8e9b-cb11dfd0322a",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
