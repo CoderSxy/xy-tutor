@@ -4,7 +4,7 @@
 
 ## 每日备份
 
-生产通过ops镜像内PG17客户端执行，直接访问私有网络的postgres，无需开放数据库宿主端口。本地脚本需安装与PG主版本相同的`pg_dump/pg_restore`客户端。脚本从运行目录未追踪的.env读取配置，生成custom-format备份、SHA256，并上传到`BACKUP_OSS_PREFIX/YYYY-MM-DD.dump`；同一天重试替换当日版本，保留最近7个每日对象。只删除严格符合该前缀和日期命名的备份，不触碰原始教材/照片。配置OSS服务端加密与私有ACL；限制凭据仅备份前缀读写/列举/删除。
+生产通过ops镜像内PG17客户端执行，直接访问私有网络的postgres，无需开放数据库宿主端口。本地脚本需安装与PG主版本相同的`pg_dump/pg_restore`客户端。脚本从运行目录未追踪的.env读取配置，生成custom-format备份、SHA256，并上传到`BACKUP_OSS_PREFIX/YYYY-MM-DD.dump`；同一天重试替换当日版本，保留最近7个每日对象。只删除严格符合该前缀和日期命名的备份，不触碰原始知识点资料/照片。配置OSS服务端加密与私有ACL；限制凭据仅备份前缀读写/列举/删除。
 
 ```sh
 docker compose --env-file .env -f infra/compose.prod.yaml run --rm ops

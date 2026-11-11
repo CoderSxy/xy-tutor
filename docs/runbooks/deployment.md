@@ -33,11 +33,11 @@ unset ADMIN_PASSWORD
 docker compose --env-file .env -f infra/compose.prod.yaml up -d
 ```
 
-5. 检查`https://你的域名/api/health/live`和`/api/health/ready`均200。管理员登录、邀请学生、上传一本真实教材并人工核对后发布。完成真实模型、OSS、OCR冒烟；不要用测试适配器上线。
+5. 检查`https://你的域名/api/health/live`和`/api/health/ready`均200。管理员登录、邀请学生、上传一份真实知识点资料，解析后人工核对并确认发布。完成真实模型、OSS、OCR冒烟；不要用测试适配器上线。
 
 ## 预算与上线门槛
 
-Node整个容器640MiB（含PDF子进程）、PG512MiB、Caddy128MiB；定时备份ops临时容器另限256MiB；余量留给系统/网络/页缓存。Node旧生代256MiB，PDF子进程旧生代上限256MiB；两者不是独立容器预算，原生图片内存也计入640MiB。后台单任务、解析逐页、模型总请求并发2。教材PDF小于50MB、最多500页，学生试卷PDF不超过30MB、最多100页；图片限制由应用校验。
+Node整个容器640MiB（含PDF子进程）、PG512MiB、Caddy128MiB；定时备份ops临时容器另限256MiB；余量留给系统/网络/页缓存。Node旧生代256MiB，PDF子进程旧生代上限256MiB；两者不是独立容器预算，原生图片内存也计入640MiB。后台单任务、解析逐页、模型总请求并发2。知识点资料PDF小于50MB、最多500页，学生试卷PDF不超过30MB、最多100页；图片限制由应用校验。
 
 需要在同等Linux限额下实际运行两路流式会话加一个解析队列，观测容器总内存、OOM、PG连接、磁盘和延迟。640MiB尚未实测成立；失败时先降低批次、延后解析，再调整内存或升级服务器。40GB磁盘建议长期保持20%以上空闲，原件放OSS。
 
