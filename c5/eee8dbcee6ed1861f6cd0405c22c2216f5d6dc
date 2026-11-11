@@ -1,0 +1,47 @@
+tests/e2e/content-ui.spec.ts
+  s_88c769acc0e1c6::t_41a00ba2bcab8b 2
+tests/integration/admin-student-insight-records.test.ts
+  s_88c769acc0e1c6::t_7384b715dd4566 667
+tests/e2e/admin-student-insights.spec.ts
+  s_88c769acc0e1c6::t_980dc17c9b997a 344-345
+  s_88c769acc0e1c6::t_c434f86180beb1 453-455
+  s_88c769acc0e1c6::t_e6f8e86649e820 469-473
+  s_88c769acc0e1c6::t_53b15288ae94fb 392
+  s_88c769acc0e1c6::t_eaae45629b3a69 343
+tests/e2e/admin-student-records.spec.ts
+  s_88c769acc0e1c6::t_b4d3b02eae57dd 417,419-420
+  s_88c769acc0e1c6::t_0fb7af2a45f186 722-725
+  s_88c769acc0e1c6::t_734b922d7d4894 768
+tests/integration/knowledge-search.test.ts
+  s_88c769acc0e1c6::t_70ad38c8493ee6 128-149
+tests/e2e/admin-knowledge.spec.ts
+  s_88c769acc0e1c6::t_341bf20587930c 188-189
+  s_88c769acc0e1c6::t_baa43ef21ddd19 70-82
+  s_88c769acc0e1c6::t_2107aabfce26c0 172-187,190-202
+  s_88c769acc0e1c6::t_8129601a1d802a 30-35
+  s_032df9fcb599ba::t_e25976a17766ba 203-204
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c5eee8dbcee6ed1861f6cd0405c22c2216f5d6dc",
+  "prompts": {},
+  "sessions": {
+    "s_032df9fcb599ba": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1c511-73f4-7cf1-88ec-003ab80b37fb",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_88c769acc0e1c6": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4497e957-dfb2-40a9-8e9b-cb11dfd0322a",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
