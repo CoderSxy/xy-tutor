@@ -1,0 +1,66 @@
+apps/server/src/modules/learning/assessments.ts
+  s_97c29780633e34::t_0ced7bb398bcfc 254-260
+  s_97c29780633e34::t_1b9f8cd98a2b74 355,365,369,373,388-389
+  s_97c29780633e34::t_88ea6ce454a434 315-354,356-364,366-368,370-372,374-387,390-392
+  s_97c29780633e34::t_206a2f8a45556e 23-24
+apps/server/src/modules/tutoring/state-rules.ts
+  s_97c29780633e34::t_20e3677b915fbc 1-143,155-172
+  s_97c29780633e34::t_83e899297f3c13 144-154
+apps/server/src/modules/tutoring/service.ts
+  s_97c29780633e34::t_95f905dd79fac8 49
+  s_97c29780633e34::t_2997bff0980e23 145-176
+  s_97c29780633e34::t_ab8cd234b43db8 16
+  s_97c29780633e34::t_31f4c757b7de66 1-15,17-48,50-144,177-333,335-342,347-407
+  s_97c29780633e34::t_d931d5f6ec6239 343-346
+  s_97c29780633e34::t_ebf2876177d40b 334
+apps/server/src/modules/tutoring/routes.ts
+  s_97c29780633e34::t_71900d67cd8eba 46
+  s_97c29780633e34::t_7db8e74180307a 74-101
+  s_97c29780633e34::t_5ab58ca62ad8a2 5,11
+apps/server/src/agent/tutor.ts
+  s_97c29780633e34::t_7158c8319910f2 18
+  s_97c29780633e34::t_05afe9bd2ec1a6 148-166
+apps/server/src/modules/tutoring/anchors.ts
+  s_97c29780633e34::t_3ccfba2cc252f9 1-148
+apps/server/src/agent/tools.ts
+  s_97c29780633e34::t_804ece1d72a231 62
+  s_97c29780633e34::t_5d582adf03c82a 8,22
+  s_97c29780633e34::t_5ced39c73168b6 40,48
+  s_97c29780633e34::t_13ca1318436461 175-207
+  s_97c29780633e34::t_379f45bddd8b76 174
+apps/server/src/agent/context.ts
+  s_97c29780633e34::t_26b5c90777aac2 103-104
+  s_97c29780633e34::t_0d866574291c6a 85-86
+  s_97c29780633e34::t_e928b959be2d52 99-102,105-107
+  s_97c29780633e34::t_4cde00e06a783b 132
+tests/unit/tutoring-state.test.ts
+  s_97c29780633e34::t_08baaa5719c63a 1-227
+tests/integration/tutoring-actions.test.ts
+  s_97c29780633e34::t_70263fc13eb758 1-64,66-130,132-239,241-242,244-275
+  s_97c29780633e34::t_bb163a6d30d0e3 240,243
+  s_97c29780633e34::t_2a934ea047fdc6 131
+  s_97c29780633e34::t_4a0a168f77b125 65
+apps/server/src/app.ts
+  s_97c29780633e34::t_7889d6c3aa90ba 155-157
+  s_97c29780633e34::t_1da74e97521e95 30
+  s_97c29780633e34::t_28d49ddf166f49 167
+  s_97c29780633e34::t_8952d4f05d33c2 273
+apps/server/src/agent/prompts.ts
+  s_97c29780633e34::t_283a021f7c6b54 7-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c31f3800f245ed36ec6ee155425de5110ce01724",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "unknown"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
