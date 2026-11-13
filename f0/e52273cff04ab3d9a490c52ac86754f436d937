@@ -1,0 +1,29 @@
+tests/unit/learning-timing.test.ts
+  s_97c29780633e34::t_da685e39a1449e 1-58,60,62-244,246-254,261-285,287-363
+  s_97c29780633e34::t_95c60a095cccb3 245
+  s_97c29780633e34::t_bc6b4b7b15ccfd 59,61
+  s_97c29780633e34::t_a619f2e134d80b 286
+  s_97c29780633e34::t_4032adad853f2b 255-260
+packages/contracts/src/learning-timing.ts
+  s_97c29780633e34::t_dbf57f9f488e74 102-103
+apps/server/src/modules/tutoring/timing-rules.ts
+  s_97c29780633e34::t_123ae0774fa44a 1-29,31-199,203-217,219-269,271-319
+  s_97c29780633e34::t_d8fd8d651cd0f2 200-202,218
+  s_97c29780633e34::t_a2bab43bdac638 30,270
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "f0e52273cff04ab3d9a490c52ac86754f436d937",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
