@@ -1,0 +1,59 @@
+tests/integration/question-bank-access.test.ts
+  s_97c29780633e34::t_b199716511d021 326-328
+  s_97c29780633e34::t_c80c2a27f9f79a 1-325,329-434
+packages/contracts/src/knowledge-base.ts
+  s_97c29780633e34::t_4405d7e87f794a 7
+packages/db/src/schema/question-bank.ts
+  s_97c29780633e34::t_b97b7b6fd1a1ac 103
+  s_97c29780633e34::t_aad3b339fb67f2 15
+  s_97c29780633e34::t_41993deccf2f18 1-14,16,18-102,104-227
+  s_97c29780633e34::t_d85b4a3da2f22a 17
+apps/server/src/modules/question-bank/service.ts
+  s_97c29780633e34::t_3cd456a6f9ae6e 1-299
+apps/server/src/app.ts
+  s_97c29780633e34::t_e67360c73b87b3 48-50
+  s_97c29780633e34::t_4fcd1687913737 143-148
+tests/unit/skill-prerequisites.test.ts
+  s_97c29780633e34::t_e776c3ec0efe4c 1-42
+apps/server/src/modules/question-bank/search.ts
+  s_97c29780633e34::t_a2ac3a3602f369 6
+  s_97c29780633e34::t_a6efd65d66b263 25
+  s_97c29780633e34::t_ac963385ad3e7b 1-5,7-24,26-107
+packages/db/migrations/0024_question_bank.sql
+  s_97c29780633e34::t_515de5b9f8ac58 1-72,74-137
+  s_97c29780633e34::t_4e9184538ec909 73
+apps/server/src/modules/question-bank/skills.ts
+  s_97c29780633e34::t_0b572a9fd015d4 1-223
+apps/server/src/modules/knowledge-base/service.ts
+  s_97c29780633e34::t_a1c14f70aa49bd 430-454
+packages/db/migrations/meta/_journal.json
+  s_97c29780633e34::t_cb5fd003764e28 172-178
+apps/server/src/modules/question-bank/routes.ts
+  s_97c29780633e34::t_951e341a818c7e 1-2,10-15,17,28-29,36,38-39,44-48,54-61,63-71,76-77,83-85,87-94,97-98
+  s_97c29780633e34::t_68b6f8e566fc78 3-7
+  s_97c29780633e34::t_bc2329690b7229 8-9,16,18-27,30-35,37,49-53,62,78-82,86,95-96
+  s_97c29780633e34::t_4a9ec7ad888969 40-43
+  s_97c29780633e34::t_5f6e44a504f589 72-75
+apps/web/src/features/knowledge-base/status.ts
+  s_97c29780633e34::t_d2c4145bf9d84d 10
+packages/contracts/src/question-bank.ts
+  s_97c29780633e34::t_cd210f5c50a33e 65,71-96
+  s_97c29780633e34::t_6f9ee0fe43d01d 110
+  s_97c29780633e34::t_766c7e0502d090 97
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "05058126d78ce9fc5713fca04aa2cd6f5f8ab5e5",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
