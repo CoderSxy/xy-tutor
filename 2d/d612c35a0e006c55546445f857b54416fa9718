@@ -1,0 +1,74 @@
+tests/e2e/learning-timing.spec.ts
+  s_97c29780633e34::t_e74697422fe800 66
+  s_97c29780633e34::t_02f2d47a30f6ec 1-65,67-356
+apps/web/src/features/tutoring/TimingStatus.tsx
+  s_97c29780633e34::t_3de1ce1be6073b 105
+  s_97c29780633e34::t_de96a0d0ca6500 56
+  s_97c29780633e34::t_3e302fd9a89630 30-33,35-39,41-44,46
+  s_97c29780633e34::t_5e9503d500f382 1
+  s_97c29780633e34::t_f2842e399aea6e 2-29,34,40,45,47-55,57-104,106-122
+apps/web/src/features/tutoring/useQuestionTiming.ts
+  s_97c29780633e34::t_add8994be1ceef 1-117
+apps/web/src/components/QuestionCard.tsx
+  s_97c29780633e34::t_905835f0d2070e 38-40
+  s_97c29780633e34::t_da6e1ce8b335b0 8-13
+apps/server/src/modules/conversations/runs.ts
+  s_97c29780633e34::t_18edf32103fe53 206-218
+  s_97c29780633e34::t_6e2ec840f14919 251
+  s_97c29780633e34::t_75b47d385576c1 71,84-85
+  s_97c29780633e34::t_acfd019147b6e9 136
+  s_97c29780633e34::t_f678c162c82406 13,17
+  s_97c29780633e34::t_6fa3228ce0180b 181
+  s_97c29780633e34::t_61d69e7caae62f 44
+apps/web/src/features/tutoring/api.ts
+  s_97c29780633e34::t_341382270dab3c 1-31
+tests/unit/timing-client.test.ts
+  s_97c29780633e34::t_db1579725d467e 39,48-56
+  s_97c29780633e34::t_85fbba0e5bfc50 17
+  s_97c29780633e34::t_53c40803434ab1 146-148,154
+  s_97c29780633e34::t_ddcacc388aae33 1-16,18-38,40-47,57-145,149-153,155-232
+apps/server/src/app.ts
+  s_97c29780633e34::t_697b26b6d86dfe 213
+  s_97c29780633e34::t_21d73f444927bb 234-236
+  s_97c29780633e34::t_76916de8dff35b 158-159
+apps/web/src/styles/global.css
+  s_97c29780633e34::t_5ca3e26725d716 1747-1784
+  s_97c29780633e34::t_cb564751aaccd2 411-417
+apps/web/src/routes/Study.tsx
+  s_97c29780633e34::t_12699487962522 253-257
+  s_97c29780633e34::t_eed69f0cf7bf96 41-47
+  s_97c29780633e34::t_385f3edddcf295 140-147
+  s_97c29780633e34::t_5e1e2f9e7fcfa9 220-232
+  s_97c29780633e34::t_8ca8891ad353cf 17-18
+apps/web/src/features/tutoring/timing-client.ts
+  s_97c29780633e34::t_cef7ee1f6470a1 119
+  s_97c29780633e34::t_91e68abf8f2333 264-265
+  s_97c29780633e34::t_fee458e8fdb713 294
+  s_97c29780633e34::t_277db66f6d704c 428
+  s_97c29780633e34::t_5cc7c24141d80b 1-118,120-263,266-293,295-427,429-439
+apps/web/src/features/tutor/useTutorRun.ts
+  s_97c29780633e34::t_93e2d04128bbe1 176,185
+  s_97c29780633e34::t_570e7ee9e4f1e4 195
+  s_97c29780633e34::t_5aed00dac81a70 240
+  s_97c29780633e34::t_5086be5a7cc3ba 7-8
+  s_97c29780633e34::t_4aa22b69689ea6 16
+  s_97c29780633e34::t_fb1f36ce79208a 143,152-162
+apps/web/src/lib/types.ts
+  s_97c29780633e34::t_03cfbe4f9a9969 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2dd612c35a0e006c55546445f857b54416fa9718",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
