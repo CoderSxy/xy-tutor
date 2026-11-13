@@ -82,8 +82,8 @@ export async function buildContext(
   const hints = c.task_id
     ? (
         await db.pool.query(
-          "SELECT h.question_version_id,h.level,v.content FROM hints h JOIN message_versions v ON v.id=h.message_version_id WHERE h.task_id=$1 ORDER BY h.displayed_at DESC LIMIT 10",
-          [c.task_id],
+          "SELECT h.question_version_id,h.level,v.content FROM hints h JOIN message_versions v ON v.id=h.message_version_id JOIN messages m ON m.id=v.message_id JOIN conversations cv ON cv.id=m.conversation_id WHERE h.task_id=$1 AND cv.student_id=$2 ORDER BY h.displayed_at DESC LIMIT 10",
+          [c.task_id, c.student_id],
         )
       ).rows
     : [];
@@ -96,6 +96,15 @@ export async function buildContext(
       ).rows[0]
     : null;
   const current = items.find((i) => i.status === "pending") ?? items.at(-1);
+  const episode =
+    c.task_id && current
+      ? ((
+          await db.pool.query(
+            'SELECT state,teaching_state AS "teachingState",exposure,prior_exposure AS "priorExposure",version FROM tutoring_episodes WHERE student_id=$1 AND task_id=$2 AND question_version_id=$3 ORDER BY created_at DESC LIMIT 1',
+            [scope.studentId, c.task_id, current.question_version_id],
+          )
+        ).rows[0] ?? null)
+      : null;
   const attempts = c.task_id
     ? (
         await db.pool.query(
@@ -120,6 +129,7 @@ export async function buildContext(
       "按学生问题调用 search_knowledge 检索已发布知识点，只引用工具实际返回的条目 ID、标题和总结；没有命中时说明依据不足。",
     任务: task,
     当前题目: current,
+    教学会话: episode,
     提示历史: hints,
     最近作答: attempts,
     最近诊断: diagnosis,

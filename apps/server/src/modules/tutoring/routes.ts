@@ -2,11 +2,13 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   episodeEventsInputSchema,
+  tutoringActionInputSchema,
   type DiagnosisDTO,
 } from "../../../../../packages/contracts/src/tutoring.js";
 import type { AuthService } from "../auth/service.js";
 import { scopeForRequest } from "../learning/routes.js";
 import type { DiagnosisService } from "./diagnosis-service.js";
+import type { TutoringService } from "./service.js";
 import type { TimingService } from "./timing-service.js";
 
 /** 只暴露学生能理解的摘要与证据链接，不含候选内部推理。 */
@@ -41,6 +43,7 @@ export function registerTutoring(
     auth: AuthService;
     timing: TimingService;
     diagnosis?: DiagnosisService;
+    tutoring?: TutoringService;
   },
 ) {
   const id = z.object({ id: z.uuid() });
@@ -68,4 +71,32 @@ export function registerTutoring(
       id.parse(req.params).id,
     ),
   );
+  app.post("/api/tutoring/episodes/:id/actions", async (req) => {
+    if (!deps.tutoring) throw new Error("tutoring actions unavailable");
+    return deps.tutoring.act(
+      await scopeForRequest(deps.auth, req),
+      id.parse(req.params).id,
+      tutoringActionInputSchema.parse(req.body),
+    );
+  });
+  app.post(
+    "/api/tutoring/episodes/:id/actions/:actionId/acknowledge",
+    async (req) => {
+      if (!deps.tutoring) throw new Error("tutoring actions unavailable");
+      return deps.tutoring.acknowledge(
+        await scopeForRequest(deps.auth, req),
+        id.parse(req.params).id,
+        z.object({ actionId: z.uuid() }).parse(req.params).actionId,
+      );
+    },
+  );
+  app.get("/api/tasks/:id/tutoring", async (req) => {
+    if (!deps.tutoring) return { episode: null };
+    return {
+      episode: await deps.tutoring.current(
+        await scopeForRequest(deps.auth, req),
+        id.parse(req.params).id,
+      ),
+    };
+  });
 }

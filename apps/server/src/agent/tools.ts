@@ -5,6 +5,7 @@ import type { StudentScope } from "../../../../packages/contracts/src/domain.js"
 import { searchInput } from "../../../../packages/contracts/src/knowledge-base.js";
 import type { CatalogService } from "../modules/catalog/service.js";
 import { searchPublishedKnowledge } from "../modules/knowledge-base/search.js";
+import type { TutoringService } from "../modules/tutoring/service.js";
 import { nextActions } from "./prompts.js";
 export type TeachingServices = {
   practice?: (
@@ -18,6 +19,7 @@ export type TeachingServices = {
     input: unknown,
   ) => Promise<unknown>;
   mistakes?: (scope: StudentScope, input: unknown) => Promise<unknown>;
+  tutoring?: TutoringService;
 };
 export function createTeachingTools(
   bound: {
@@ -35,7 +37,7 @@ export function createTeachingTools(
     name: string,
     label: string,
     schema: z.ZodType,
-    run: (params: unknown) => Promise<unknown>,
+    run: (params: unknown, callId: string) => Promise<unknown>,
     description = label,
   ): AgentTool<object, unknown> => ({
     name,
@@ -43,7 +45,7 @@ export function createTeachingTools(
     description,
     parameters: z.toJSONSchema(schema),
     replay: "never",
-    async execute(_callId, params, signal) {
+    async execute(callId, params, signal) {
       signal?.throwIfAborted();
       await catalog.auth.requireStudentAccess(
         bound.scope.actor,
@@ -57,7 +59,7 @@ export function createTeachingTools(
       ).rowCount;
       if (!live) throw Error("RUN_NOT_ACTIVE");
       try {
-        const result = await run(schema.parse(params));
+        const result = await run(schema.parse(params), callId);
         return {
           content: [{ type: "text", text: JSON.stringify(result) }],
           details: result,
@@ -168,6 +170,40 @@ export function createTeachingTools(
         if (!bound.taskId || !services.assess) throw Error("NOT_CONFIGURED");
         return services.assess(bound.scope, bound.taskId, p);
       },
+    ),
+    tool(
+      "guide_self_check",
+      "按自查阶梯给出一层提示",
+      z
+        .object({
+          kind: z.enum([
+            "request_hint",
+            "request_probe",
+            "request_example",
+            "request_explanation",
+          ]),
+        })
+        .strict(),
+      async (p, callId) => {
+        if (!bound.taskId || !services.tutoring) throw Error("NOT_CONFIGURED");
+        const kind = z
+          .object({
+            kind: z.enum([
+              "request_hint",
+              "request_probe",
+              "request_example",
+              "request_explanation",
+            ]),
+          })
+          .parse(p).kind;
+        return services.tutoring.guide(
+          bound.scope,
+          bound.taskId,
+          kind,
+          callId,
+        );
+      },
+      "在已开始作答的会话里推进一层自查。只在学生明确求助或确实卡住时调用，一次一层，不要连续升级。",
     ),
     tool(
       "propose_next_actions",

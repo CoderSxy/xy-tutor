@@ -27,6 +27,7 @@ import { registerLearning } from "./modules/learning/routes.js";
 import { TimingService } from "./modules/tutoring/timing-service.js";
 import { DiagnosisService } from "./modules/tutoring/diagnosis-service.js";
 import { registerTutoring } from "./modules/tutoring/routes.js";
+import { TutoringService } from "./modules/tutoring/service.js";
 import { registerConversations } from "./modules/conversations/routes.js";
 import { CatalogService } from "./modules/catalog/service.js";
 import { registerCatalog } from "./modules/catalog/routes.js";
@@ -151,6 +152,9 @@ export function buildApp(deps: AppDependencies) {
       );
       registerMaterials(scoped, materials);
       const timing = new TimingService(deps.database!, auth);
+      const tutoring = deps.config!.features.selfCheckEnabled
+        ? new TutoringService(deps.database!, auth, timing)
+        : undefined;
       registerLearning(scoped, {
         auth,
         tasks: new TaskService(deps.database!, auth, catalog),
@@ -160,6 +164,7 @@ export function buildApp(deps: AppDependencies) {
         registerTutoring(scoped, {
           auth,
           timing,
+          tutoring,
           diagnosis: new DiagnosisService(deps.database!, auth, deps.gateway),
         });
       registerConversations(scoped, new MessageService(deps.database!, auth));
@@ -265,6 +270,7 @@ export function buildApp(deps: AppDependencies) {
                       .parse(input),
                     includeArchived: true,
                   }),
+                ...(tutoring ? { tutoring } : {}),
               },
               deps.fileStore,
             ),

@@ -15,6 +15,7 @@ import { AppError } from "../../../../packages/contracts/src/api.js";
 import { tutorPrompt, nextActions } from "./prompts.js";
 import { buildContext, type TutorContext } from "./context.js";
 import { createTeachingTools, type TeachingServices } from "./tools.js";
+import { classifyTutorMessage } from "../modules/tutoring/state-rules.js";
 export class TutorExecutor implements RunExecutor {
   constructor(
     private db: Database,
@@ -144,22 +145,25 @@ export class TutorExecutor implements RunExecutor {
           m.versionId,
         ],
       );
-      if (
-        context.taskId &&
-        context.currentQuestionVersionId &&
-        run.mode !== "opening"
-      )
-        await this.db.pool.query(
-          "INSERT INTO hints(task_id,question_version_id,message_version_id,level) VALUES($1,$2,$3,$4)",
-          [
-            context.taskId,
-            context.currentQuestionVersionId,
-            m.versionId,
-            /答案|解法|直接告诉|完整解/.test(run.input_text)
-              ? "solution_exposed"
-              : "guided",
-          ],
-        );
+      if (context.taskId && run.mode !== "opening") {
+        const delivered = (
+          await this.db.pool.query(
+            "SELECT 1 FROM tutoring_actions WHERE message_version_id=$1",
+            [m.versionId],
+          )
+        ).rowCount;
+        // 教学动作已经把暴露等级写入 hints，这里只补记自由文本回答。
+        if (!delivered && context.currentQuestionVersionId)
+          await this.db.pool.query(
+            "INSERT INTO hints(task_id,question_version_id,message_version_id,level) VALUES($1,$2,$3,$4)",
+            [
+              context.taskId,
+              context.currentQuestionVersionId,
+              m.versionId,
+              classifyTutorMessage(text),
+            ],
+          );
+      }
       await this.db.pool.query(
         "UPDATE agent_runs SET output_version_id=$1 WHERE id=$2",
         [m.versionId, runId],

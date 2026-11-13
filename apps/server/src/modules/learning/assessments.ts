@@ -20,6 +20,8 @@ import {
 import { AssessmentVerifier, type Correctness } from "./verifier.js";
 import { referenceSchema, checkReference, parseModelJson } from "./practice.js";
 import { invalidateDiagnosesForEvidence } from "../tutoring/diagnosis-invalidation.js";
+import { combineHintDependency } from "../tutoring/state-rules.js";
+import type { Exposure } from "../../../../../packages/contracts/src/tutoring.js";
 export type AssessmentDTO = {
   id: string;
   attemptId: string;
@@ -249,19 +251,13 @@ export class AssessmentService {
       hasImageEvidence,
       independent,
     });
-    const hints = (
-      await this.db.pool.query(
-        "SELECT level FROM hints WHERE question_version_id=$1 AND displayed_at<=$2",
-        [a.question_version_id, a.created_at],
-      )
-    ).rows;
-    const dependency: AssessmentDTO["hintDependency"] = !a.message_version_id
-      ? "unknown"
-      : hints.some((h) => h.level === "solution_exposed")
-        ? "solution_exposed"
-        : hints.length
-          ? "guided"
-          : "none";
+    const dependency = await this.hintDependency({
+      studentId: a.student_id,
+      taskId: a.task_id as string | null,
+      questionVersionId: a.question_version_id,
+      messageVersionId: a.message_version_id as string | null,
+      before: a.created_at as Date,
+    });
     const prior = (
       await this.db.pool.query<{
         id: string;
@@ -315,6 +311,84 @@ export class AssessmentService {
           ? v.reason
           : "依据不足或核验不一致，暂不能可靠判定",
     };
+  }
+  /**
+   * 提示依赖只认同一学生、同一任务、同一题目版本、且在作答之前的来源；
+   * 归属不明的自由文本按 unknown 处理，不能当作独立完成。
+   */
+  private async hintDependency(a: {
+    studentId: string;
+    taskId: string | null;
+    questionVersionId: string;
+    messageVersionId: string | null;
+    before: Date;
+  }): Promise<AssessmentDTO["hintDependency"]> {
+    const hints = (
+      await this.db.pool.query<{ level: string }>(
+        "SELECT h.level FROM hints h JOIN message_versions v ON v.id=h.message_version_id JOIN messages m ON m.id=v.message_id JOIN conversations c ON c.id=m.conversation_id WHERE h.question_version_id=$1 AND h.displayed_at<=$2 AND c.student_id=$3 AND ($4::uuid IS NULL OR c.task_id=$4)",
+        [a.questionVersionId, a.before, a.studentId, a.taskId],
+      )
+    ).rows.map((row) => row.level);
+    const actions = a.taskId
+      ? (
+          await this.db.pool.query<{ exposure: Exposure }>(
+            "SELECT act.exposure FROM tutoring_actions act JOIN tutoring_episodes e ON e.id=act.episode_id WHERE e.student_id=$1 AND e.task_id=$2 AND e.question_version_id=$3 AND act.created_at<=$4 AND act.display_status IN ('sent','acknowledged','unknown')",
+            [a.studentId, a.taskId, a.questionVersionId, a.before],
+          )
+        ).rows.map((row) => row.exposure)
+      : [];
+    return combineHintDependency({
+      hints,
+      actions,
+      unattributed: await this.unattributedExposure(a),
+    });
+  }
+
+  /** 会话里未被 hints 或 tutoring_actions 记录的教师消息，按最保守能推断的等级计入。 */
+  private async unattributedExposure(a: {
+    studentId: string;
+    taskId: string | null;
+    questionVersionId: string;
+    messageVersionId: string | null;
+    before: Date;
+  }): Promise<Exposure> {
+    if (!a.taskId) return "none";
+    const rows = (
+      await this.db.pool.query<{ content: string; episode_started: Date | null }>(
+        `SELECT mv.content, ep.started_at AS episode_started
+         FROM message_versions mv
+         JOIN messages m ON m.id=mv.message_id
+         JOIN conversations c ON c.id=m.conversation_id
+         LEFT JOIN LATERAL (
+           SELECT started_at FROM tutoring_episodes
+           WHERE student_id=$1 AND task_id=$2 AND question_version_id=$3
+             AND started_at <= $4
+           ORDER BY started_at DESC LIMIT 1
+         ) ep ON true
+         WHERE c.student_id=$1 AND c.task_id=$2 AND m.role='assistant'
+           AND mv.created_at <= $4
+           AND NOT EXISTS (SELECT 1 FROM hints h WHERE h.message_version_id=mv.id)
+           AND NOT EXISTS (SELECT 1 FROM tutoring_actions act WHERE act.message_version_id=mv.id)
+         ORDER BY mv.created_at DESC LIMIT 10`,
+        [a.studentId, a.taskId, a.questionVersionId, a.before],
+      )
+    ).rows;
+    let result: Exposure = "none";
+    for (const row of rows) {
+      const level: Exposure = /完整解|解法如下|最终答案[:：]|答案是[:：]/.test(
+        row.content,
+      )
+        ? "solution_exposed"
+        : /提示|先写|第一步|想一想|试一试/.test(row.content)
+          ? "guided"
+          : row.episode_started
+            ? "unknown"
+            : "none";
+      if (level === "solution_exposed") return level;
+      if (level === "unknown" || (level === "guided" && result === "none"))
+        result = level;
+    }
+    return result;
   }
   async listForAttempt(scope: StudentScope, attemptId: string) {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);
