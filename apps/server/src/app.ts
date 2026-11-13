@@ -25,6 +25,7 @@ import { AttemptService } from "./modules/learning/attempts.js";
 import { MessageService } from "./modules/conversations/messages.js";
 import { registerLearning } from "./modules/learning/routes.js";
 import { LearningProfileService } from "./modules/learning-profile/service.js";
+import { SelectionService } from "./modules/learning-profile/selection-service.js";
 import { registerLearningProfiles } from "./modules/learning-profile/routes.js";
 import { learningProfileRebuildHandler } from "./jobs/learning-profile-job.js";
 import { TimingService } from "./modules/tutoring/timing-service.js";
@@ -195,7 +196,14 @@ export function buildApp(deps: AppDependencies) {
       const knowledge = new KnowledgeService(deps.database!, auth);
       const mistakes = new MistakeService(deps.database!, auth);
       const profiles = new LearningProfileService(deps.database!, auth);
-      registerLearningProfiles(scoped, { auth, profiles });
+      const selection = deps.config!.features.adaptivePracticeEnabled
+        ? new SelectionService(deps.database!, auth)
+        : undefined;
+      registerLearningProfiles(scoped, {
+        auth,
+        profiles,
+        ...(selection ? { selection } : {}),
+      });
       scoped.get("/api/tasks/:id/summary", async (req) =>
         summaries.latest(
           await scopeForRequest(auth, req),
@@ -290,6 +298,12 @@ export function buildApp(deps: AppDependencies) {
                     includeArchived: true,
                   }),
                 ...(tutoring ? { tutoring } : {}),
+                ...(selection
+                  ? {
+                      nextPractice: (scope, id, input) =>
+                        selection.next(scope, id, input),
+                    }
+                  : {}),
               },
               deps.fileStore,
             ),

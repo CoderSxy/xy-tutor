@@ -20,6 +20,11 @@ export type TeachingServices = {
   ) => Promise<unknown>;
   mistakes?: (scope: StudentScope, input: unknown) => Promise<unknown>;
   tutoring?: TutoringService;
+  nextPractice?: (
+    scope: StudentScope,
+    taskId: string,
+    input: unknown,
+  ) => Promise<unknown>;
 };
 export function createTeachingTools(
   bound: {
@@ -154,6 +159,27 @@ export function createTeachingTools(
         if (!bound.taskId || !services.practice) throw Error("NOT_CONFIGURED");
         return services.practice(bound.scope, bound.taskId, p);
       },
+    ),
+    tool(
+      "next_practice",
+      "按学情选下一道正式练习",
+      z
+        .object({
+          expectedProfileVersion: z.number().int().positive(),
+        })
+        .strict(),
+      async (p, callId) => {
+        if (!bound.taskId || !services.nextPractice)
+          throw Error("NOT_CONFIGURED");
+        const { expectedProfileVersion } = z
+          .object({ expectedProfileVersion: z.number().int().positive() })
+          .parse(p);
+        return services.nextPractice(bound.scope, bound.taskId, {
+          requestKey: `agent:${bound.runId}:${callId}`,
+          expectedProfileVersion,
+        });
+      },
+      "从已审核题库里按当前学情选下一道题。只有学生要开始新的正式练习时调用；没有合格题时会返回 insufficient_pool，如实告诉学生可继续讲解或稍后再练。",
     ),
     tool(
       "submit_assessment",

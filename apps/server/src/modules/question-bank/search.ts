@@ -5,6 +5,7 @@ import {
   type BankCandidate,
   type BankSearchQueryInput,
 } from "../../../../../packages/contracts/src/question-bank.js";
+import type pg from "pg";
 import type { Database } from "../../../../../packages/db/src/client.js";
 
 type CandidateRow = {
@@ -20,13 +21,14 @@ type CandidateRow = {
 };
 
 export async function searchEligibleQuestions(
-  db: Database,
+  db: Database | pg.PoolClient,
   scope: StudentScope,
   query: BankSearchQueryInput,
 ): Promise<BankCandidate[]> {
   const parsed = bankSearchQuerySchema.parse(query);
+  const queryable = "pool" in db ? db.pool : db;
   const rows = (
-    await db.pool.query<CandidateRow>(
+    await queryable.query<CandidateRow>(
       `SELECT e.id AS entry_id,
               e.question_version_id,
               l.skill_id,

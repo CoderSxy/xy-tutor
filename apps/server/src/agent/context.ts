@@ -123,6 +123,29 @@ export async function buildContext(
     : null;
   const summaries = await new SummaryService(db, auth).relevant(scope, null);
   const knowledge = await new KnowledgeService(db, auth).get(scope, null);
+  const learningProfiles = (
+    await db.pool.query(
+      `SELECT p.version, p.training_band AS "trainingBand", p.stale,
+              p.knowledge_stats AS "knowledgeStats", s.id AS "skillId", s.name
+         FROM learning_profiles p
+         JOIN skills s ON s.id = p.skill_id AND s.status = 'active'
+        WHERE p.student_id=$1
+        ORDER BY p.updated_at DESC
+        LIMIT 5`,
+      [scope.studentId],
+    )
+  ).rows.map((row) => {
+    const stats = (row.knowledgeStats ?? {}) as Record<string, number>;
+    return {
+      skillId: row.skillId,
+      name: row.name,
+      version: Number(row.version),
+      trainingBand: row.trainingBand,
+      stale: row.stale,
+      recentIndependentCorrect: stats.recentIndependentCorrect ?? 0,
+      recentDeterminateCount: stats.recentDeterminateCount ?? 0,
+    };
+  });
   const systemContext = JSON.stringify({
     学生: profile,
     知识点检索说明:
@@ -140,6 +163,7 @@ export async function buildContext(
       evidence: s.content.evidence.slice(0, 10),
     })),
     当前学情: knowledge,
+    学习画像: learningProfiles,
     进度: profile.preferences.currentChapter ?? "未知，需要询问",
   });
   if (Buffer.byteLength(systemContext) > budgetTokens - 2500)

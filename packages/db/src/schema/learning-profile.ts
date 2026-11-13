@@ -134,6 +134,67 @@ export const learningProfileEvidence = pgTable(
   ],
 );
 
+export const practiceDecisions = pgTable(
+  "practice_decisions",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    studentId: uuid("student_id")
+      .notNull()
+      .references(() => studentProfiles.id),
+    taskId: uuid("task_id").notNull(),
+    requestKey: text("request_key").notNull(),
+    requestHash: text("request_hash").notNull(),
+    policyVersion: text("policy_version").notNull(),
+    profileVersion: integer("profile_version").notNull(),
+    status: text().notNull(),
+    goal: text().notNull(),
+    difficulty: text(),
+    entryId: uuid("entry_id"),
+    questionVersionId: uuid("question_version_id").references(
+      () => questionVersions.id,
+    ),
+    skillId: uuid("skill_id").references(() => skills.id),
+    baselineId: uuid("baseline_id").references(
+      () => learningProfileBaselines.id,
+    ),
+    explanation: text().notNull(),
+    reasonCodes: jsonb("reason_codes").notNull().default([]),
+    candidateSnapshot: jsonb("candidate_snapshot").notNull().default([]),
+    exclusions: jsonb().notNull().default([]),
+    recentWindow: jsonb("recent_window").notNull().default([]),
+    createdAt: time("created_at"),
+  },
+  (t) => [
+    uniqueIndex("practice_decision_request").on(
+      t.studentId,
+      t.taskId,
+      t.requestKey,
+    ),
+    index("practice_decision_student_created").on(t.studentId, t.createdAt),
+    index("practice_decision_student_question").on(
+      t.studentId,
+      t.questionVersionId,
+    ),
+    check(
+      "practice_decision_status_check",
+      sql`${t.status} IN ('selected','insufficient_pool','awaiting_diagnosis')`,
+    ),
+    check(
+      "practice_decision_goal_check",
+      sql`${t.goal} IN ('diagnostic','repair','transfer','review')`,
+    ),
+    check(
+      "practice_decision_difficulty_check",
+      sql`${t.difficulty} IS NULL OR ${t.difficulty} IN ('easy','medium','challenge')`,
+    ),
+    check("practice_decision_version_check", sql`${t.profileVersion} > 0`),
+    check(
+      "practice_decision_selected_question_check",
+      sql`(${t.status} = 'selected') = (${t.questionVersionId} IS NOT NULL)`,
+    ),
+  ],
+);
+
 export const learningHabits = pgTable(
   "learning_habits",
   {
