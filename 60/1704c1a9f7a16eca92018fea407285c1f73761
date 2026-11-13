@@ -1,0 +1,62 @@
+apps/server/src/agent/tools.ts
+  s_97c29780633e34::t_07651cb27e5f5e 164-183
+  s_97c29780633e34::t_019d8a81b6e576 23-27
+  s_97c29780633e34::t_aa45654dfde91a 163
+packages/db/src/schema/learning-profile.ts
+  s_97c29780633e34::t_b0254266317e00 137-197
+apps/server/src/app.ts
+  s_97c29780633e34::t_c7958f2fb179a0 199-206
+  s_97c29780633e34::t_4a0c341ad67572 28
+  s_97c29780633e34::t_e40d77e7bac21c 301-306
+apps/server/src/modules/learning-profile/selection-policy.ts
+  s_97c29780633e34::t_65143491eb1464 1-78,80-205
+  s_97c29780633e34::t_84b2292368463f 79
+apps/server/src/agent/prompts.ts
+  s_97c29780633e34::t_a1075b69ae385d 5
+apps/server/src/modules/question-bank/search.ts
+  s_97c29780633e34::t_54f61ba1e7e5a8 24,29,31
+  s_97c29780633e34::t_3f40083ae2551c 8
+tests/integration/adaptive-practice.test.ts
+  s_97c29780633e34::t_c18246523643ea 415-418
+  s_97c29780633e34::t_bc7cf0b8a47965 427,446
+  s_97c29780633e34::t_96c1bddde946a9 1-91,95-158,171-238,240-262,268-362,364-414,419-426,428-445,447-457
+  s_97c29780633e34::t_313510e89acaab 239
+  s_97c29780633e34::t_2d291eafe1ddea 263-267
+  s_97c29780633e34::t_266dbddbb20b4e 92-94
+  s_97c29780633e34::t_a8ef9b020f73b9 363
+  s_97c29780633e34::t_04a019d69a2d13 159-170
+apps/server/src/modules/learning-profile/selection-service.ts
+  s_97c29780633e34::t_fbc4a422f7d078 1-5,7-24,26-242,244-276,280-393
+  s_97c29780633e34::t_78c771109465db 6
+  s_97c29780633e34::t_e9bb7a550befc7 25
+  s_97c29780633e34::t_e545c4e4b265c1 277-279
+  s_97c29780633e34::t_5305ad237ec593 243
+apps/server/src/modules/learning-profile/routes.ts
+  s_97c29780633e34::t_292fb3c33dc3d1 1,7,11-15,23-34
+tests/unit/adaptive-selection.test.ts
+  s_97c29780633e34::t_1f1095e92999c6 1-194,198-201,211-308
+  s_97c29780633e34::t_98f0aeece88826 195-197,202-210
+packages/db/migrations/0027_practice_decisions.sql
+  s_97c29780633e34::t_b7f1db17c14d77 1-45
+apps/server/src/agent/context.ts
+  s_97c29780633e34::t_4d5f70c1059ba0 166
+  s_97c29780633e34::t_29b9315791bf53 126-148
+packages/db/migrations/meta/_journal.json
+  s_97c29780633e34::t_e38f39bd9205e5 193-199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "601704c1a9f7a16eca92018fea407285c1f73761",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
