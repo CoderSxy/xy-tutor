@@ -1744,6 +1744,49 @@ textarea.input {
   background: linear-gradient(to bottom, transparent, var(--surface) 58px);
   pointer-events: none;
 }
+.tutoring-actions {
+  display: grid;
+  gap: 10px;
+  margin: 0 20px 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+.tutoring-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tutoring-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tutoring-note {
+  margin: 0;
+}
+.tutoring-content {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.tutoring-content-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.diagnosis-summary {
+  display: grid;
+  gap: 8px;
+}
+.diagnosis-summary h3,
+.diagnosis-summary p {
+  margin: 0;
+}
 .timing-bar {
   display: flex;
   align-items: center;

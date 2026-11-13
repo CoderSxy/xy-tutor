@@ -10,6 +10,7 @@ import { Button } from "../components/ui/button";
 import { Field, Textarea } from "../components/ui/field";
 import { Markdown } from "../components/Markdown";
 import { DocumentViewer } from "../features/uploads/DocumentViewer";
+import { DiagnosisSummary } from "../features/tutoring/DiagnosisSummary";
 type StateEvent = {
   id: string;
   assessmentId?: string;
@@ -60,6 +61,7 @@ export function MistakeDetail() {
         position: number;
       }[];
     }>();
+  const [evidenceAttempt, setEvidenceAttempt] = useState<string>();
   const correction = async () => {
     if (!detail.data) return;
     try {
@@ -150,6 +152,7 @@ export function MistakeDetail() {
                       setEvidence(
                         await api(a.scoped(`/api/attempts/${e.attemptId}`)),
                       );
+                      setEvidenceAttempt(e.attemptId);
                     } catch (err) {
                       setError(errorMessage(err));
                     }
@@ -207,6 +210,11 @@ export function MistakeDetail() {
             <p className="muted">
               没有已记录的提示；导入作答的独立性仍可能未知。
             </p>
+          )}
+          {evidenceAttempt && (
+            <div className="section-spacer">
+              <DiagnosisSummary attemptId={evidenceAttempt} />
+            </div>
           )}
         </section>
       )}

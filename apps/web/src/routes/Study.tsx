@@ -15,6 +15,7 @@ import { useImageAttachments } from "../features/tutor/useImageAttachments";
 import { TutorPanel } from "../features/tutor/TutorPanel";
 import { Composer } from "../features/tutor/Composer";
 import { TimingStatus } from "../features/tutoring/TimingStatus";
+import { TutoringActions } from "../features/tutoring/TutoringActions";
 import { useQuestionTiming } from "../features/tutoring/useQuestionTiming";
 export function Study() {
   const { id } = useParams();
@@ -200,6 +201,23 @@ export function Study() {
               status={tutor.status}
               loading={tutor.messagesLoading}
               onRetry={() => void tutor.retry()}
+              header={
+                <TutoringActions
+                  taskId={id}
+                  enabled={
+                    a.capabilities?.selfCheck === "enabled" &&
+                    data.status === "active" &&
+                    !!current
+                  }
+                  refreshKey={`${current?.status ?? ""}:${items.data?.length ?? 0}:${tutor.messages.length}:${tutor.status}`}
+                  busy={tutor.busy}
+                  onRequestSteps={() =>
+                    void tutor.submit(
+                      "我把这道题的中间步骤补在下面，请先别给完整解法。",
+                    )
+                  }
+                />
+              }
             />
             {data.status === "completed" && (
               <div className="tutor-compose">

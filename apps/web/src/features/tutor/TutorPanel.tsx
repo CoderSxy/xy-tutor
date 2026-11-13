@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { BookOpen, ArrowDown, Check } from "lucide-react";
 import { Markdown } from "../../components/Markdown";
 import { Button } from "../../components/ui/button";
@@ -89,12 +90,14 @@ export function TutorPanel({
   status,
   loading,
   onRetry,
+  header,
 }: {
   messages: MessageHistory[];
   stream: string;
   status: string;
   loading?: boolean;
   onRetry?: () => void;
+  header?: ReactNode;
 }) {
   const container = useRef<HTMLDivElement>(null),
     follow = useRef(true),
@@ -144,6 +147,7 @@ export function TutorPanel({
   const interrupted = ["failed", "interrupted", "cancelled"].includes(status);
   return (
     <div className="tutor-log-wrap">
+      {header}
       <div
         className="tutor-log"
         ref={container}

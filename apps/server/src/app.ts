@@ -244,6 +244,9 @@ export function buildApp(deps: AppDependencies) {
           timing: deps.config!.features.timingEnabled
             ? "enabled"
             : "disabled",
+          selfCheck: deps.config!.features.selfCheckEnabled
+            ? "enabled"
+            : "disabled",
         };
       });
       if (deps.enableJobs) {

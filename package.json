@@ -24,7 +24,8 @@
     "backfill:student-insights": "node --env-file-if-exists=.env --import tsx scripts/backfill-student-insights.ts",
     "benchmark:student-insights": "node --import tsx scripts/benchmark-student-insights.ts",
     "smoke:ocr": "node --env-file-if-exists=.env --import tsx scripts/smoke-ocr.ts",
-    "cleanup:chat-images": "node --env-file-if-exists=.env --import tsx scripts/cleanup-chat-images.ts"
+    "cleanup:chat-images": "node --env-file-if-exists=.env --import tsx scripts/cleanup-chat-images.ts",
+    "evaluate:tutoring": "node --import tsx scripts/evaluate-tutoring.ts"
   },
   "dependencies": {
     "@alicloud/ocr-api20210707": "3.1.3",
