@@ -14,6 +14,8 @@ import { useTutorRun } from "../features/tutor/useTutorRun";
 import { useImageAttachments } from "../features/tutor/useImageAttachments";
 import { TutorPanel } from "../features/tutor/TutorPanel";
 import { Composer } from "../features/tutor/Composer";
+import { TimingStatus } from "../features/tutoring/TimingStatus";
+import { useQuestionTiming } from "../features/tutoring/useQuestionTiming";
 export function Study() {
   const { id } = useParams();
   const a = useAuth();
@@ -36,6 +38,13 @@ export function Study() {
   const railRefresh = `${id}:${task.data?.version}:${tutor.status}:${tutor.messages.at(-1)?.id}`;
   const current =
     items.data?.find((q) => q.status === "pending") ?? items.data?.at(-1);
+  const timingEnabled = a.capabilities?.timing === "enabled";
+  const timing = useQuestionTiming({
+    taskId: id,
+    questionVersionId: current?.questionVersionId,
+    enabled: timingEnabled && !!current && task.data?.status === "active",
+    waiting: tutor.busy,
+  });
   if (!task.data)
     return (
       <div className="home-layout">
@@ -128,7 +137,14 @@ export function Study() {
                 <ChevronDown size={16} />
               </button>
               <div className="question-body">
-                <QuestionCard question={current} />
+                <QuestionCard
+                  question={{
+                    ...current,
+                    priorExposure: timingEnabled
+                      ? timing.snapshot.priorExposure
+                      : false,
+                  }}
+                />
                 <div className="question-tools">
                   <Button
                     variant="outline"
@@ -201,6 +217,19 @@ export function Study() {
             )}
             {data.status === "active" && (
               <div className="tutor-compose">
+                {timingEnabled && current && (
+                  <TimingStatus
+                    snapshot={timing.snapshot}
+                    onStart={(takeOver) => void timing.start(takeOver)}
+                    onPause={() => void timing.pause()}
+                    onResume={() => void timing.resume()}
+                  />
+                )}
+                {tutor.timingWarning && (
+                  <p className="notice" role="status">
+                    {tutor.timingWarning}
+                  </p>
+                )}
                 {!current && (
                   <button
                     type="button"
@@ -221,7 +250,11 @@ export function Study() {
                   hasQuestion={!!current}
                   onSubmit={(submission) =>
                     ready
-                      ? tutor.submit(submission, current?.questionVersionId)
+                      ? tutor.submit(
+                          submission,
+                          current?.questionVersionId,
+                          timingEnabled ? timing.prepareSubmission : undefined,
+                        )
                       : Promise.resolve(false)
                   }
                   onCancel={tutor.cancel}

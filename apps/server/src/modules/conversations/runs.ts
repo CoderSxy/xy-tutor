@@ -10,9 +10,11 @@ import {
   MAX_MESSAGE_IMAGES,
   MAX_MESSAGE_TEXT_LENGTH,
 } from "../../../../../packages/contracts/src/conversation-images.js";
+import { timingEventSchema } from "../../../../../packages/contracts/src/learning-timing.js";
 import type { FileStore } from "../../infra/oss.js";
 import type { AuthService } from "../auth/service.js";
 import { recordLearningEvent } from "../student-insights/activity.js";
+import { TimingService } from "../tutoring/timing-service.js";
 import { ConversationAttachmentService } from "./attachments.js";
 import { EventStore } from "./events.js";
 export interface RunExecutor {
@@ -39,6 +41,7 @@ export class RunService {
     readonly db: Database,
     readonly auth: AuthService,
     store?: FileStore,
+    readonly timing: TimingService = new TimingService(db, auth),
   ) {
     this.events = new EventStore(db, auth);
     this.attachments = new ConversationAttachmentService(db, auth, store);
@@ -65,7 +68,7 @@ export class RunService {
   async submit(
     scope: StudentScope,
     input: unknown,
-  ): Promise<{ runId: string }> {
+  ): Promise<{ runId: string; timingWarning?: string | null }> {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);
     const v = z
       .object({
@@ -78,6 +81,8 @@ export class RunService {
           .default([]),
         mode: z.enum(["reply", "opening"]).default("reply"),
         questionVersionId: z.uuid().optional(),
+        episodeId: z.uuid().optional(),
+        timingFinalEvent: timingEventSchema.optional(),
       })
       .strict()
       .parse(input);
@@ -128,6 +133,7 @@ export class RunService {
       )
         throw new AppError("CONFLICT", 409, "请等待当前回答完成或先停止");
       let versionId: string | null = null;
+      let timingWarning: string | null = null;
       if (v.mode === "reply") {
         const m = (
           await tx.query(
@@ -172,7 +178,7 @@ export class RunService {
         if (!valid) throw new AppError("NOT_FOUND", 404, "当前题目不存在");
         const attempt = (
           await tx.query(
-            "INSERT INTO attempts(student_id,task_id,question_version_id,message_version_id,request_key,answer) VALUES($1,$2,$3,$4,$5,$6) RETURNING id",
+            "INSERT INTO attempts(student_id,task_id,question_version_id,message_version_id,request_key,answer) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,created_at",
             [
               scope.studentId,
               c.task_id,
@@ -197,6 +203,19 @@ export class RunService {
           occurredAt: new Date(),
           sourceOrigin: "live",
         });
+        const attached = await this.timing.attachAttempt(
+          tx,
+          scope,
+          attempt.id,
+          {
+            taskId: c.task_id,
+            questionVersionId: v.questionVersionId,
+            createdAt: attempt.created_at,
+          },
+          v.episodeId,
+          v.timingFinalEvent,
+        );
+        timingWarning = attached.warning;
       }
       if (v.mode === "reply" && c.task_id)
         await tx.query(
@@ -229,7 +248,7 @@ export class RunService {
         "INSERT INTO run_events(run_id,type,data) VALUES($1,'queued','{}')",
         [r.id],
       );
-      return { runId: r.id };
+      return { runId: r.id, timingWarning };
     });
   }
   async retry(

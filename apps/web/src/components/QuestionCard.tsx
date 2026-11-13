@@ -5,7 +5,12 @@ export function QuestionCard({
   question,
   onViewSource,
 }: {
-  question: { stem: string; knowledgePoint?: string | null; position?: number };
+  question: {
+    stem: string;
+    knowledgePoint?: string | null;
+    position?: number;
+    priorExposure?: boolean;
+  };
   onViewSource?: () => void;
 }) {
   return (
@@ -29,6 +34,9 @@ export function QuestionCard({
       </div>
       {question.knowledgePoint && (
         <span className="badge">{question.knowledgePoint}</span>
+      )}
+      {question.priorExposure && (
+        <span className="badge badge-muted">这题之前展示过</span>
       )}
       <Markdown>{question.stem}</Markdown>
     </section>

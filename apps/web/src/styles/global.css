@@ -408,6 +408,13 @@ textarea.input {
   background: var(--warning-soft);
   color: var(--warning);
 }
+.badge-muted {
+  background: var(--surface-sunken);
+  color: var(--muted);
+}
+.question-card .badge + .badge {
+  margin-left: 8px;
+}
 .question-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1736,6 +1743,44 @@ textarea.input {
   height: 84px;
   background: linear-gradient(to bottom, transparent, var(--surface) 58px);
   pointer-events: none;
+}
+.timing-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 36px;
+  padding: 0 4px;
+}
+.timing-status {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--muted);
+}
+.timing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  animation: timing-pulse 2s ease-in-out infinite;
+}
+.timing-bar .button-small {
+  flex-shrink: 0;
+}
+@keyframes timing-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .timing-dot {
+    animation: none;
+  }
 }
 .tutor-done {
   position: relative;

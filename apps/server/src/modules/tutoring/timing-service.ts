@@ -57,9 +57,6 @@ type SegmentRow = {
   reason_codes: string[];
 };
 
-const EVENT_COLUMNS =
-  "SELECT event_id,seq,segment_id,lease_epoch,kind,cumulative_active_ms,accepted_ms,phase,payload_hash,received_at";
-
 function hashEvent(event: TimingEventInput): string {
   const canonical = JSON.stringify([
     event.eventId,

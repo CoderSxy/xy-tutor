@@ -155,7 +155,8 @@ export function buildApp(deps: AppDependencies) {
         tasks: new TaskService(deps.database!, auth, catalog),
         attempts: new AttemptService(deps.database!, auth, timing),
       });
-      registerTutoring(scoped, { auth, timing });
+      if (deps.config!.features.timingEnabled)
+        registerTutoring(scoped, { auth, timing });
       registerConversations(scoped, new MessageService(deps.database!, auth));
       const tasks = new TaskService(deps.database!, auth, catalog);
       const practice = new PracticeService(deps.database!, tasks, deps.gateway);
@@ -209,7 +210,7 @@ export function buildApp(deps: AppDependencies) {
           z.object({ id: z.uuid() }).parse(req.params).id,
         ),
       );
-      const runs = new RunService(deps.database!, auth, deps.fileStore);
+      const runs = new RunService(deps.database!, auth, deps.fileStore, timing);
       registerRuns(scoped, runs, () => !!deps.gateway);
       const bootstrap = new BootstrapService(
         deps.database!,
@@ -229,6 +230,9 @@ export function buildApp(deps: AppDependencies) {
           ocrConfigured: !!deps.ocr,
           images: modelSupportsImages(deps.gateway)
             ? "enabled-unverified"
+            : "disabled",
+          timing: deps.config!.features.timingEnabled
+            ? "enabled"
             : "disabled",
         };
       });

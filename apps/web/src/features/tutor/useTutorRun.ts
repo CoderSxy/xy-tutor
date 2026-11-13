@@ -4,6 +4,8 @@ import { useAuth } from "../../lib/auth";
 import type { MessageHistory } from "../../lib/types";
 import type { ImageSubmission } from "../../../../../packages/contracts/src/conversation-images.js";
 type Run = { id: string; status: string; content: string | null };
+// 计时的收尾事件。计时出问题时它可以是空的，答案照样要能交。
+type TimingHandoff = { episodeId?: string; timingFinalEvent?: unknown };
 export function useTutorRun(conversationId?: string) {
   const a = useAuth();
   const [messages, setMessages] = useState<MessageHistory[]>([]),
@@ -11,6 +13,7 @@ export function useTutorRun(conversationId?: string) {
     [runId, setRunId] = useState<string>(),
     [status, setStatus] = useState("idle"),
     [error, setError] = useState(""),
+    [timingWarning, setTimingWarning] = useState(""),
     [messagesLoading, setMessagesLoading] = useState(false);
   const lastId = useRef("0");
   const activeConversation = useRef(conversationId);
@@ -137,6 +140,7 @@ export function useTutorRun(conversationId?: string) {
   const submit = async (
     input: string | ImageSubmission,
     questionVersionId?: string,
+    timing?: () => Promise<TimingHandoff>,
   ) => {
     if (!conversationId) return false;
     const submission: ImageSubmission =
@@ -145,6 +149,17 @@ export function useTutorRun(conversationId?: string) {
     const attachments = submission.attachmentIds;
     const question = submission.questionVersionId ?? questionVersionId;
     setError("");
+    setTimingWarning("");
+    let handoff: TimingHandoff | undefined;
+    if (timing && question) {
+      // 计时只是附带证据：它自己出错时不能拦住这次提交。
+      try {
+        const value = await timing();
+        if (value?.episodeId || value?.timingFinalEvent) handoff = value;
+      } catch {
+        handoff = undefined;
+      }
+    }
     const pendingKey = `xy.pending.${conversationId}`;
     const signature = JSON.stringify([message, question ?? null, attachments]);
     let pending: { signature: string; requestKey: string } | undefined;
@@ -158,7 +173,7 @@ export function useTutorRun(conversationId?: string) {
       pending = { signature, requestKey: crypto.randomUUID() };
     sessionStorage.setItem(pendingKey, JSON.stringify(pending));
     try {
-      const result = await api<{ runId: string }>(
+      const result = await api<{ runId: string; timingWarning?: string | null }>(
         a.scoped(`/api/conversations/${conversationId}/runs`),
         {
           method: "POST",
@@ -167,6 +182,7 @@ export function useTutorRun(conversationId?: string) {
             requestKey: pending!.requestKey,
             questionVersionId: question,
             attachmentIds: attachments,
+            ...(handoff ?? {}),
           }),
         },
       );
@@ -176,6 +192,7 @@ export function useTutorRun(conversationId?: string) {
       setRunId(result.runId);
       sessionStorage.setItem(`xy.run.${conversationId}`, result.runId);
       sessionStorage.removeItem(pendingKey);
+      if (result.timingWarning) setTimingWarning(result.timingWarning);
       void reload().catch((e) => setError(errorMessage(e)));
       return true;
     } catch (e) {
@@ -220,6 +237,7 @@ export function useTutorRun(conversationId?: string) {
     stream,
     status,
     error,
+    timingWarning,
     setError,
     submit,
     cancel,
