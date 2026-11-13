@@ -1,0 +1,38 @@
+packages/contracts/src/question-bank.ts
+  s_97c29780633e34::t_95550f8efed2fd 1-97
+tests/unit/config.test.ts
+  s_97c29780633e34::t_e6947bdc54ec2a 18-62
+packages/contracts/src/learning-timing.ts
+  s_97c29780633e34::t_0015e2ab905aa4 1-124
+packages/contracts/src/learning-profile.ts
+  s_97c29780633e34::t_090796d270aa56 1-69
+packages/contracts/src/evidence.ts
+  s_97c29780633e34::t_feca61ee3c21e3 1-11
+packages/contracts/src/learning-evaluation.ts
+  s_97c29780633e34::t_4d841a262d6f4e 1-71
+packages/contracts/src/tutoring.ts
+  s_97c29780633e34::t_4c43d8abe03ab4 1-193
+apps/server/src/config.ts
+  s_97c29780633e34::t_dd2fe475327abb 15-18
+  s_97c29780633e34::t_c2606ac070e3f3 2-5,20-25,33,39-46,62
+tests/unit/adaptive-contracts.test.ts
+  s_97c29780633e34::t_8b39c0ab9466d2 1-213
+.env.example
+  s_97c29780633e34::t_708e97aea4e71b 42-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "0973931ef58ebd8e96fa641201177b8af7e56201",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
