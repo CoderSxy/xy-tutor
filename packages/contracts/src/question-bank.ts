@@ -124,3 +124,34 @@ export const bankCandidateSchema = z
   .strict();
 
 export type BankCandidate = z.infer<typeof bankCandidateSchema>;
+
+export const questionTemplateCodeSchema = z.enum([
+  "rational_arithmetic",
+  "linear_equation",
+  "llm",
+]);
+
+export type QuestionTemplateCode = z.infer<typeof questionTemplateCodeSchema>;
+
+export const questionGenerationRequestSchema = z
+  .object({
+    skillId: z.uuid(),
+    templateCode: questionTemplateCodeSchema,
+    templateVersion: z.number().int().positive().optional(),
+    goal: practiceGoalSchema,
+    requestKey: z
+      .string()
+      .trim()
+      .min(1)
+      .max(100)
+      .regex(/^[A-Za-z0-9_-]+$/, "请求键只能包含字母、数字、下划线和短横线"),
+    params: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict();
+
+export type QuestionGenerationRequest = z.infer<
+  typeof questionGenerationRequestSchema
+>;
+export type QuestionGenerationRequestInput = z.input<
+  typeof questionGenerationRequestSchema
+>;

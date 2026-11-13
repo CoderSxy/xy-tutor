@@ -185,6 +185,10 @@ export const questionTemplates = pgTable(
     skillId: uuid("skill_id").references(() => skills.id),
     difficultyBand: text("difficulty_band").notNull(),
     params: jsonb().notNull().default({}),
+    version: integer().notNull().default(1),
+    status: text().notNull().default("pending_review"),
+    approvedBy: uuid("approved_by").references(() => users.id),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
     createdBy: uuid("created_by")
       .notNull()
       .references(() => users.id),
@@ -198,6 +202,15 @@ export const questionTemplates = pgTable(
       "question_templates_difficulty_check",
       sql`${t.difficultyBand} IN ('easy','medium','challenge')`,
     ),
+    check(
+      "question_templates_status_check",
+      sql`${t.status} IN ('pending_review','approved','rejected')`,
+    ),
+    check(
+      "question_templates_approval_consistency",
+      sql`(${t.status} = 'approved') = (${t.approvedAt} IS NOT NULL AND ${t.approvedBy} IS NOT NULL)`,
+    ),
+    check("question_templates_version_check", sql`${t.version} > 0`),
   ],
 );
 
@@ -213,15 +226,39 @@ export const questionGenerationRuns = pgTable(
     requestedBy: uuid("requested_by")
       .notNull()
       .references(() => users.id),
+    studentId: uuid("student_id").references(() => studentProfiles.id),
+    visibility: text().notNull().default("owner_only"),
+    requestKey: text("request_key").notNull(),
+    dedupeKey: text("dedupe_key").notNull(),
     params: jsonb().notNull().default({}),
+    resultEntryId: uuid("result_entry_id").references(
+      () => questionBankEntries.id,
+    ),
+    knowledgeEvidence: jsonb("knowledge_evidence"),
+    errorCode: text("error_code"),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (t) => [
+    uniqueIndex("question_generation_runs_dedupe_unique").on(t.dedupeKey),
+    index("question_generation_runs_student_skill").on(
+      t.studentId,
+      t.skillId,
+      t.createdAt,
+    ),
     check(
       "question_generation_runs_status_check",
       sql`${t.status} IN ('queued','running','succeeded','failed')`,
+    ),
+    check(
+      "question_generation_runs_visibility_check",
+      sql`${t.visibility} IN ('shared','owner_only')`,
+    ),
+    check(
+      "question_generation_runs_owner_required",
+      sql`${t.visibility} <> 'owner_only' OR ${t.studentId} IS NOT NULL`,
     ),
   ],
 );

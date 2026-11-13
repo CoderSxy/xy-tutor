@@ -49,6 +49,8 @@ import { QuestionBankService } from "./modules/question-bank/service.js";
 import { SkillService } from "./modules/question-bank/skills.js";
 import { registerQuestionBank } from "./modules/question-bank/routes.js";
 import { knowledgeParseHandler } from "./jobs/knowledge-parse-job.js";
+import { QuestionGenerationService } from "./modules/question-bank/generator.js";
+import { questionGenerationHandler } from "./jobs/question-generation-job.js";
 import { ZodError } from "zod";
 import type { Database } from "../../../packages/db/src/client.js";
 import type { AppConfig } from "./config.js";
@@ -301,6 +303,9 @@ export function buildApp(deps: AppDependencies) {
               deps.gateway,
             ),
             "learning.summary": summaryHandler(summaries),
+            "question_bank.generate": questionGenerationHandler(
+              new QuestionGenerationService(deps.database!, jobs, deps.gateway),
+            ),
             ...(deps.gateway
               ? {
                   "student.insight": studentInsightHandler(

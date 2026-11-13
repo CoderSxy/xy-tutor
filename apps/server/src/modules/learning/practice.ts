@@ -18,6 +18,7 @@ export async function checkReference(
   gateway: ModelGateway,
   stem: string,
   reference: Reference,
+  signal?: AbortSignal,
 ): Promise<{ verified: boolean; independent: Reference }> {
   const r = await gateway.complete(
     {
@@ -27,7 +28,9 @@ export async function checkReference(
         messages: [{ role: "user", timestamp: Date.now(), content: stem }],
       },
     },
-    AbortSignal.timeout(60000),
+    signal
+      ? AbortSignal.any([signal, AbortSignal.timeout(60000)])
+      : AbortSignal.timeout(60000),
   );
   const other = referenceSchema.parse(parseModelJson(r.text));
   const comparable =
