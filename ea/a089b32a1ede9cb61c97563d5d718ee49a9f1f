@@ -1,0 +1,79 @@
+apps/server/src/modules/learning-profile/service.ts
+  s_97c29780633e34::t_0a4ebc094da80b 250-259,270,272-275,279-303
+  s_97c29780633e34::t_9331bc50d8d8a3 5
+  s_97c29780633e34::t_84b0bb760bf0a8 304-305
+apps/server/src/modules/question-bank/service.ts
+  s_97c29780633e34::t_efd8216dacabc1 259-264,266-356,358,364-376,378-482
+  s_97c29780633e34::t_866b3502f8840a 6,8,11
+  s_97c29780633e34::t_acd61d5a6d6f2c 265
+  s_97c29780633e34::t_a50c2c997f8960 357,359-363
+  s_97c29780633e34::t_af95d3a7195d85 377
+tests/e2e/adaptive-practice.spec.ts
+  s_97c29780633e34::t_e01e744d7ae488 70
+  s_97c29780633e34::t_7524bb70464df8 177-178
+  s_97c29780633e34::t_0d7889e9301d6f 197-205
+  s_97c29780633e34::t_a3730a74c76966 82-84
+  s_97c29780633e34::t_b721bc1add0585 1-69,71-81,85-176,179-196,206-220
+apps/server/src/app.ts
+  s_97c29780633e34::t_5c6725e0f4aefa 274-276
+apps/web/src/App.tsx
+  s_97c29780633e34::t_bc6fe1789e0085 81-82
+  s_97c29780633e34::t_e617c133272281 8-9
+apps/web/src/routes/admin/LearningSkills.tsx
+  s_97c29780633e34::t_d7408511f166ae 1-285
+tests/e2e/admin-question-bank.spec.ts
+  s_97c29780633e34::t_3efb5f6a14ac69 1-111,113-116,118-174,176-229,231-244,246-255,257-275,277-283,285-293,295-307,309-311
+  s_97c29780633e34::t_8f6885ddb21a8f 112,117,175
+  s_97c29780633e34::t_2f1f4be47fc25c 230,245,256,276,284,294,308
+apps/server/src/modules/learning-profile/selection-service.ts
+  s_97c29780633e34::t_fc15f82facf6eb 367-385
+apps/web/src/routes/Profile.tsx
+  s_97c29780633e34::t_9745060a564d65 5,9-82,85-88
+  s_97c29780633e34::t_074e7e5437f332 179-203
+apps/web/src/routes/Study.tsx
+  s_97c29780633e34::t_97eac1c9239957 117-143
+  s_97c29780633e34::t_99a71455cef17f 20-24
+  s_97c29780633e34::t_9f876fdd61b7b1 54-61
+  s_97c29780633e34::t_571a68ac59b32f 160-178
+docs/qa/adaptive-learning-phase-2.md
+  s_97c29780633e34::t_e579910d64c6c0 1-102
+apps/web/src/components/AppShell.tsx
+  s_97c29780633e34::t_b4f66f25e06f1e 14-15
+  s_97c29780633e34::t_e06c41a3b2a263 30-31
+  s_97c29780633e34::t_7ffca3a5f9410a 46,54-55
+apps/server/src/modules/question-bank/routes.ts
+  s_97c29780633e34::t_70930764aa6d0e 5,8
+  s_97c29780633e34::t_ef49108596025f 96-125
+apps/web/src/lib/types.ts
+  s_97c29780633e34::t_1f45f3987b7999 31
+apps/web/src/features/question-bank/api.ts
+  s_97c29780633e34::t_08c3589c0652d1 1-65,67-80
+  s_97c29780633e34::t_2523bce8d88606 66
+packages/contracts/src/question-bank.ts
+  s_97c29780633e34::t_d2f83c75d50cd9 98-146
+apps/web/src/routes/admin/QuestionBank.tsx
+  s_97c29780633e34::t_83798ad0e5823f 1-424
+packages/contracts/src/learning-profile.ts
+  s_97c29780633e34::t_6afa5f00e5107a 24-33,44
+apps/web/src/features/question-bank/labels.ts
+  s_97c29780633e34::t_9457812cf8ac61 42-58
+  s_97c29780633e34::t_56a987cf742c17 1-41,59-61
+apps/server/src/modules/learning-profile/routes.ts
+  s_97c29780633e34::t_803920dfdf6b56 30-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "eaa089b32a1ede9cb61c97563d5d718ee49a9f1f",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
