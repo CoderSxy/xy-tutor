@@ -1,0 +1,30 @@
+packages/db/migrations/meta/_journal.json
+  s_97c29780633e34::t_54653e37a31bea 165-171
+packages/db/migrations/0023_tutoring_timing.sql
+  s_97c29780633e34::t_ec76533e6206c9 1-256
+packages/db/src/schema/tutoring.ts
+  s_97c29780633e34::t_de056f6a24d3d9 1-269
+tests/integration/tutoring-schema.test.ts
+  s_97c29780633e34::t_8faf9cee6ec2bc 1-102,104-111,113-143,145-146,153-344,346,348-349,351-352
+  s_97c29780633e34::t_1cfd45881c8ca7 144,147-149,151-152
+  s_97c29780633e34::t_9f1c48ca9e83b5 345,347,350
+  s_97c29780633e34::t_93b5a683d7cde6 112
+  s_97c29780633e34::t_74ebd3c0733164 150
+  s_97c29780633e34::t_5aa576613877a5 103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "59aab896704e3b8c56eef7231ec7d9f5c7fbaf25",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
