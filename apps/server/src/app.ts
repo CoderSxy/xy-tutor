@@ -25,6 +25,7 @@ import { AttemptService } from "./modules/learning/attempts.js";
 import { MessageService } from "./modules/conversations/messages.js";
 import { registerLearning } from "./modules/learning/routes.js";
 import { TimingService } from "./modules/tutoring/timing-service.js";
+import { DiagnosisService } from "./modules/tutoring/diagnosis-service.js";
 import { registerTutoring } from "./modules/tutoring/routes.js";
 import { registerConversations } from "./modules/conversations/routes.js";
 import { CatalogService } from "./modules/catalog/service.js";
@@ -156,7 +157,11 @@ export function buildApp(deps: AppDependencies) {
         attempts: new AttemptService(deps.database!, auth, timing),
       });
       if (deps.config!.features.timingEnabled)
-        registerTutoring(scoped, { auth, timing });
+        registerTutoring(scoped, {
+          auth,
+          timing,
+          diagnosis: new DiagnosisService(deps.database!, auth, deps.gateway),
+        });
       registerConversations(scoped, new MessageService(deps.database!, auth));
       const tasks = new TaskService(deps.database!, auth, catalog);
       const practice = new PracticeService(deps.database!, tasks, deps.gateway);

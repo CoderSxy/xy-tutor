@@ -8,6 +8,7 @@ import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { AuthService } from "../auth/service.js";
 import { recordLearningEvent } from "../student-insights/activity.js";
 import { ConversationAttachmentService } from "./attachments.js";
+import { invalidateDiagnosesForEvidence } from "../tutoring/diagnosis-invalidation.js";
 import type { MessageDTO, MessageHistory } from "./contracts.js";
 export class MessageService {
   readonly attachments: ConversationAttachmentService;
@@ -147,6 +148,12 @@ export class MessageService {
       await tx.query(
         "INSERT INTO evidence_invalidations(student_id,evidence_version_id,reason) VALUES($1,$2,'message_edited')",
         [scope.studentId, old.id],
+      );
+      await invalidateDiagnosesForEvidence(
+        tx,
+        scope.studentId,
+        old.id,
+        "message_edited",
       );
       return {
         id: m.id,

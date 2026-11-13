@@ -158,12 +158,31 @@ export const episodeStartInputSchema = z
 
 export type EpisodeStartInput = z.infer<typeof episodeStartInputSchema>;
 
+export type DiagnosisEvidenceRef = {
+  kind: string;
+  id: string;
+  versionId?: string;
+};
+
 export type DiagnosisContext = {
-  assessmentId: string;
+  assessmentId: string | null;
   attemptId: string;
   questionVersionId: string;
-  processEvidence: { kind: string; id: string; versionId?: string }[];
-  probeEvidence: { kind: string; id: string; versionId?: string }[];
+  processEvidence: DiagnosisEvidenceRef[];
+  probeEvidence: DiagnosisEvidenceRef[];
+  /** 只有已核验的正误结果才能参与归因。 */
+  assessment: {
+    correctness: "correct" | "incorrect" | "uncertain";
+    verification: "verified" | "pending";
+  } | null;
+  /** 题干确认、版本可用且附件可读。 */
+  stemConfirmed: boolean;
+  /** 该题知识点在已发布资料中有可冻结的正文。 */
+  knowledgeAvailable: boolean;
+  /** 题型是否在可归因范围内。 */
+  supportedQuestionType?: boolean;
+  /** 管理员人工确认的错因，优先于自动规则。 */
+  manualPrimaryCode?: DiagnosisCode | null;
 };
 
 export type TeachingTransitionInput = {

@@ -11,6 +11,7 @@ import { recordLearningEvent } from "../student-insights/activity.js";
 import type { UploadService } from "../uploads/service.js";
 import type { CatalogService } from "../catalog/service.js";
 import { JobQueue } from "../../jobs/queue.js";
+import { invalidateDiagnosesForEvidence } from "../tutoring/diagnosis-invalidation.js";
 import {
   extractionSchema,
   confirmationSchema,
@@ -344,6 +345,12 @@ export class MaterialService {
       await tx.query(
         "INSERT INTO evidence_invalidations(student_id,evidence_version_id,reason) VALUES($1,$2,'question_corrected')",
         [scope.studentId, old.id],
+      );
+      await invalidateDiagnosesForEvidence(
+        tx,
+        scope.studentId,
+        old.id,
+        "question_corrected",
       );
       return { questionVersionId: next.id };
     });

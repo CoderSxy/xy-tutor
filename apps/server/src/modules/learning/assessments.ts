@@ -19,6 +19,7 @@ import {
 } from "../conversations/attachments.js";
 import { AssessmentVerifier, type Correctness } from "./verifier.js";
 import { referenceSchema, checkReference, parseModelJson } from "./practice.js";
+import { invalidateDiagnosesForEvidence } from "../tutoring/diagnosis-invalidation.js";
 export type AssessmentDTO = {
   id: string;
   attemptId: string;
@@ -261,6 +262,16 @@ export class AssessmentService {
         : hints.length
           ? "guided"
           : "none";
+    const prior = (
+      await this.db.pool.query<{
+        id: string;
+        correctness: string;
+        verification: string;
+      }>(
+        "SELECT id,correctness,verification FROM assessments WHERE attempt_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1",
+        [a.id],
+      )
+    ).rows[0];
     const result = (
       await this.db.pool.query(
         "INSERT INTO assessments(attempt_id,correctness,verification,hint_dependency,method,verifier_version,reference_id,evidence) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id",
@@ -282,6 +293,17 @@ export class AssessmentService {
         ],
       )
     ).rows[0];
+    if (
+      prior &&
+      (prior.correctness !== checked.correctness ||
+        prior.verification !== checked.verification)
+    )
+      await invalidateDiagnosesForEvidence(
+        this.db.pool,
+        scope.studentId,
+        prior.id,
+        "assessment_superseded",
+      );
     return {
       id: result.id,
       attemptId: a.id,

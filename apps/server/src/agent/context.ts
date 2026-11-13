@@ -104,6 +104,14 @@ export async function buildContext(
         )
       ).rows
     : [];
+  const diagnosis = c.task_id
+    ? (
+        await db.pool.query(
+          "SELECT d.status,d.primary_code AS \"primaryCode\",d.summary FROM error_diagnoses d JOIN attempts a ON a.id=d.attempt_id WHERE a.task_id=$1 AND a.student_id=$2 ORDER BY d.created_at DESC LIMIT 1",
+          [c.task_id, scope.studentId],
+        )
+      ).rows[0] ?? null
+    : null;
   const summaries = await new SummaryService(db, auth).relevant(scope, null);
   const knowledge = await new KnowledgeService(db, auth).get(scope, null);
   const systemContext = JSON.stringify({
@@ -114,6 +122,8 @@ export async function buildContext(
     当前题目: current,
     提示历史: hints,
     最近作答: attempts,
+    最近诊断: diagnosis,
+
     相关摘要: summaries.map((s) => ({
       taskId: s.taskId,
       text: s.content.text.slice(0, 1000),

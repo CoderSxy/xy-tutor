@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { MistakeService } from "./mistakes.js";
+import { invalidateDiagnosesForEvidence } from "../tutoring/diagnosis-invalidation.js";
 export class CorrectionService {
   constructor(private mistakes: MistakeService) {}
   async invalidate(
@@ -21,6 +22,12 @@ export class CorrectionService {
     await this.mistakes.db.pool.query(
       "INSERT INTO evidence_invalidations(student_id,evidence_version_id,reason) VALUES($1,$2,$3)",
       [scope.studentId, v.evidenceId, v.reason],
+    );
+    await invalidateDiagnosesForEvidence(
+      this.mistakes.db.pool,
+      scope.studentId,
+      v.evidenceId,
+      v.reason,
     );
     await this.mistakes.rebuild(scope);
   }
