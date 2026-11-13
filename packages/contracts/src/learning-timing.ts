@@ -99,6 +99,8 @@ export const timingStateSchema = z
     version: z.number().int().positive(),
     lastSeq: z.number().int().nonnegative(),
     segmentId: z.uuid().nullable(),
+    segmentStartedAt: z.iso.datetime().nullable(),
+    eventsInSegment: z.number().int().nonnegative(),
     lastReceivedAt: z.iso.datetime().nullable(),
     lastCumulativeMs: z.number().int().nonnegative(),
     firstSubmittedAt: z.iso.datetime().nullable(),
