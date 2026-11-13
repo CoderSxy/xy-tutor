@@ -4,6 +4,7 @@ export const KNOWLEDGE_ITEM_STATUSES = [
   "pending_review",
   "published",
   "discarded",
+  "withdrawn",
 ] as const;
 export const PARSE_RUN_STATUSES = [
   "queued",

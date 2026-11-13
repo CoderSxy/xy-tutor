@@ -427,6 +427,31 @@ export class KnowledgeBaseService {
     });
   }
 
+  async withdrawItems(actor: Actor, ids: string[]): Promise<void> {
+    requireAdmin(actor);
+    const unique = [...new Set(ids)];
+    await inTransaction(this.db, async (tx) => {
+      const rows = (
+        await tx.query<{ id: string; status: string }>(
+          "SELECT id,status FROM knowledge_items WHERE id=ANY($1::uuid[]) FOR UPDATE",
+          [unique],
+        )
+      ).rows;
+      if (rows.length !== unique.length)
+        throw new AppError("NOT_FOUND", 404, "知识点不存在");
+      if (rows.some((row) => row.status !== "published"))
+        throw new AppError("CONFLICT", 409, "只有已发布的知识点可以撤回");
+      await tx.query(
+        "UPDATE knowledge_items SET status='withdrawn',updated_at=now() WHERE id=ANY($1::uuid[])",
+        [unique],
+      );
+      await tx.query(
+        "INSERT INTO audit_events(actor_id,action,details) VALUES($1,'knowledge.item.withdraw',$2)",
+        [actor.userId, JSON.stringify({ itemIds: unique })],
+      );
+    });
+  }
+
   async reparseBatch(
     actor: Actor,
     batchId: string,

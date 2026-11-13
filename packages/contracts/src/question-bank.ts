@@ -62,10 +62,38 @@ export const questionEntryInputSchema = z
     sourceType: questionSourceTypeSchema,
     sourceRef: z.string().trim().max(200).optional(),
     templateFamily: z.string().trim().max(64).optional(),
+    knowledgeItemId: z.uuid().optional(),
   })
   .strict();
 
 export type QuestionEntryInput = z.infer<typeof questionEntryInputSchema>;
+
+export type SkillDTO = {
+  id: string;
+  code: string;
+  name: string;
+  status: "active" | "withdrawn";
+  prerequisiteIds: string[];
+};
+
+export type QuestionEntryDTO = {
+  id: string;
+  questionVersionId: string;
+  skillId: string;
+  difficultyBand: DifficultyBand;
+  complexityBand: number;
+  visibility: "shared" | "owner_only";
+  ownerId: string | null;
+  status: (typeof questionEntryStatusSchema.options)[number];
+  version: number;
+  publishedAt: string | null;
+};
+
+export const questionEntryWithdrawInputSchema = z
+  .object({
+    reason: z.string().trim().min(1).max(300),
+  })
+  .strict();
 
 export const bankSearchQuerySchema = z
   .object({
@@ -79,6 +107,7 @@ export const bankSearchQuerySchema = z
   .strict();
 
 export type BankSearchQuery = z.infer<typeof bankSearchQuerySchema>;
+export type BankSearchQueryInput = z.input<typeof bankSearchQuerySchema>;
 
 export const bankCandidateSchema = z
   .object({

@@ -45,6 +45,9 @@ import { UploadService } from "./modules/uploads/service.js";
 import { registerUploads } from "./modules/uploads/routes.js";
 import { KnowledgeBaseService } from "./modules/knowledge-base/service.js";
 import { registerKnowledgeBase } from "./modules/knowledge-base/routes.js";
+import { QuestionBankService } from "./modules/question-bank/service.js";
+import { SkillService } from "./modules/question-bank/skills.js";
+import { registerQuestionBank } from "./modules/question-bank/routes.js";
 import { knowledgeParseHandler } from "./jobs/knowledge-parse-job.js";
 import { ZodError } from "zod";
 import type { Database } from "../../../packages/db/src/client.js";
@@ -137,6 +140,12 @@ export function buildApp(deps: AppDependencies) {
         scoped,
         new KnowledgeBaseService(deps.database!, jobs, !!deps.gateway),
       );
+      registerQuestionBank(scoped, {
+        auth,
+        database: deps.database!,
+        skills: new SkillService(deps.database!),
+        bank: new QuestionBankService(deps.database!),
+      });
       registerCatalog(scoped);
       registerStudentInsights(scoped, {
         database: deps.database!,

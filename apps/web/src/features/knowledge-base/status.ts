@@ -7,6 +7,7 @@ export const knowledgeStatus: Record<KnowledgeItemStatus, string> = {
   pending_review: "待确认",
   published: "已发布",
   discarded: "已丢弃",
+  withdrawn: "已撤回",
 };
 
 export const knowledgeRunStatus: Record<ParseRunStatus, string> = {
