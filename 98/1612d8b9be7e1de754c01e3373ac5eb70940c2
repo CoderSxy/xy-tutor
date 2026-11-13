@@ -1,0 +1,69 @@
+apps/web/src/features/tutor/TutorPanel.tsx
+  s_97c29780633e34::t_95856f5a23e1f3 2
+  s_97c29780633e34::t_53def07b3e5cfb 93,100
+  s_97c29780633e34::t_f9b959dcb512a1 150
+apps/web/src/routes/MistakeDetail.tsx
+  s_97c29780633e34::t_fd060ce7a6fa2e 214-218
+  s_97c29780633e34::t_8397a3ca2abe51 155
+  s_97c29780633e34::t_93ec31cf756227 13
+  s_97c29780633e34::t_9194b874676ab5 64
+apps/web/src/features/tutoring/DiagnosisSummary.tsx
+  s_97c29780633e34::t_354cf7ca709f6c 1-74
+tests/e2e/self-check-journey.spec.ts
+  s_97c29780633e34::t_7ff21a2429a114 1-406
+apps/web/src/lib/types.ts
+  s_97c29780633e34::t_4808e04ddb774d 30
+apps/web/src/features/tutoring/TutoringActions.tsx
+  s_97c29780633e34::t_7f96ef112e3aba 1-197
+apps/web/src/routes/Study.tsx
+  s_97c29780633e34::t_c06c3abe68ab78 18
+  s_97c29780633e34::t_d68664e380160e 204-220
+apps/server/src/app.ts
+  s_97c29780633e34::t_8b67820615c1b5 247-249
+apps/web/src/styles/global.css
+  s_97c29780633e34::t_c040cb2f020ed2 1747-1789
+scripts/evaluate-tutoring.ts
+  s_97c29780633e34::t_63f3f6d2e2cb44 276-281,287
+  s_97c29780633e34::t_11543e1d6c83ba 1,4-78,80-82,84-86,94-95,97,99-169,180-197,229,233-256,260,262,267,269-275,282-286,288-299,306-309,316-346
+  s_97c29780633e34::t_6cba7a1f348ad8 79,83,87-93,96,98
+  s_97c29780633e34::t_e6c1f3e0f638f3 2-3
+  s_97c29780633e34::t_e65343c321a264 257-259,261,263-266,268
+  s_97c29780633e34::t_ac7ca446e86bbb 170-179,198-204
+  s_97c29780633e34::t_018a756834043c 205-228,230-232
+  s_97c29780633e34::t_72afd2380474eb 300-305
+  s_97c29780633e34::t_a8392e88e3191e 310-315
+tests/fixtures/tutoring/development.json
+  s_97c29780633e34::t_55f26a7d73fa86 1-60,62-101
+  s_97c29780633e34::t_f832a8c72a3bea 61
+tests/fixtures/tutoring/frozen-evaluation.json
+  s_97c29780633e34::t_e7644484677050 10
+  s_97c29780633e34::t_85c245b4aebcf6 4
+  s_97c29780633e34::t_d6ed8c3fdc9f78 1-3,5-9,11-17,19-54,66-67
+  s_97c29780633e34::t_6d8810f6ddbb53 18
+  s_97c29780633e34::t_8d72264100915d 55-65
+tests/fixtures/tutoring/README.md
+  s_97c29780633e34::t_f93778bbcd0079 4
+  s_97c29780633e34::t_fb13fc6f2d5f99 60-64
+  s_97c29780633e34::t_6140682b8c2f56 1-3,5-59,65-79,81,86-87
+  s_97c29780633e34::t_8571d60162e415 80,82-85
+package.json
+  s_97c29780633e34::t_2539f39d52b499 27-28
+docs/qa/adaptive-learning-phase-1.md
+  s_97c29780633e34::t_9c30fd198d1bd0 1-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "981612d8b9be7e1de754c01e3373ac5eb70940c2",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
