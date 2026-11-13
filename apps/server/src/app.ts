@@ -24,6 +24,9 @@ import { TaskService } from "./modules/learning/tasks.js";
 import { AttemptService } from "./modules/learning/attempts.js";
 import { MessageService } from "./modules/conversations/messages.js";
 import { registerLearning } from "./modules/learning/routes.js";
+import { LearningProfileService } from "./modules/learning-profile/service.js";
+import { registerLearningProfiles } from "./modules/learning-profile/routes.js";
+import { learningProfileRebuildHandler } from "./jobs/learning-profile-job.js";
 import { TimingService } from "./modules/tutoring/timing-service.js";
 import { DiagnosisService } from "./modules/tutoring/diagnosis-service.js";
 import { registerTutoring } from "./modules/tutoring/routes.js";
@@ -191,6 +194,8 @@ export function buildApp(deps: AppDependencies) {
       const summaries = new SummaryService(deps.database!, auth, deps.gateway);
       const knowledge = new KnowledgeService(deps.database!, auth);
       const mistakes = new MistakeService(deps.database!, auth);
+      const profiles = new LearningProfileService(deps.database!, auth);
+      registerLearningProfiles(scoped, { auth, profiles });
       scoped.get("/api/tasks/:id/summary", async (req) =>
         summaries.latest(
           await scopeForRequest(auth, req),
@@ -306,6 +311,7 @@ export function buildApp(deps: AppDependencies) {
             "question_bank.generate": questionGenerationHandler(
               new QuestionGenerationService(deps.database!, jobs, deps.gateway),
             ),
+            "learning_profile.rebuild": learningProfileRebuildHandler(profiles),
             ...(deps.gateway
               ? {
                   "student.insight": studentInsightHandler(
