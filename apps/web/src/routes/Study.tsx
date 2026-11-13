@@ -17,6 +17,11 @@ import { Composer } from "../features/tutor/Composer";
 import { TimingStatus } from "../features/tutoring/TimingStatus";
 import { TutoringActions } from "../features/tutoring/TutoringActions";
 import { useQuestionTiming } from "../features/tutoring/useQuestionTiming";
+import type {
+  PracticeDecisionDTO,
+  ProfileDTO,
+} from "../../../../packages/contracts/src/learning-profile.js";
+import { goalLabels } from "../features/question-bank/labels";
 export function Study() {
   const { id } = useParams();
   const a = useAuth();
@@ -46,6 +51,14 @@ export function Study() {
     enabled: timingEnabled && !!current && task.data?.status === "active",
     waiting: tutor.busy,
   });
+  const adaptiveEnabled = a.capabilities?.adaptivePractice === "enabled";
+  const profiles = useRemote<ProfileDTO[]>(
+    adaptiveEnabled ? a.scoped("/api/learning-profile") : null,
+  );
+  const recommendation = useRemote<{ decision: PracticeDecisionDTO | null }>(
+    adaptiveEnabled && id ? a.scoped(`/api/tasks/${id}/next-practice`) : null,
+  );
+  const [requesting, setRequesting] = useState(false);
   if (!task.data)
     return (
       <div className="home-layout">
@@ -101,6 +114,33 @@ export function Study() {
       setError(errorMessage(e));
     }
   };
+  const requestNext = async () => {
+    const profile = profiles.data?.[0];
+    if (!profile) {
+      setError("还没有积累到可比较的学情记录，先完成当前学习或一次诊断。");
+      return;
+    }
+    setRequesting(true);
+    setError("");
+    try {
+      await api(a.scoped(`/api/tasks/${id}/next-practice`), {
+        method: "POST",
+        ...jsonBody({
+          requestKey: crypto.randomUUID(),
+          expectedProfileVersion: profile.version,
+        }),
+      });
+      items.reload();
+      profiles.reload();
+      recommendation.reload();
+      task.reload();
+    } catch (e) {
+      setError(errorMessage(e));
+    } finally {
+      setRequesting(false);
+    }
+  };
+  const decision = recommendation.data?.decision ?? null;
   return (
     <div className="home-layout">
       <SessionRail
@@ -116,6 +156,25 @@ export function Study() {
           <p className="notice error-text" role="alert">
             {error || tutor.error || task.error}
           </p>
+        )}
+        {adaptiveEnabled && data.status === "active" && (
+          <div className="notice next-practice" role="status">
+            <span>
+              <strong>
+                {decision ? `下一步：${goalLabels[decision.goal]}` : "个性化练习"}
+              </strong>
+              {decision
+                ? decision.explanation
+                : "根据最近的学情，为你安排一道合适的题。"}
+            </span>
+            <Button
+              variant="outline"
+              disabled={requesting || tutor.busy || !ready}
+              onClick={() => void requestNext()}
+            >
+              {requesting ? "正在安排…" : "安排下一题"}
+            </Button>
+          </div>
         )}
         {data.status === "paused" && (
           <div className="notice">

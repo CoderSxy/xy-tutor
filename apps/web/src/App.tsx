@@ -5,6 +5,8 @@ import { MistakeDetail } from "./routes/MistakeDetail";
 import { Knowledge } from "./routes/admin/Knowledge";
 import { KnowledgeReview } from "./routes/admin/KnowledgeReview";
 import { Accounts } from "./routes/admin/Accounts";
+import { QuestionBank } from "./routes/admin/QuestionBank";
+import { LearningSkills } from "./routes/admin/LearningSkills";
 import { Students } from "./routes/admin/students/Students";
 import { StudentLayout } from "./routes/admin/students/StudentLayout";
 import { Overview } from "./routes/admin/students/Overview";
@@ -76,6 +78,8 @@ export function App() {
               path="/admin/textbooks/:id"
               element={<Navigate to="/admin/knowledge" replace />}
             />
+            <Route path="/admin/question-bank" element={<QuestionBank />} />
+            <Route path="/admin/learning-skills" element={<LearningSkills />} />
             <Route path="/admin/accounts" element={<Accounts />} />
             <Route path="/admin/students" element={<Students />} />
             <Route

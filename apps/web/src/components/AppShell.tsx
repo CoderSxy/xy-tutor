@@ -11,6 +11,8 @@ import {
   Users,
   LogOut,
   UserRound,
+  Library,
+  Target,
 } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -25,6 +27,8 @@ const nav = [
 const adminNav = [
   { to: "/admin/students", label: "学生学情", icon: Users },
   { to: "/admin/knowledge", label: "知识点", icon: ShieldCheck },
+  { to: "/admin/question-bank", label: "题库", icon: Library },
+  { to: "/admin/learning-skills", label: "学习技能", icon: Target },
   { to: "/admin/accounts", label: "账号管理", icon: Settings },
 ];
 
@@ -37,9 +41,9 @@ const studentTabs = [
 ];
 
 const adminTabs = [
-  { to: "/", label: "学习", icon: House },
   { to: "/admin/students", label: "学情", icon: Users },
   { to: "/admin/knowledge", label: "知识点", icon: ShieldCheck },
+  { to: "/admin/question-bank", label: "题库", icon: Library },
   { to: "/admin/accounts", label: "账号", icon: Settings },
   { to: "/profile", label: "我的", icon: UserRound },
 ];
@@ -47,6 +51,8 @@ const adminTabs = [
 const titles: [string, string][] = [
   ["/admin/students", "学生学情"],
   ["/admin/knowledge", "知识点"],
+  ["/admin/question-bank", "题库"],
+  ["/admin/learning-skills", "学习技能"],
   ["/admin/accounts", "账号管理"],
   ["/study/", "学习进行中"],
   ["/mistakes", "我的错题"],

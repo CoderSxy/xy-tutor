@@ -364,6 +364,25 @@ export class SelectionService {
     return toDTO(row);
   }
 
+  async latest(
+    scope: StudentScope,
+    taskId: string,
+  ): Promise<PracticeDecisionDTO | null> {
+    await this.auth.requireStudentAccess(scope.actor, scope.studentId);
+    const row = (
+      await this.db.pool.query<DecisionRow>(
+        `SELECT id,status,goal,difficulty,question_version_id,policy_version,
+                profile_version,explanation,baseline_id
+           FROM practice_decisions
+          WHERE student_id=$1 AND task_id=$2
+          ORDER BY created_at DESC, id DESC
+          LIMIT 1`,
+        [scope.studentId, taskId],
+      )
+    ).rows[0];
+    return row ? toDTO(row) : null;
+  }
+
   private profileFromRow(
     studentId: string,
     row: Record<string, unknown>,

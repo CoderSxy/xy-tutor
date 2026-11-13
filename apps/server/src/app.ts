@@ -271,6 +271,9 @@ export function buildApp(deps: AppDependencies) {
           selfCheck: deps.config!.features.selfCheckEnabled
             ? "enabled"
             : "disabled",
+          adaptivePractice: deps.config!.features.adaptivePracticeEnabled
+            ? "enabled"
+            : "disabled",
         };
       });
       if (deps.enableJobs) {

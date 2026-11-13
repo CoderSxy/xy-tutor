@@ -95,6 +95,55 @@ export const questionEntryWithdrawInputSchema = z
   })
   .strict();
 
+export const adminQuestionInputSchema = z
+  .object({
+    skillId: z.uuid(),
+    stem: z.string().trim().min(1).max(2000),
+    referenceAnswer: z.string().trim().min(1).max(2000),
+    difficultyBand: difficultyBandSchema,
+    complexityBand: z.number().int().min(1).max(3).default(1),
+    sourceType: questionSourceTypeSchema.default("shared_upload"),
+    sourceRef: z.string().trim().max(200).optional(),
+    templateFamily: z.string().trim().max(64).optional(),
+    knowledgeItemId: z.uuid().optional(),
+  })
+  .strict();
+
+export type AdminQuestionInput = z.infer<typeof adminQuestionInputSchema>;
+
+export type QuestionBankEntrySummaryDTO = {
+  id: string;
+  questionVersionId: string;
+  skillId: string;
+  skillName: string;
+  stem: string;
+  difficultyBand: DifficultyBand;
+  complexityBand: number;
+  visibility: "shared" | "owner_only";
+  ownerId: string | null;
+  status: (typeof questionEntryStatusSchema.options)[number];
+  version: number;
+  sourceType: (typeof questionSourceTypeSchema.options)[number];
+  sourceRef: string | null;
+  templateFamily: string | null;
+  verification: string;
+  publishedAt: string | null;
+};
+
+export type QuestionTemplateDTO = {
+  id: string;
+  family: string;
+  skillId: string | null;
+  difficultyBand: DifficultyBand;
+  version: number;
+  status: "pending_review" | "approved" | "rejected";
+  approvedAt: string | null;
+};
+
+export const templateReviewInputSchema = z
+  .object({ decision: z.enum(["approved", "rejected"]) })
+  .strict();
+
 export const bankSearchQuerySchema = z
   .object({
     skillId: z.uuid(),

@@ -28,6 +28,7 @@ export type Capabilities = {
   images?: "enabled-unverified" | "disabled";
   timing?: "enabled" | "disabled";
   selfCheck?: "enabled" | "disabled";
+  adaptivePractice?: "enabled" | "disabled";
 };
 export type TaskItem = {
   id: string;

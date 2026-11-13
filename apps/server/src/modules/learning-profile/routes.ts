@@ -27,6 +27,11 @@ export function registerLearningProfiles(
     const { id } = z.object({ id: z.uuid() }).parse(req.params);
     return selection.next(scope, id, req.body);
   });
+  app.get("/api/tasks/:id/next-practice", async (req) => {
+    const scope = await scopeForRequest(deps.auth, req);
+    const { id } = z.object({ id: z.uuid() }).parse(req.params);
+    return { decision: await selection.latest(scope, id) };
+  });
   app.get("/api/practice-decisions/:id", async (req) => {
     const scope = await scopeForRequest(deps.auth, req);
     const { id } = z.object({ id: z.uuid() }).parse(req.params);

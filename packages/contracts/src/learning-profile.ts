@@ -21,6 +21,16 @@ export type EfficiencyObservation = z.infer<
   typeof efficiencyObservationSchema
 >;
 
+export const habitObservationSchema = z
+  .object({
+    anchorCode: z.string().min(1),
+    independentCheckCount: z.number().int().nonnegative(),
+    successfulCorrectionCount: z.number().int().nonnegative(),
+  })
+  .strict();
+
+export type HabitObservation = z.infer<typeof habitObservationSchema>;
+
 export const profileSchema = z
   .object({
     studentId: z.uuid(),
@@ -31,6 +41,7 @@ export const profileSchema = z
     recentIndependentCorrect: z.number().int().nonnegative(),
     recentDeterminateCount: z.number().int().nonnegative(),
     efficiency: efficiencyObservationSchema,
+    habits: z.array(habitObservationSchema).optional(),
     evidence: z.array(evidenceRefSchema),
   })
   .strict();

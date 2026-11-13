@@ -2,6 +2,7 @@ import type { StudentScope } from "../../../../../packages/contracts/src/domain.
 import {
   profileSchema,
   type EfficiencyObservation,
+  type HabitObservation,
   type ProfileDTO,
   type TrainingBand,
 } from "../../../../../packages/contracts/src/learning-profile.js";
@@ -246,8 +247,16 @@ export class LearningProfileService {
         [scope.studentId, skillId],
       )
     ).rows[0];
-    if (!row) return defaultProfile(scope.studentId, skillId);
-    return profileSchema.parse(this.toDTO(scope.studentId, skillId, row, []));
+    if (!row) {
+      return {
+        ...defaultProfile(scope.studentId, skillId),
+        habits: await this.habits(scope.studentId, skillId),
+      };
+    }
+    return profileSchema.parse({
+      ...this.toDTO(scope.studentId, skillId, row, []),
+      habits: await this.habits(scope.studentId, skillId),
+    });
   }
 
   async list(scope: StudentScope): Promise<ProfileDTO[]> {
@@ -258,9 +267,40 @@ export class LearningProfileService {
         [scope.studentId],
       )
     ).rows;
+    const habits = await this.habits(scope.studentId, null);
     return rows.map((row) =>
-      profileSchema.parse(this.toDTO(scope.studentId, row.skill_id, row, [])),
+      profileSchema.parse({
+        ...this.toDTO(scope.studentId, row.skill_id, row, []),
+        habits: habits.filter((habit) => habit.skillId === row.skill_id),
+      }),
     );
+  }
+
+  private async habits(
+    studentId: string,
+    skillId: string | null,
+  ): Promise<(HabitObservation & { skillId: string })[]> {
+    const rows = (
+      await this.db.pool.query<{
+        skill_id: string;
+        anchor_code: string;
+        independent_check_count: number;
+        successful_correction_count: number;
+      }>(
+        `SELECT skill_id, anchor_code, independent_check_count,
+                successful_correction_count
+           FROM learning_habits
+          WHERE student_id=$1 AND ($2::uuid IS NULL OR skill_id=$2)
+          ORDER BY anchor_code`,
+        [studentId, skillId],
+      )
+    ).rows;
+    return rows.map((row) => ({
+      skillId: row.skill_id,
+      anchorCode: row.anchor_code,
+      independentCheckCount: Number(row.independent_check_count),
+      successfulCorrectionCount: Number(row.successful_correction_count),
+    }));
   }
 
   async rebuild(scope: StudentScope, skillId: string): Promise<ProfileDTO> {

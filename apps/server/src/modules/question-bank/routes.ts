@@ -2,8 +2,10 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import {
   questionEntryInputSchema,
+  questionEntryStatusSchema,
   skillCreateInputSchema,
   skillPrerequisitesInputSchema,
+  templateReviewInputSchema,
 } from "../../../../../packages/contracts/src/question-bank.js";
 import type { Database } from "../../../../../packages/db/src/client.js";
 import type { AuthService } from "../auth/service.js";
@@ -89,6 +91,36 @@ export function registerQuestionBank(
       .strict()
       .parse(req.body);
     return bank.withdraw(requireSession(req).actor, params.id, body.reason);
+  });
+
+  app.get("/api/admin/question-bank/entries", async (req) => {
+    const query = z
+      .object({
+        status: questionEntryStatusSchema.optional(),
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+      })
+      .strict()
+      .parse(req.query);
+    return bank.listEntries(
+      requireSession(req).actor,
+      query.status,
+      query.limit,
+    );
+  });
+  app.post("/api/admin/question-bank/questions", async (req) =>
+    bank.createAdminEntry(requireSession(req).actor, req.body),
+  );
+  app.get("/api/admin/question-bank/templates", async (req) =>
+    bank.listTemplates(requireSession(req).actor),
+  );
+  app.post("/api/admin/question-bank/templates/:id/review", async (req) => {
+    const params = idParams.parse(req.params);
+    const body = templateReviewInputSchema.parse(req.body);
+    return bank.reviewTemplate(
+      requireSession(req).actor,
+      params.id,
+      body.decision,
+    );
   });
 
   app.get("/api/question-bank/candidates", async (req) => {
