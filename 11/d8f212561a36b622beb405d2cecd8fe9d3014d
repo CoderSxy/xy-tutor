@@ -1,0 +1,42 @@
+packages/db/src/schema/tutoring.ts
+  s_97c29780633e34::t_ea672bbdd789f7 86-186
+apps/server/src/modules/learning/attempts.ts
+  s_97c29780633e34::t_873f77cb710da5 101-110
+  s_97c29780633e34::t_8dbec03305d404 1,9-13,23-24,41-43
+  s_97c29780633e34::t_f9da0e599a12a1 138-160,167-168
+  s_97c29780633e34::t_a45f80f76c5d4a 30
+  s_97c29780633e34::t_8f8f8b3acc47a6 15
+  s_97c29780633e34::t_d8a9f8cc7777ae 69-81
+  s_97c29780633e34::t_4bf1f7955118b2 113
+apps/server/src/modules/tutoring/timing-service.ts
+  s_97c29780633e34::t_1ca55250a3ea8b 505
+  s_97c29780633e34::t_bc54461708abe3 1-348,350-352,355-365,367-402,406-415,419,421-426,428-504,506-510
+  s_97c29780633e34::t_7d0818acfb05c0 349,353-354,366
+  s_97c29780633e34::t_3e21c040d46aab 403-405
+  s_97c29780633e34::t_98073081eb3a68 416-418,420,427
+apps/server/src/modules/tutoring/routes.ts
+  s_97c29780633e34::t_bb20a3ec68e583 1-30
+apps/server/src/app.ts
+  s_97c29780633e34::t_11b3306f5fd59a 27-28
+  s_97c29780633e34::t_abd5655e9c3c79 152,156,158
+tests/integration/learning-timing.test.ts
+  s_97c29780633e34::t_bed9a96d6201ab 226-228
+  s_97c29780633e34::t_a2fed8bcab00b1 289
+  s_97c29780633e34::t_c15e99b58b2d6c 1-225,229-288,290-342
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "11d8f212561a36b622beb405d2cecd8fe9d3014d",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
