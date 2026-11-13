@@ -1,0 +1,56 @@
+packages/db/migrations/0026_learning_profiles.sql
+  s_97c29780633e34::t_9b0ff0c8ab0b28 1-98
+apps/server/src/modules/learning-profile/service.ts
+  s_97c29780633e34::t_b5d802dac8a9e2 61-62,194-198,202,289-292,338,359-364,437,484-485
+  s_97c29780633e34::t_530b8fafbb9aae 1-60,63-193,199-201,203-288,293-337,339-358,365-436,438-483,486-498
+apps/server/src/modules/learning-profile/invalidation.ts
+  s_97c29780633e34::t_6d0614cb777dc2 1-54
+packages/db/src/schema/learning-profile.ts
+  s_97c29780633e34::t_914c5d50145cb9 1-170
+apps/server/src/modules/learning-profile/efficiency.ts
+  s_97c29780633e34::t_93dc9283a4f413 1-191
+apps/server/src/modules/materials/service.ts
+  s_97c29780633e34::t_9574405b9728fc 15,350-354
+  s_97c29780633e34::t_354828a6265492 355
+apps/server/src/modules/learning/corrections.ts
+  s_97c29780633e34::t_9574405b9728fc 6,27-31
+  s_97c29780633e34::t_5f7697e78c897e 32
+apps/server/src/modules/learning-profile/routes.ts
+  s_97c29780633e34::t_e6266a41b8372d 1-17
+packages/db/migrations/meta/_journal.json
+  s_97c29780633e34::t_3141ca76b12541 186-192
+apps/server/src/jobs/learning-profile-job.ts
+  s_97c29780633e34::t_bd905be14eab3f 1-22
+apps/server/src/app.ts
+  s_97c29780633e34::t_30699282b119d4 27-29,197-198,314
+tests/integration/learning-profile.test.ts
+  s_97c29780633e34::t_15f09b208ae0f5 159,178,220,239-240,264,297,335
+  s_97c29780633e34::t_9b9e46c54681ac 172
+  s_97c29780633e34::t_9489091a93a49f 140-148
+  s_97c29780633e34::t_80e5d5ef7f90c7 1-135,138-139,149-158,160-165,167-171,173-177,179-201,203-219,221-226,228-238,241-246,249-263,265-269,272-285,287-296,298-307,309-318,320-334,336-341,343-345,347-354
+  s_97c29780633e34::t_08def7a603a361 271
+  s_97c29780633e34::t_0cd1a3d1b70a68 319
+  s_97c29780633e34::t_213afc427a5289 166,202,227,247,270,286,308,342,346
+  s_97c29780633e34::t_ceb401f10a1c64 248
+  s_97c29780633e34::t_f08e4c931f3fd0 136-137
+apps/server/src/modules/conversations/messages.ts
+  s_97c29780633e34::t_9574405b9728fc 12,153
+tests/unit/learning-efficiency.test.ts
+  s_97c29780633e34::t_7464ccb67789c1 1-248
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1d877acf89eecab88c219821b6abfa7a41057dcc",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
