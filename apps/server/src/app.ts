@@ -24,6 +24,8 @@ import { TaskService } from "./modules/learning/tasks.js";
 import { AttemptService } from "./modules/learning/attempts.js";
 import { MessageService } from "./modules/conversations/messages.js";
 import { registerLearning } from "./modules/learning/routes.js";
+import { TimingService } from "./modules/tutoring/timing-service.js";
+import { registerTutoring } from "./modules/tutoring/routes.js";
 import { registerConversations } from "./modules/conversations/routes.js";
 import { CatalogService } from "./modules/catalog/service.js";
 import { registerCatalog } from "./modules/catalog/routes.js";
@@ -147,11 +149,13 @@ export function buildApp(deps: AppDependencies) {
         catalog,
       );
       registerMaterials(scoped, materials);
+      const timing = new TimingService(deps.database!, auth);
       registerLearning(scoped, {
         auth,
         tasks: new TaskService(deps.database!, auth, catalog),
-        attempts: new AttemptService(deps.database!, auth),
+        attempts: new AttemptService(deps.database!, auth, timing),
       });
+      registerTutoring(scoped, { auth, timing });
       registerConversations(scoped, new MessageService(deps.database!, auth));
       const tasks = new TaskService(deps.database!, auth, catalog);
       const practice = new PracticeService(deps.database!, tasks, deps.gateway);

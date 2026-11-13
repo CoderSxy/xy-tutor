@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import {
   inTransaction,
@@ -5,7 +6,13 @@ import {
 } from "../../../../../packages/db/src/client.js";
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
+import {
+  EMPTY_TIMING_SUMMARY,
+  timingEventSchema,
+  type TimingSummary,
+} from "../../../../../packages/contracts/src/learning-timing.js";
 import type { AuthService } from "../auth/service.js";
+import { TimingService } from "../tutoring/timing-service.js";
 import { recordLearningEvent } from "../student-insights/activity.js";
 export type AttemptDTO = {
   id: string;
@@ -13,11 +20,14 @@ export type AttemptDTO = {
   questionVersionId: string;
   taskId: string;
   messageVersionId: string;
+  timing?: TimingSummary;
+  timingWarning?: string | null;
 };
 export class AttemptService {
   constructor(
     private db: Database,
     private auth: AuthService,
+    private timing: TimingService = new TimingService(db, auth),
   ) {}
   async submit(scope: StudentScope, input: unknown): Promise<AttemptDTO> {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);
@@ -28,6 +38,9 @@ export class AttemptService {
         questionVersionId: z.uuid(),
         answer: z.string().trim().min(1).max(20000),
         messageVersionId: z.uuid(),
+        episodeId: z.uuid().optional(),
+        timingFinalEvent: timingEventSchema.optional(),
+        processMessageVersionId: z.uuid().optional(),
       })
       .strict()
       .parse(input);
@@ -53,7 +66,19 @@ export class AttemptService {
           previous.messageVersionId !== v.messageVersionId
         )
           throw new AppError("CONFLICT", 409, "重复作答请求内容不同");
-        return previous;
+        const snapshot = (
+          await tx.query(
+            'SELECT first_attempt_ms AS "firstAttemptMs",self_check_ms AS "selfCheckMs",post_hint_ms AS "postHintMs",total_active_ms AS "totalActiveMs",wall_ms AS "wallMs",quality,reason_codes AS "reasonCodes" FROM attempt_timing_snapshots WHERE attempt_id=$1 ORDER BY version DESC LIMIT 1',
+            [previous.id],
+          )
+        ).rows[0];
+        return {
+          ...previous,
+          timing: snapshot
+            ? { ...snapshot, reasonCodes: snapshot.reasonCodes ?? [] }
+            : EMPTY_TIMING_SUMMARY,
+          timingWarning: null,
+        };
       }
       if (task.status !== "active")
         throw new AppError("CONFLICT", 409, "请先恢复学习任务");
@@ -73,9 +98,19 @@ export class AttemptService {
         throw new AppError("NOT_FOUND", 404, "作答题目或消息不存在");
       if (message.content.trim() !== v.answer)
         throw new AppError("VALIDATION", 422, "作答与原始消息不一致");
+      const process = v.processMessageVersionId
+        ? (
+            await tx.query(
+              "SELECT v.id,v.content FROM message_versions v JOIN messages m ON m.id=v.message_id JOIN conversations c ON c.id=m.conversation_id WHERE v.id=$1 AND c.task_id=$2 AND c.student_id=$3 AND m.role='user'",
+              [v.processMessageVersionId, v.taskId, scope.studentId],
+            )
+          ).rows[0]
+        : undefined;
+      if (v.processMessageVersionId && !process)
+        throw new AppError("NOT_FOUND", 404, "作答题目或消息不存在");
       const a = (
         await tx.query(
-          "INSERT INTO attempts(student_id,task_id,question_version_id,message_version_id,request_key,answer) VALUES($1,$2,$3,$4,$5,$6) RETURNING id",
+          "INSERT INTO attempts(student_id,task_id,question_version_id,message_version_id,request_key,answer) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,created_at",
           [
             scope.studentId,
             v.taskId,
@@ -100,12 +135,37 @@ export class AttemptService {
         occurredAt: new Date(),
         sourceOrigin: "live",
       });
+      if (process) {
+        await tx.query(
+          "INSERT INTO attempt_process_evidence(attempt_id,message_version_id,kind,content,content_hash) VALUES($1,$2,'student_work',$3,$4) ON CONFLICT DO NOTHING",
+          [
+            a.id,
+            process.id,
+            process.content,
+            createHash("sha256").update(process.content).digest("hex"),
+          ],
+        );
+      }
+      const { timing, warning } = await this.timing.attachAttempt(
+        tx,
+        scope,
+        a.id,
+        {
+          taskId: v.taskId,
+          questionVersionId: v.questionVersionId,
+          createdAt: a.created_at,
+        },
+        v.episodeId,
+        v.timingFinalEvent,
+      );
       return {
         id: a.id,
         answer: v.answer,
         questionVersionId: v.questionVersionId,
         taskId: v.taskId,
         messageVersionId: v.messageVersionId,
+        timing,
+        timingWarning: warning,
       };
     });
   }

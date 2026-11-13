@@ -83,6 +83,107 @@ export const tutoringEpisodes = pgTable(
   ],
 );
 
+export const timingEvents = pgTable(
+  "timing_events",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    episodeId: uuid("episode_id")
+      .notNull()
+      .references(() => tutoringEpisodes.id),
+    eventId: uuid("event_id").notNull(),
+    seq: integer().notNull(),
+    segmentId: uuid("segment_id").notNull(),
+    leaseEpoch: integer("lease_epoch").notNull(),
+    kind: text().notNull(),
+    cumulativeActiveMs: integer("cumulative_active_ms").notNull(),
+    acceptedMs: integer("accepted_ms").notNull(),
+    phase: text().notNull(),
+    payloadHash: text("payload_hash").notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
+    createdAt: time("created_at"),
+  },
+  (t) => [
+    uniqueIndex("timing_event_key").on(t.episodeId, t.eventId),
+    uniqueIndex("timing_event_seq").on(t.episodeId, t.seq),
+    index("timing_event_episode_time").on(t.episodeId, t.receivedAt),
+    check(
+      "timing_event_kind_check",
+      sql`${t.kind} IN ('start','checkpoint','pause','resume','finish')`,
+    ),
+    check(
+      "timing_event_phase_check",
+      sql`${t.phase} IN ('initial','self_check','post_hint')`,
+    ),
+    check(
+      "timing_event_non_negative",
+      sql`${t.cumulativeActiveMs} >= 0 AND ${t.acceptedMs} >= 0 AND ${t.seq} > 0 AND ${t.leaseEpoch} > 0`,
+    ),
+  ],
+);
+
+export const timingSegments = pgTable(
+  "timing_segments",
+  {
+    id: uuid().primaryKey(),
+    episodeId: uuid("episode_id")
+      .notNull()
+      .references(() => tutoringEpisodes.id),
+    phase: text().notNull(),
+    startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+    endAt: timestamp("end_at", { withTimezone: true }),
+    acceptedMs: integer("accepted_ms").notNull().default(0),
+    quality: text().notNull().default("reliable"),
+    reasonCodes: jsonb("reason_codes").notNull().default([]),
+    createdAt: time("created_at"),
+  },
+  (t) => [
+    index("timing_segment_episode").on(t.episodeId, t.startAt),
+    check(
+      "timing_segment_phase_check",
+      sql`${t.phase} IN ('initial','self_check','post_hint')`,
+    ),
+    check(
+      "timing_segment_quality_check",
+      sql`${t.quality} IN ('reliable','partial','unusable')`,
+    ),
+    check("timing_segment_accepted_ms", sql`${t.acceptedMs} >= 0`),
+  ],
+);
+
+export const attemptTimingSnapshots = pgTable(
+  "attempt_timing_snapshots",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    attemptId: uuid("attempt_id")
+      .notNull()
+      .references(() => attempts.id),
+    episodeId: uuid("episode_id").references(() => tutoringEpisodes.id),
+    version: integer().notNull().default(1),
+    firstAttemptMs: integer("first_attempt_ms"),
+    selfCheckMs: integer("self_check_ms"),
+    postHintMs: integer("post_hint_ms"),
+    totalActiveMs: integer("total_active_ms"),
+    wallMs: integer("wall_ms"),
+    quality: text().notNull().default("missing"),
+    reasonCodes: jsonb("reason_codes").notNull().default([]),
+    firstSubmittedAt: timestamp("first_submitted_at", { withTimezone: true }),
+    evidenceBoundary: jsonb("evidence_boundary").notNull().default({}),
+    createdAt: time("created_at"),
+  },
+  (t) => [
+    uniqueIndex("attempt_timing_snapshot_version").on(t.attemptId, t.version),
+    index("attempt_timing_snapshot_episode").on(t.episodeId),
+    check(
+      "attempt_timing_snapshot_quality_check",
+      sql`${t.quality} IN ('reliable','partial','unusable','missing')`,
+    ),
+    check(
+      "attempt_timing_snapshot_non_negative",
+      sql`(${t.firstAttemptMs} IS NULL OR ${t.firstAttemptMs} >= 0) AND (${t.selfCheckMs} IS NULL OR ${t.selfCheckMs} >= 0) AND (${t.postHintMs} IS NULL OR ${t.postHintMs} >= 0) AND (${t.totalActiveMs} IS NULL OR ${t.totalActiveMs} >= 0) AND (${t.wallMs} IS NULL OR ${t.wallMs} >= 0)`,
+    ),
+  ],
+);
+
 export const attemptProcessEvidence = pgTable(
   "attempt_process_evidence",
   {
