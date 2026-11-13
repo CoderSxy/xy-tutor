@@ -1,16 +1,29 @@
 :root {
   --background: #eef5f2;
   --surface: #fff;
+  --surface-muted: #f0f7f3;
+  --surface-sunken: #e4eee8;
   --foreground: #18382f;
   --muted: #536b62;
   --primary: #114d40;
   --primary-hover: #0a3b30;
   --primary-soft: #d9ece3;
+  --primary-raised: #235d50;
+  --primary-line: #3c6d60;
+  --on-primary: #e9f4ee;
+  --on-primary-muted: #b7d2c4;
   --border: #d3e2db;
+  --border-strong: #a8c4b7;
+  --focus: #2f7d5f;
   --danger: #a63232;
+  --danger-soft: #f8e8e7;
   --warning: #85520c;
+  --warning-soft: #f7edda;
   --success: #176346;
+  --success-soft: #e2f1e8;
   --radius: 14px;
   --font-sans: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-  --sidebar-width: 232px;
+  --sidebar-width: 240px;
+  --topbar-height: 48px;
+  --tabbar-height: 56px;
 }

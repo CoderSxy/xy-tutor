@@ -87,11 +87,13 @@ export function TutorPanel({
   messages,
   stream,
   status,
+  loading,
   onRetry,
 }: {
   messages: MessageHistory[];
   stream: string;
   status: string;
+  loading?: boolean;
   onRetry?: () => void;
 }) {
   const container = useRef<HTMLDivElement>(null),
@@ -157,9 +159,16 @@ export function TutorPanel({
           }
         }}
       >
-        {!messages.length && !stream && (
+        {!messages.length && !stream && loading && (
+          <div className="tutor-skeleton" aria-hidden>
+            <span style={{ width: "42%" }} />
+            <span style={{ width: "78%" }} />
+            <span style={{ width: "64%" }} />
+          </div>
+        )}
+        {!messages.length && !stream && !loading && (
           <div className="tutor-welcome">
-            <BookOpen size={30} />
+            <BookOpen size={32} />
             <h2>我们一起想明白</h2>
             <p>
               告诉老师你最近学到哪里，或从当前题目开始。需要时可以请求提示。
@@ -274,7 +283,7 @@ export function TutorPanel({
         )}
         {finishedAt && !busy && (
           <p className="tutor-status is-done" role="status">
-            <Check size={14} />
+            <Check size={16} />
             回答已完成 · {finishedAt}
           </p>
         )}

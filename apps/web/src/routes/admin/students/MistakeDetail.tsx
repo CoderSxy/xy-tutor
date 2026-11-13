@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import {
   filterSearch,
   useMistakeDetail,
@@ -40,7 +41,8 @@ export function MistakeDetail() {
           to={`/admin/students/${encodeURIComponent(studentId)}/mistakes${filterSearch(filter)}`}
           state={{ listSearch }}
         >
-          ← 返回错题列表
+          <ArrowLeft size={16} />
+          返回错题列表
         </Link>
       </p>
       <InsightStatus

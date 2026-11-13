@@ -1,4 +1,5 @@
 import { Link, NavLink, Outlet, useLocation, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import type {
   InsightFilter,
   InsightMeta,
@@ -39,7 +40,10 @@ export function StudentLayout() {
   return (
     <>
       <p className="insight-back">
-        <Link to={`/admin/students${listSearch}`}>← 返回学生总览</Link>
+        <Link to={`/admin/students${listSearch}`}>
+          <ArrowLeft size={16} />
+          返回学生总览
+        </Link>
       </p>
       <InsightStatus
         loading={overview.loading}

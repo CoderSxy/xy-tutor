@@ -24,9 +24,14 @@ export function SessionRail({
     a.studentId ? a.scoped("/api/tasks") : null,
     10,
   );
+  const firstRefresh = useRef(true);
   useEffect(() => {
-    tasks.reload();
-  }, [refreshKey, tasks.reload]);
+    if (firstRefresh.current) {
+      firstRefresh.current = false;
+      return;
+    }
+    tasks.refresh();
+  }, [refreshKey, tasks.refresh]);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [editingId, setEditingId] = useState(""),
@@ -70,7 +75,7 @@ export function SessionRail({
           method: "PATCH",
           ...jsonBody({ expectedVersion: latest.version, status: "active" }),
         });
-        tasks.reload();
+        tasks.refresh();
         if (t.id === currentId) onTaskChange?.();
       } catch {
         // 恢复失败时仍可打开会话，由学习页给出提示
@@ -89,7 +94,7 @@ export function SessionRail({
         ...jsonBody({ title }),
       });
       setEditingId("");
-      tasks.reload();
+      tasks.refresh();
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -102,7 +107,7 @@ export function SessionRail({
     try {
       await api(a.scoped(`/api/tasks/${t.id}`), { method: "DELETE" });
       setConfirmId("");
-      tasks.reload();
+      tasks.refresh();
       if (t.id === currentId) navigate("/");
     } catch (e) {
       setError(errorMessage(e));
@@ -166,14 +171,14 @@ export function SessionRail({
                       aria-label="保存标题"
                       disabled={busy || !editText.trim()}
                     >
-                      <Check size={15} />
+                      <Check size={16} />
                     </button>
                     <button
                       type="button"
                       aria-label="取消"
                       onClick={() => setEditingId("")}
                     >
-                      <X size={15} />
+                      <X size={16} />
                     </button>
                   </form>
                 ) : (
@@ -202,7 +207,7 @@ export function SessionRail({
                         setEditingId(t.id);
                       }}
                     >
-                      <Pencil size={15} />
+                      <Pencil size={16} />
                     </button>
                     <button
                       type="button"
@@ -210,7 +215,7 @@ export function SessionRail({
                       title="删除会话"
                       onClick={() => setConfirmId(t.id)}
                     >
-                      <Trash2 size={15} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 )}

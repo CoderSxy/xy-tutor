@@ -31,7 +31,7 @@ export function Login() {
     <div className="auth-page">
       <section className="auth-story">
         <div className="brand">
-          <BookOpen size={30} />
+          <BookOpen size={32} />
           <span>XY Tutor</span>
         </div>
         <h1>
@@ -40,13 +40,13 @@ export function Login() {
           更要学明白。
         </h1>
         <p>
-          从一本教材、一个问题开始。通过提问、练习与回顾，把每一步理解留在这里。
+          从一个问题开始。提问、练习、回顾，每一步理解都留在这里。
         </p>
       </section>
       <main className="auth-form">
         <div>
-          <h1>欢迎回来</h1>
-          <p className="muted">登录你的学习账号，继续上次的进度。</p>
+          <h1>登录</h1>
+          <p className="muted">学生与教师共用这个入口，登录后回到上次的进度。</p>
           <form className="form-stack" onSubmit={submit}>
             <Field label="账号">
               <Input
@@ -72,7 +72,7 @@ export function Login() {
             )}
             <Button disabled={busy} type="submit">
               {busy ? "正在登录…" : "登录"}
-              <ArrowRight size={18} />
+              <ArrowRight size={16} />
             </Button>
           </form>
           <p className="auth-footer">

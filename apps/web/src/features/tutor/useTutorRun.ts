@@ -10,23 +10,35 @@ export function useTutorRun(conversationId?: string) {
     [stream, setStream] = useState(""),
     [runId, setRunId] = useState<string>(),
     [status, setStatus] = useState("idle"),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [messagesLoading, setMessagesLoading] = useState(false);
   const lastId = useRef("0");
+  const activeConversation = useRef(conversationId);
+  activeConversation.current = conversationId;
   const reload = useCallback(async () => {
-    if (conversationId)
-      setMessages(
-        await api<MessageHistory[]>(
-          a.scoped(`/api/conversations/${conversationId}/messages`),
-        ),
-      );
+    if (!conversationId) return;
+    const list = await api<MessageHistory[]>(
+      a.scoped(`/api/conversations/${conversationId}/messages`),
+    );
+    // 切换会话后旧请求可能后到，不能让它把新会话的消息覆盖掉
+    if (activeConversation.current === conversationId) setMessages(list);
   }, [conversationId, a.studentId]);
   useEffect(() => {
-    setMessages([]);
     setStream("");
     setRunId(undefined);
     setStatus("idle");
-    if (!conversationId) return;
-    void reload().catch((e) => setError(errorMessage(e)));
+    if (!conversationId) {
+      setMessages([]);
+      setMessagesLoading(false);
+      return;
+    }
+    setMessagesLoading(true);
+    void reload()
+      .catch((e) => setError(errorMessage(e)))
+      .finally(() => {
+        if (activeConversation.current === conversationId)
+          setMessagesLoading(false);
+      });
     const key = `xy.run.${conversationId}`;
     void api<Run | null>(
       a.scoped(`/api/conversations/${conversationId}/latest-run`),
@@ -204,6 +216,7 @@ export function useTutorRun(conversationId?: string) {
   };
   return {
     messages,
+    messagesLoading,
     stream,
     status,
     error,

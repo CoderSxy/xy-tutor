@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import {
   filterSearch,
   useTaskAttempts,
@@ -61,7 +62,8 @@ export function RecordDetail() {
           to={`/admin/students/${encodeURIComponent(studentId)}/records${filterSearch(filter)}`}
           state={{ listSearch }}
         >
-          ← 返回学习记录
+          <ArrowLeft size={16} />
+          返回学习记录
         </Link>
       </p>
       <InsightStatus
@@ -153,7 +155,11 @@ export function RecordDetail() {
                             {dateTime(attempt.createdAt)}
                           </span>
                           {attempt.assessment && (
-                            <strong>
+                            <strong className="verify-state">
+                              <span
+                                className={`verify-dot ${attempt.assessment.verification === "verified" ? "" : "is-pending"}`}
+                                aria-hidden
+                              />
                               {CORRECTNESS_LABELS[
                                 attempt.assessment.correctness
                               ] ?? attempt.assessment.correctness}

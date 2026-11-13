@@ -123,7 +123,7 @@ export function MistakeDetail() {
         <div className="form-actions">
           {sources.data?.map((s, i) => (
             <Button variant="outline" key={i} onClick={() => setSource(s)}>
-              查看原图 · 第{s.pageIndex + 1}页
+              查看原图 · 第 {s.pageIndex + 1} 页
             </Button>
           ))}
         </div>

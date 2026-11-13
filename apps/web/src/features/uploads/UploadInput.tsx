@@ -199,7 +199,7 @@ export function UploadInput({
                 style={{ transform: `rotate(${rotation}deg)` }}
               />
             ) : (
-              <FileText size={40} />
+              <FileText size={32} />
             )}
             <strong>{file.name}</strong>
             <span className="muted text-small">
@@ -213,12 +213,12 @@ export function UploadInput({
                 disabled={busy}
                 onClick={() => setRotation((v) => (v + 90) % 360)}
               >
-                <RotateCw size={17} />
+                <RotateCw size={16} />
                 旋转
               </Button>
             )}
             <Button disabled={busy} onClick={() => void upload()}>
-              <Upload size={17} />
+              <Upload size={16} />
               {busy ? `上传中 ${progress}%` : "确认上传"}
             </Button>
             <Button
@@ -235,7 +235,7 @@ export function UploadInput({
         </>
       ) : (
         <>
-          <Upload size={30} />
+          <Upload size={32} />
           <h3>
             {purpose === "textbook"
               ? "上传电子教材 PDF"
@@ -254,7 +254,7 @@ export function UploadInput({
             </Button>
             {purpose === "student_material" && (
               <Button variant="ghost" onClick={() => camera.current?.click()}>
-                <Camera size={18} />
+                <Camera size={16} />
                 拍照
               </Button>
             )}

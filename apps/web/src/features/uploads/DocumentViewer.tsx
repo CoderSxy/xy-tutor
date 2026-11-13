@@ -53,11 +53,11 @@ export function DocumentViewer({
         <Dialog.Content className="document-dialog">
           <div className="section-head">
             <Dialog.Title asChild>
-              <h2>原始资料 · 第{pageIndex + 1}页</h2>
+              <h2>原始资料 · 第 {pageIndex + 1} 页</h2>
             </Dialog.Title>
             <Dialog.Close asChild>
               <Button size="icon" variant="ghost" aria-label="关闭原图">
-                <X size={20} />
+                <X size={16} />
               </Button>
             </Dialog.Close>
           </div>

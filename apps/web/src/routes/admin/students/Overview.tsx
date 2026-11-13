@@ -89,7 +89,10 @@ function MaterialRow({ item }: { item: MaterialCoverage }) {
         <span>
           已答 {item.answeredQuestions}/{item.totalQuestions} 题
         </span>
-        <span className="muted">已核验 {item.verifiedQuestions} 题</span>
+        <span className="muted">
+          <span className="verify-dot" aria-hidden />
+          已核验 {item.verifiedQuestions} 题
+        </span>
       </div>
     </div>
   );
@@ -110,13 +113,17 @@ export function Overview() {
   return (
     <div className="insight-overview">
       <CoverageNote meta={meta} />
-      {noLearning && <p className="insight-empty-note">暂无学习记录。</p>}
+      {noLearning && <p className="insight-empty-note">这位学生还没有作答记录。</p>}
       <dl className="insight-summary" aria-label="学生核心指标">
         <div>
           <dt>作答次数</dt>
           <dd>{counts.attempts}</dd>
           <small className="muted">
-            题目 {counts.questions} 道 · 待核验 {counts.firstAttemptPending}
+            题目 {counts.questions} 道 ·{" "}
+            <span className="verify-state">
+              <span className="verify-dot is-pending" aria-hidden />
+              待核验 {counts.firstAttemptPending}
+            </span>
           </small>
         </div>
         <div>
@@ -241,7 +248,7 @@ export function Overview() {
               ))}
             </div>
           ) : (
-            <p className="muted">暂无学习记录。</p>
+            <p className="muted">还没有可用的资料。</p>
           )}
         </section>
       </div>

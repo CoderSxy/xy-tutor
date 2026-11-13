@@ -85,7 +85,7 @@ export function Materials() {
         ) : list.data?.length ? (
           list.data.map((m) => (
             <div className="list-row" key={m.id}>
-              <FileText size={24} />
+              <FileText size={32} />
               <div className="grow">
                 <h3>{m.name}</h3>
                 <p>

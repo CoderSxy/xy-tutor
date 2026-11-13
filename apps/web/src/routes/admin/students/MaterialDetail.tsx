@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import {
   filterSearch,
@@ -58,7 +59,8 @@ export function MaterialDetail() {
           to={`/admin/students/${encodeURIComponent(studentId)}/materials${filterSearch(filter)}`}
           state={{ listSearch }}
         >
-          ← 返回作业与试卷
+          <ArrowLeft size={16} />
+          返回作业与试卷
         </Link>
       </p>
       <InsightStatus
@@ -181,6 +183,10 @@ export function MaterialDetail() {
                       <li key={question.questionVersionId}>
                         <p>{question.stem}</p>
                         <p className="muted">
+                          <span
+                            className={`verify-dot ${question.verified ? "" : "is-pending"}`}
+                            aria-hidden
+                          />
                           {question.knowledgePoint ?? "未标注知识点"}
                           {question.answered ? " · 已作答" : " · 未作答"}
                           {question.verified ? " · 已核验" : " · 待核验"}

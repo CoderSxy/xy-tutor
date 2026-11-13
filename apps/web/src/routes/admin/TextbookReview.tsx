@@ -154,7 +154,7 @@ export function TextbookReview() {
               >
                 {pages.data.map((p) => (
                   <option key={p.id} value={p.pageIndex}>
-                    第{p.pageIndex + 1}页 ·{" "}
+                    第 {p.pageIndex + 1} 页 ·{" "}
                     {p.excluded
                       ? p.status === "ready" && !p.text.trim()
                         ? "已自动排除（无文字）"

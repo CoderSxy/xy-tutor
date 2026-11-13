@@ -53,10 +53,16 @@ export function InsightTrend({ points }: { points: DailyPoint[] }) {
                 y1={y}
                 x2={WIDTH - PAD.right}
                 y2={y}
-                stroke="#dbe5df"
+                className="trend-grid"
                 strokeWidth="1"
               />
-              <text x={PAD.left - 8} y={y + 4} textAnchor="end" fontSize="12" fill="#667a70">
+              <text
+                className="trend-axis"
+                x={PAD.left - 8}
+                y={y + 4}
+                textAnchor="end"
+                fontSize="12"
+              >
                 {value}
               </text>
             </g>
@@ -72,8 +78,7 @@ export function InsightTrend({ points }: { points: DailyPoint[] }) {
               width={barWidth}
               height={Math.max(point.attempts > 0 ? 2 : 0, height)}
               rx="2"
-              fill="#3f8f6b"
-              opacity="0.75"
+              className="trend-bar"
             >
               <title>
                 {point.date}：作答 {point.attempts} 次，题目 {point.questions} 道
@@ -84,8 +89,8 @@ export function InsightTrend({ points }: { points: DailyPoint[] }) {
         {accuracyPoints.length > 1 && (
           <polyline
             fill="none"
-            stroke="#1f5f47"
-            strokeWidth="2.5"
+            className="trend-line"
+            strokeWidth="2"
             strokeLinejoin="round"
             points={accuracyPoints
               .map(({ index, value }) => `${xAt(index)},${accuracyY(value)}`)
@@ -98,7 +103,7 @@ export function InsightTrend({ points }: { points: DailyPoint[] }) {
             cx={xAt(index)}
             cy={accuracyY(value)}
             r="3.5"
-            fill="#1f5f47"
+            className="trend-dot"
           >
             <title>
               {points[index]!.date}：首次正确率 {Math.round(value * 100)}%
@@ -113,8 +118,7 @@ export function InsightTrend({ points }: { points: DailyPoint[] }) {
             )}
             y={Math.max(PAD.top + 10, accuracyY(lastAccuracy.value) - 8)}
             fontSize="12"
-            fill="#1f5f47"
-            fontWeight="600"
+            className="trend-callout"
           >
             首次正确率 {Math.round(lastAccuracy.value * 100)}%
           </text>
@@ -126,7 +130,7 @@ export function InsightTrend({ points }: { points: DailyPoint[] }) {
             y={HEIGHT - 8}
             textAnchor="middle"
             fontSize="12"
-            fill="#667a70"
+            className="trend-axis"
           >
             {shortDay(points[index]!.date)}
           </text>

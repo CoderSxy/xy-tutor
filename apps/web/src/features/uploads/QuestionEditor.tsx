@@ -69,7 +69,7 @@ export function QuestionEditor({
       <small className="muted">
         来源：
         {[
-          ...new Set(question.sources.map((s) => `第${s.pageIndex + 1}页`)),
+          ...new Set(question.sources.map((s) => `第 ${s.pageIndex + 1} 页`)),
         ].join("、")}
       </small>
     </section>

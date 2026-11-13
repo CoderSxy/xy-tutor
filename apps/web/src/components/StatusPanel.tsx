@@ -26,7 +26,7 @@ export function StatusPanel({
     >
       <Icon
         aria-hidden
-        size={28}
+        size={32}
         className={state === "loading" ? "spin" : ""}
       />
       <h3>{title}</h3>

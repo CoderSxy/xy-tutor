@@ -28,7 +28,7 @@ export function TaskHistory() {
     <section className="panel history-panel">
       <div className="history-toolbar">
         <label className="history-search">
-          <Search size={15} aria-hidden />
+          <Search size={16} aria-hidden />
           <input
             type="text"
             value={search}
@@ -43,7 +43,7 @@ export function TaskHistory() {
               aria-label="清空搜索"
               onClick={() => setSearch("")}
             >
-              <X size={14} />
+              <X size={16} />
             </button>
           )}
         </label>
@@ -68,7 +68,7 @@ export function TaskHistory() {
                   {fullDate(t.updatedAt)}
                 </p>
                 <p className="history-book">
-                  <BookOpen size={14} />
+                  <BookOpen size={16} />
                   未绑定教材
                 </p>
               </div>

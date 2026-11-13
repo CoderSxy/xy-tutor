@@ -136,7 +136,7 @@ export function Home() {
     return (
       <>
         <div className="page-heading">
-          <h1>欢迎使用 XY Tutor</h1>
+          <h1>还没有学生账号</h1>
           <p>先整理并发布知识点，再邀请学习账号，即可开始使用。</p>
         </div>
         <Button asChild>
@@ -153,7 +153,7 @@ export function Home() {
       )}
       {a.capabilities && !a.capabilities.llmConfigured && (
         <div className="notice">
-          <MessageCircle size={20} />
+          <MessageCircle size={16} />
           <span>
             辅导服务尚未启用。你可以先整理错题，启用后继续学习。
           </span>
@@ -165,34 +165,38 @@ export function Home() {
           <div className="chat-landing-body">
             <div className="chat-hero">
               <span className="chat-eyebrow">
-                <Sparkles size={15} />
+                <Sparkles size={16} />
                 今天，从哪里开始？
               </span>
               <h1 className="chat-title">选一个方向，或者直接说出来。</h1>
               <p className="chat-lede">
                 左边可以接着之前的学习；也可以在下面开始新的练习、巩固，或者把没想明白的直接问出来。
               </p>
+              <div className="start-grid" aria-label="快捷开始">
+                {quickStarts.map(({ kind, label, description, icon: Icon }) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    aria-label={label}
+                    className={`start-card${kind === "daily_practice" ? " is-primary" : ""}`}
+                    disabled={busy}
+                    title={description}
+                    onClick={() => {
+                      if (kind === "free_question") prepareFreeQuestion();
+                      else void quickStart(kind);
+                    }}
+                  >
+                    <span className="start-card-icon">
+                      <Icon size={18} />
+                    </span>
+                    <span className="start-card-label">{label}</span>
+                    <span className="start-card-desc">{description}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
           <div className="composer-dock">
-            <div className="quick-chips" aria-label="快捷开始">
-              {quickStarts.map(({ kind, label, description, icon: Icon }) => (
-                <button
-                  key={kind}
-                  type="button"
-                  className="quick-chip"
-                  disabled={busy}
-                  title={description}
-                  onClick={() => {
-                    if (kind === "free_question") prepareFreeQuestion();
-                    else void quickStart(kind);
-                  }}
-                >
-                  <Icon size={16} />
-                  {label}
-                </button>
-              ))}
-            </div>
             <Composer
               busy={false}
               hasQuestion={false}

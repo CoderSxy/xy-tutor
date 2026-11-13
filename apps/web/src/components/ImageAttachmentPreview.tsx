@@ -63,7 +63,7 @@ function ImageLightbox({
             setActive((current) => (current + images.length - 1) % images.length)
           }
         >
-          <ChevronLeft size={22} />
+          <ChevronLeft size={20} />
         </button>
       )}
       <figure className="image-lightbox-stage">
@@ -81,7 +81,7 @@ function ImageLightbox({
           aria-label="下一张图片"
           onClick={() => setActive((current) => (current + 1) % images.length)}
         >
-          <ChevronRight size={22} />
+          <ChevronRight size={20} />
         </button>
       )}
     </div>

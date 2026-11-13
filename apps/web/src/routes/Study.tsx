@@ -36,7 +36,7 @@ export function Study() {
   const railRefresh = `${id}:${task.data?.version}:${tutor.status}:${tutor.messages.at(-1)?.id}`;
   const current =
     items.data?.find((q) => q.status === "pending") ?? items.data?.at(-1);
-  if (task.loading || task.error || !task.data)
+  if (!task.data)
     return (
       <div className="home-layout">
         <SessionRail
@@ -56,6 +56,9 @@ export function Study() {
       </div>
     );
   const data = task.data;
+  // 切换会话时旧数据会先留着，等新数据到了再整体换掉，避免整块闪一下
+  const ready = data.id === id;
+  const switching = !ready || items.forPath !== id;
   const resume = async () => {
     try {
       await api(a.scoped(`/api/tasks/${id}`), {
@@ -95,10 +98,13 @@ export function Study() {
         refreshKey={railRefresh}
         onTaskChange={task.reload}
       />
-      <section className="study-main">
-        {(error || tutor.error) && (
+      <section
+        className={`study-main${switching ? " is-switching" : ""}`}
+        aria-busy={switching}
+      >
+        {(error || tutor.error || task.error) && (
           <p className="notice error-text" role="alert">
-            {error || tutor.error}
+            {error || tutor.error || task.error}
           </p>
         )}
         {data.status === "paused" && (
@@ -119,26 +125,26 @@ export function Study() {
                 onClick={() => setQuestionOpen(!questionOpen)}
               >
                 当前题目
-                <ChevronDown size={18} />
+                <ChevronDown size={16} />
               </button>
               <div className="question-body">
                 <QuestionCard question={current} />
                 <div className="question-tools">
                   <Button
                     variant="outline"
-                    disabled={tutor.busy || data.status !== "active"}
+                    disabled={!ready || tutor.busy || data.status !== "active"}
                     onClick={() =>
                       void tutor.submit(
                         "这道题我还不太会，请先给一个小提示，不要直接给完整解法。",
                       )
                     }
                   >
-                    <CircleHelp size={17} />
+                    <CircleHelp size={16} />
                     给我一个提示
                   </Button>
                   <Button
                     variant="ghost"
-                    disabled={tutor.busy || data.status !== "active"}
+                    disabled={!ready || tutor.busy || data.status !== "active"}
                     onClick={async () => {
                       try {
                         await api(a.scoped(`/api/tasks/${id}/skip`), {
@@ -165,10 +171,10 @@ export function Study() {
               <h1>{kindLabels[data.kind]}</h1>
               <Button
                 variant="outline"
-                disabled={tutor.busy || data.status === "completed"}
+                disabled={!ready || tutor.busy || data.status === "completed"}
                 onClick={() => void finish()}
               >
-                <Check size={17} />
+                <Check size={16} />
                 结束本次学习
               </Button>
             </header>
@@ -176,6 +182,7 @@ export function Study() {
               messages={tutor.messages}
               stream={tutor.stream}
               status={tutor.status}
+              loading={tutor.messagesLoading}
               onRetry={() => void tutor.retry()}
             />
             {data.status === "completed" && (
@@ -205,7 +212,7 @@ export function Study() {
                       )
                     }
                   >
-                    <Sparkles size={15} />
+                    <Sparkles size={16} />
                     开始本次辅导
                   </button>
                 )}
@@ -213,7 +220,9 @@ export function Study() {
                   busy={tutor.busy}
                   hasQuestion={!!current}
                   onSubmit={(submission) =>
-                    tutor.submit(submission, current?.questionVersionId)
+                    ready
+                      ? tutor.submit(submission, current?.questionVersionId)
+                      : Promise.resolve(false)
                   }
                   onCancel={tutor.cancel}
                   attachments={images}

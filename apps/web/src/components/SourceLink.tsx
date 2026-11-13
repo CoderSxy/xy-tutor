@@ -11,7 +11,7 @@ export function SourceLink({
     <Button variant="ghost" size="small" onClick={onOpen}>
       <FileSearch size={16} />
       {source.label}
-      {source.pageIndex !== undefined ? ` · 第${source.pageIndex + 1}页` : ""}
+      {source.pageIndex !== undefined ? ` · 第 ${source.pageIndex + 1} 页` : ""}
     </Button>
   );
 }

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { api, errorMessage } from "./api";
 export function useRemote<T>(path: string | null) {
   const [data, setData] = useState<T>();
+  const [forPath, setForPath] = useState<string>();
   const [loading, setLoading] = useState(!!path);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
@@ -9,6 +10,7 @@ export function useRemote<T>(path: string | null) {
   useEffect(() => {
     if (!path) {
       setData(undefined);
+      setForPath(undefined);
       setLoading(false);
       return;
     }
@@ -17,7 +19,10 @@ export function useRemote<T>(path: string | null) {
     setError("");
     api<T>(path, { signal: controller.signal })
       .then((value) => {
-        if (!controller.signal.aborted) setData(value);
+        if (!controller.signal.aborted) {
+          setData(value);
+          setForPath(path);
+        }
       })
       .catch((e) => {
         if (!controller.signal.aborted) setError(errorMessage(e));
@@ -27,5 +32,5 @@ export function useRemote<T>(path: string | null) {
       });
     return () => controller.abort();
   }, [path, revision]);
-  return { data, setData, loading, error, reload };
+  return { data, forPath, setData, loading, error, reload };
 }

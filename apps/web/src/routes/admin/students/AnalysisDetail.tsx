@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import type {
   ReportDTO,
   ReportStatus,
@@ -94,7 +95,8 @@ export function AnalysisDetail() {
           to={`/admin/students/${encodeURIComponent(studentId)}/analysis${backSearch}`}
           state={{ listSearch }}
         >
-          ← 返回 AI 分析
+          <ArrowLeft size={16} />
+          返回 AI 分析
         </Link>
       </p>
       <InsightStatus

@@ -77,6 +77,8 @@ export function Composer({
       document.removeEventListener("keydown", escape);
     };
   }, [imageMenu]);
+  const coarsePointer = () =>
+    window.matchMedia("(pointer: coarse)").matches;
   const mobileCamera = () =>
     navigator.maxTouchPoints > 0 &&
     (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
@@ -206,7 +208,7 @@ export function Composer({
                     }
                     onClick={() => attachments.rotate(item.id)}
                   >
-                    <RotateCw size={13} />
+                    <RotateCw size={16} />
                   </button>
                   {item.status === "failed" && (
                     <button
@@ -215,7 +217,7 @@ export function Composer({
                       title="重试"
                       onClick={() => attachments.retry(item.id)}
                     >
-                      <ArrowUp size={13} />
+                      <ArrowUp size={16} />
                     </button>
                   )}
                   <button
@@ -224,7 +226,7 @@ export function Composer({
                     title="移除"
                     onClick={() => attachments.remove(item.id)}
                   >
-                    <X size={13} />
+                    <X size={16} />
                   </button>
                 </div>
               </div>
@@ -269,7 +271,8 @@ export function Composer({
               !e.shiftKey &&
               !composing.current &&
               !e.nativeEvent.isComposing &&
-              e.keyCode !== 229
+              e.keyCode !== 229 &&
+              !coarsePointer()
             ) {
               e.preventDefault();
               void send();
@@ -298,7 +301,7 @@ export function Composer({
                   else pick(fileRef);
                 }}
               >
-                <Plus size={20} />
+                <Plus size={16} />
               </button>
               {imageMenu && (
                 <div
@@ -313,7 +316,7 @@ export function Composer({
                       pick(captureRef);
                     }}
                   >
-                    <Camera size={17} />
+                    <Camera size={16} />
                     拍照
                   </button>
                   <button
@@ -323,7 +326,7 @@ export function Composer({
                       pick(fileRef);
                     }}
                   >
-                    <ImagePlus size={17} />
+                    <ImagePlus size={16} />
                     选择图片
                   </button>
                 </div>
@@ -343,7 +346,7 @@ export function Composer({
               aria-label="停止回答"
               title="停止回答"
             >
-              <Square size={13} fill="currentColor" />
+              <Square size={16} fill="currentColor" />
             </button>
           ) : (
             <button
@@ -353,7 +356,7 @@ export function Composer({
               aria-label="发送消息"
               title="发送"
             >
-              <ArrowUp size={19} />
+              <ArrowUp size={16} />
             </button>
           )}
         </div>

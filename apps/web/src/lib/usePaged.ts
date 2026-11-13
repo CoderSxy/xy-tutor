@@ -15,14 +15,14 @@ export function usePaged<T>(path: string | null, pageSize = 10) {
   const controller = useRef<AbortController | null>(null);
 
   const load = useCallback(
-    async (offset: number, append: boolean): Promise<boolean> => {
+    async (offset: number, append: boolean, silent = false): Promise<boolean> => {
       if (!path) return false;
       const id = ++seq.current;
       controller.current?.abort();
       const next = new AbortController();
       controller.current = next;
       if (append) setLoadingMore(true);
-      else setLoading(true);
+      else if (!silent) setLoading(true);
       setError("");
       try {
         const sep = path.includes("?") ? "&" : "?";
@@ -60,6 +60,13 @@ export function usePaged<T>(path: string | null, pageSize = 10) {
     setTotal(0);
     setPage(0);
     void load(0, false);
+  }, [path, load]);
+
+  // 原地刷新：不清空列表也不进入 loading 态，避免刷新时整块闪一下
+  const refresh = useCallback(() => {
+    if (!path) return;
+    setPage(0);
+    void load(0, false, true);
   }, [path, load]);
 
   useEffect(() => {
@@ -107,5 +114,6 @@ export function usePaged<T>(path: string | null, pageSize = 10) {
     loadMore,
     goTo,
     reload,
+    refresh,
   };
 }

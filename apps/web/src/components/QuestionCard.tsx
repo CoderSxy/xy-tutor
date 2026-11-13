@@ -23,7 +23,7 @@ export function QuestionCard({
             aria-label="查看原图"
             onClick={onViewSource}
           >
-            <FileSearch size={20} />
+            <FileSearch size={16} />
           </Button>
         )}
       </div>
