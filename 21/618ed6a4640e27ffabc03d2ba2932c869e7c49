@@ -1,0 +1,66 @@
+apps/server/src/modules/conversations/messages.ts
+  s_97c29780633e34::t_bcfe58158c8487 152-157
+  s_97c29780633e34::t_98fb6efc7a6f77 11
+apps/server/src/modules/learning/assessments.ts
+  s_97c29780633e34::t_c6923f1996688e 22
+  s_97c29780633e34::t_b1fb07e9178576 296-306
+  s_97c29780633e34::t_bbc23f92f495ad 265-274
+apps/server/src/modules/tutoring/routes.ts
+  s_97c29780633e34::t_937fdb18368611 58-64
+  s_97c29780633e34::t_711b29f7519e60 3-6,9,12-37,40-44
+apps/server/src/modules/tutoring/diagnosis-service.ts
+  s_97c29780633e34::t_0fc8ea971f1c1f 22,24-25
+  s_97c29780633e34::t_e63de9f91f4288 1-21,23,26-29,45-55,59-74,76-132,137,139-358,361,363-505
+  s_97c29780633e34::t_613f2c44a954e6 133-136,138
+  s_97c29780633e34::t_0cd0cb91d92d22 359-360,362
+  s_97c29780633e34::t_675a3ecc8302f2 75
+  s_97c29780633e34::t_17a0b56f96aa35 30-44,56-58
+apps/server/src/modules/learning/corrections.ts
+  s_97c29780633e34::t_87c5afec06b72a 26-31
+  s_97c29780633e34::t_8782d4dd20b7f5 5
+apps/server/src/agent/context.ts
+  s_97c29780633e34::t_c36fc105c5f5eb 107-114
+  s_97c29780633e34::t_263da3b38cc65b 125-126
+apps/server/src/modules/tutoring/diagnosis-invalidation.ts
+  s_97c29780633e34::t_bbfc8357bdd9ab 1-27
+apps/server/src/app.ts
+  s_97c29780633e34::t_a6d78aa5a41482 28
+  s_97c29780633e34::t_5beaeb1b293b70 160-164
+tests/integration/tutoring-diagnosis.test.ts
+  s_97c29780633e34::t_883d70ce424df1 518-525
+  s_97c29780633e34::t_746dac59d70d6d 33-36
+  s_97c29780633e34::t_3e652fe805b221 1-7,9-32,37-53,63-517,526-688
+  s_97c29780633e34::t_db8f08f57fc4ef 8
+  s_97c29780633e34::t_960347e791327b 54-62
+packages/contracts/src/tutoring.ts
+  s_97c29780633e34::t_e096511140d185 161-166,168,171-185
+apps/server/src/modules/tutoring/diagnosis-rules.ts
+  s_97c29780633e34::t_3342363b146f64 1-63,69-136,138-191,196-207,211-287
+  s_97c29780633e34::t_48349aff67b75e 192-195
+  s_97c29780633e34::t_fadebcad31742d 208-210
+  s_97c29780633e34::t_a57cdc10376de1 64-68
+  s_97c29780633e34::t_3323a02b092eee 137
+apps/server/src/modules/materials/service.ts
+  s_97c29780633e34::t_11d60d6adbb617 14
+  s_97c29780633e34::t_460ca1cf0e412a 349-354
+apps/server/src/modules/tutoring/process-evidence.ts
+  s_97c29780633e34::t_459161fa1db754 1-118
+tests/unit/diagnosis-rules.test.ts
+  s_97c29780633e34::t_2b52fc477ea05e 1-144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "21618ed6a4640e27ffabc03d2ba2932c869e7c49",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
