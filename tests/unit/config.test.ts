@@ -21,6 +21,7 @@ describe("configuration", () => {
       timingEnabled: false,
       adaptivePracticeEnabled: false,
       learningEvaluationEnabled: false,
+      groupReferenceEnabled: false,
     });
   });
   it("parses explicit boolean flags", () => {
@@ -30,12 +31,14 @@ describe("configuration", () => {
       LEARNING_TIMING_ENABLED: "true",
       ADAPTIVE_PRACTICE_ENABLED: "true",
       LEARNING_EVALUATION_ENABLED: "true",
+      LEARNING_GROUP_REFERENCE_ENABLED: "true",
     });
     expect(config.features).toEqual({
       selfCheckEnabled: true,
       timingEnabled: true,
       adaptivePracticeEnabled: true,
       learningEvaluationEnabled: true,
+      groupReferenceEnabled: true,
     });
   });
   it("rejects adaptive practice without self check", () =>

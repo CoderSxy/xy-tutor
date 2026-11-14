@@ -21,6 +21,7 @@ import type {
   TaskItemDTO,
   TaskRecordDTO,
 } from "../../../../../packages/contracts/src/student-insights.js";
+import type { LearningEvaluationDTO } from "../../../../../packages/contracts/src/learning-evaluation.js";
 
 export type StudentListInput = {
   filter: InsightFilter;
@@ -157,6 +158,24 @@ function filterPageParams(
     if (typeof value === "string" && value !== "") params.set(key, value);
   }
   return params;
+}
+
+export function evaluationPath(
+  studentId: string,
+  filter: InsightFilter,
+): string {
+  // 评测接口只接受时间窗口，revisionId 属于列表筛选，不参与指标计算。
+  const params = new URLSearchParams({ from: filter.from, to: filter.to });
+  return `${studentBase(studentId)}/evaluation?${params.toString()}`;
+}
+
+export function useLearningEvaluation(
+  studentId: string | undefined,
+  filter: InsightFilter,
+) {
+  return useClearedRemote<LearningEvaluationDTO>(
+    studentId ? evaluationPath(studentId, filter) : null,
+  );
 }
 
 export type TaskListInput = PageInput & { status?: string; kind?: string };

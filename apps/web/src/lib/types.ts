@@ -29,6 +29,7 @@ export type Capabilities = {
   timing?: "enabled" | "disabled";
   selfCheck?: "enabled" | "disabled";
   adaptivePractice?: "enabled" | "disabled";
+  learningEvaluation?: "enabled" | "disabled";
 };
 export type TaskItem = {
   id: string;

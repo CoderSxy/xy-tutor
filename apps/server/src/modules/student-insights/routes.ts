@@ -22,9 +22,14 @@ import { resolveInsightRange } from "./metrics.js";
 import { requireAdminInsightScope } from "./policy.js";
 import { InsightQueryService } from "./queries.js";
 import { DiagnosisReviewService } from "./diagnosis-reviews.js";
-import { diagnosisReviewInputSchema } from "../../../../../packages/contracts/src/learning-evaluation.js";
+import {
+  diagnosisReviewInputSchema,
+  evaluationWindowSchema,
+} from "../../../../../packages/contracts/src/learning-evaluation.js";
+import { LearningEvaluationService } from "./learning-evaluations.js";
 import { InsightRecordService } from "./records.js";
 import { InsightReportService } from "./reports.js";
+import { AppError } from "../../../../../packages/contracts/src/api.js";
 
 export const STUDENT_INSIGHT_PREFIX = "/api/admin/student-insights";
 
@@ -32,6 +37,8 @@ export type StudentInsightDependencies = {
   database: Database;
   fileStore?: FileStore;
   gatewayConfigured?: boolean;
+  groupReferenceEnabled?: boolean;
+  learningEvaluationEnabled?: boolean;
 };
 
 export type InsightRouteEntry = {
@@ -84,6 +91,9 @@ function registerRoutes(
     deps.gatewayConfigured ?? false,
   );
   const reviews = new DiagnosisReviewService(deps.database);
+  const evaluations = new LearningEvaluationService(deps.database, {
+    groupReferenceEnabled: deps.groupReferenceEnabled ?? false,
+  });
 
   adminInsightRoute(app, "GET", "/students", async (request) => {
     const actor = requireSession(request).actor;
@@ -298,6 +308,20 @@ function registerRoutes(
       const input = diagnosisReviewInputSchema.parse(request.body);
       const result = await reviews.submit(actor, { ...input, studentId });
       return reply.code(201).send(result);
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "GET",
+    "/students/:studentId/evaluation",
+    async (request) => {
+      if (deps.learningEvaluationEnabled !== true)
+        throw new AppError("NOT_FOUND", 404, "学习评测未启用");
+      const actor = requireSession(request).actor;
+      const { studentId } = request.params as { studentId: string };
+      const input = evaluationWindowSchema.parse(request.query);
+      return evaluations.snapshot(actor, studentId, input);
     },
   );
 

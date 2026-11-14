@@ -64,6 +64,9 @@ function ReportMeta({ report }: { report: ReportDTO }) {
         本报告基于 {dateTime(report.createdAt)} 生成时的数据快照，数据截至{" "}
         {dateTime(report.dataAsOf)}；此后的学习记录不会出现在正文中。若生成时历史学习数据仍在回填，报告可能未覆盖更早的记录。
       </p>
+      <p className="muted">
+        正文中的模型只解释上方结构化证据，不负责计算提升率，也不会把先后发生说成因果。诊断被复核修正或证据被撤销后，新快照会把相关证据标为过期，本报告仍保留生成时的内容，不会被静默重算。
+      </p>
     </>
   );
 }

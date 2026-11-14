@@ -157,6 +157,10 @@ export function buildApp(deps: AppDependencies) {
         database: deps.database!,
         fileStore: deps.fileStore,
         gatewayConfigured: !!deps.gateway,
+        groupReferenceEnabled:
+          deps.config?.features.groupReferenceEnabled ?? false,
+        learningEvaluationEnabled:
+          deps.config?.features.learningEvaluationEnabled ?? false,
       });
       registerSelections(scoped);
       const materials = new MaterialService(
@@ -272,6 +276,9 @@ export function buildApp(deps: AppDependencies) {
             ? "enabled"
             : "disabled",
           adaptivePractice: deps.config!.features.adaptivePracticeEnabled
+            ? "enabled"
+            : "disabled",
+          learningEvaluation: deps.config!.features.learningEvaluationEnabled
             ? "enabled"
             : "disabled",
         };

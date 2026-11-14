@@ -8,6 +8,8 @@ import type {
 import { limitedSample, percent, sample } from "../../../features/student-insights/format";
 import { CoverageNote } from "../../../features/student-insights/InsightStatus";
 import { InsightTrend } from "../../../features/student-insights/InsightTrend";
+import { LearningEvaluationPanel } from "../../../features/student-insights/LearningEvaluationPanel";
+import { useAuth } from "../../../lib/auth";
 import type { StudentOutletContext } from "./StudentLayout";
 
 const MISTAKE_LABELS: Record<keyof MistakeCounts, string> = {
@@ -99,7 +101,10 @@ function MaterialRow({ item }: { item: MaterialCoverage }) {
 }
 
 export function Overview() {
-  const { overview, meta } = useOutletContext<StudentOutletContext>();
+  const { studentId, overview, meta, filter } =
+    useOutletContext<StudentOutletContext>();
+  const { capabilities } = useAuth();
+  const evaluationEnabled = capabilities?.learningEvaluation === "enabled";
   const counts = overview.counts;
   const noLearning =
     counts.attempts === 0 &&
@@ -236,6 +241,10 @@ export function Overview() {
             <p className="muted">暂无可核验样本。</p>
           )}
         </section>
+
+        {evaluationEnabled && (
+          <LearningEvaluationPanel studentId={studentId} filter={filter} />
+        )}
 
         <section className="panel">
           <div className="section-head">
