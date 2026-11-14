@@ -43,25 +43,27 @@ function harness() {
     store.set(e.id, e);
     return e;
   });
-  const append = vi.fn(async (episodeId: string, events: TimingEventInput[]) => {
-    const current = store.get(episodeId)!;
-    if (events.some((event) => event.leaseEpoch !== epoch))
-      throw Object.assign(new Error("作答租约已被接管"), {
-        status: 409,
-        code: "CONFLICT",
-      });
-    // 服务端按 eventId 去重：重复事件只续租，不推进版本。
-    if (events.every((event) => seen.has(event.eventId))) return current;
-    for (const event of events) seen.add(event.eventId);
-    sent.push(events);
-    const next = {
-      ...current,
-      version: current.version + 1,
-      lastSeq: Math.max(current.lastSeq, ...events.map((e) => e.seq)),
-    };
-    store.set(episodeId, next);
-    return next;
-  });
+  const append = vi.fn(
+    async (episodeId: string, events: TimingEventInput[]) => {
+      const current = store.get(episodeId)!;
+      if (events.some((event) => event.leaseEpoch !== epoch))
+        throw Object.assign(new Error("作答租约已被接管"), {
+          status: 409,
+          code: "CONFLICT",
+        });
+      // 服务端按 eventId 去重：重复事件只续租，不推进版本。
+      if (events.every((event) => seen.has(event.eventId))) return current;
+      for (const event of events) seen.add(event.eventId);
+      sent.push(events);
+      const next = {
+        ...current,
+        version: current.version + 1,
+        lastSeq: Math.max(current.lastSeq, ...events.map((e) => e.seq)),
+      };
+      store.set(episodeId, next);
+      return next;
+    },
+  );
   const client = createTimingClient({
     api: { start, append },
     monotonicNow: () => clock,
@@ -119,8 +121,9 @@ describe("timing client", () => {
     await vi.advanceTimersByTimeAsync(60_000);
     expect(h.client.snapshot().activeMs).toBe(60_000);
     expect(
-      allEvents(h.sent).filter((e) => e.kind === "checkpoint").at(-1)
-        ?.cumulativeActiveMs,
+      allEvents(h.sent)
+        .filter((e) => e.kind === "checkpoint")
+        .at(-1)?.cumulativeActiveMs,
     ).toBe(60_000);
     h.client.dispose();
   });
@@ -140,7 +143,9 @@ describe("timing client", () => {
     await vi.advanceTimersByTimeAsync(600_000);
     expect(h.client.snapshot().status).toBe("paused");
     expect(h.client.snapshot().activeMs).toBe(20_000);
-    expect(allEvents(h.sent).filter((e) => e.kind === "checkpoint")).toEqual([]);
+    expect(allEvents(h.sent).filter((e) => e.kind === "checkpoint")).toEqual(
+      [],
+    );
 
     await h.client.resume();
     h.advanceClock(15_000);
@@ -208,8 +213,9 @@ describe("timing client", () => {
       cumulativeActiveMs: 42_000,
       episodeId: submission.episodeId,
     });
-    expect(h.client.snapshot().status).toBe("finished");
-    expect(vi.getTimerCount()).toBe(0);
+    expect(h.client.snapshot().status).toBe("paused");
+    expect(vi.getTimerCount()).toBe(1);
+    h.client.dispose();
   });
 
   it("sends nothing to the answer when no episode was started", async () => {
@@ -229,4 +235,34 @@ describe("timing client", () => {
     expect(snapshot.error).toContain("接管");
     expect(vi.getTimerCount()).toBe(0);
   });
+});
+
+it("resumes the same teaching episode for correction after submitting", async () => {
+  const h = harness();
+  await h.client.start({ taskId: "t", questionVersionId: "q" });
+  const first = await h.client.prepareSubmission();
+  await h.client.resume();
+  h.advanceClock(10_000);
+  const second = await h.client.prepareSubmission();
+  expect(second.episodeId).toBe(first.episodeId);
+  expect(second.timingFinalEvent?.eventId).not.toBe(
+    first.timingFinalEvent?.eventId,
+  );
+  expect(second.timingFinalEvent?.phase).toBe("self_check");
+  expect(second.timingFinalEvent?.cumulativeActiveMs).toBe(10_000);
+  h.client.dispose();
+});
+
+it("does not send an unsubmitted final event while keeping a delayed answer alive", async () => {
+  const h = harness();
+  await h.client.start({ taskId: "t", questionVersionId: "q" });
+  const submission = await h.client.prepareSubmission();
+  await vi.advanceTimersByTimeAsync(30_000);
+  const delivered = h.append.mock.calls.flatMap((call) => call[1]);
+  expect(
+    delivered.some(
+      (event) => event.eventId === submission.timingFinalEvent?.eventId,
+    ),
+  ).toBe(false);
+  h.client.dispose();
 });

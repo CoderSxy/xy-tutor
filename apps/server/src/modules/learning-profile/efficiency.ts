@@ -81,6 +81,8 @@ function usable(sample: EfficiencySample, current: EfficiencySample): boolean {
 
 function currentEligible(sample: EfficiencySample): boolean {
   return (
+    sample.verification === "verified" &&
+    sample.correctness === "correct" &&
     sample.quality === "reliable" &&
     sample.firstAttemptMs !== null &&
     sample.firstAttemptMs > 0 &&

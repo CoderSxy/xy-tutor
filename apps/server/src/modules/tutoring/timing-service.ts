@@ -162,11 +162,13 @@ async function loadState(
     segmentStartedAt: open ? open.start_at.toISOString() : null,
     eventsInSegment,
     lastReceivedAt: last ? last.received_at.toISOString() : null,
-    lastCumulativeMs: last?.cumulative_active_ms ?? 0,
+    lastCumulativeMs: open?.accepted_ms ?? 0,
     firstSubmittedAt: row.first_submitted_at
       ? row.first_submitted_at.toISOString()
       : null,
-    phase: last?.phase ?? "initial",
+    phase: row.first_submitted_at
+      ? row.exposure === "none" ? "self_check" : "post_hint"
+      : row.exposure === "none" ? "initial" : "post_hint",
     reasons: [...new Set(reasons)],
   };
 }
@@ -465,19 +467,37 @@ export class TimingService {
       if (
         finalEvent.episodeId !== episodeId ||
         finalEvent.leaseEpoch !== row.lease_epoch ||
-        finalEvent.seq <= row.last_seq
+        finalEvent.seq <= row.last_seq ||
+        finalEvent.kind !== "finish" ||
+        row.state === "finished" ||
+        row.lease_expires_at < now
       ) {
         warning = "最终计时事件已过期，本次计时质量降级";
       } else {
         state = await applyEvent(tx, row.id, state, finalEvent, now);
       }
+    } else {
+      warning = "缺少最终计时事件，本次计时质量降级";
+    }
+    if (warning) {
+      await tx.query(
+        "UPDATE timing_segments SET quality=CASE WHEN quality='unusable' THEN quality ELSE 'partial' END,reason_codes=reason_codes || '[\"incomplete_submission\"]'::jsonb WHERE episode_id=$1",
+        [row.id],
+      );
     }
 
     const firstSubmittedAt = row.first_submitted_at ?? attempt.createdAt;
     await closeOpenSegment(tx, row.id, now);
     const fresh = (
       await tx.query<EpisodeRow>(
-        "UPDATE tutoring_episodes SET state='finished',first_submitted_at=COALESCE(first_submitted_at,$2),ended_at=COALESCE(ended_at,$3),updated_at=$3,version=version+1,last_seq=$4 WHERE id=$1 RETURNING *",
+        `UPDATE tutoring_episodes SET
+           state=CASE WHEN state='finished' THEN state ELSE 'paused' END,
+           teaching_state=CASE WHEN teaching_state='awaiting_evidence' THEN 'self_check' ELSE teaching_state END,
+           first_submitted_at=COALESCE(first_submitted_at,$2),
+           ended_at=CASE WHEN state='finished' THEN ended_at ELSE NULL END,
+           updated_at=$3,version=version+1,last_seq=$4,
+           lease_expires_at=CASE WHEN state='finished' THEN lease_expires_at ELSE $3::timestamptz+interval '60 seconds' END
+         WHERE id=$1 RETURNING *`,
         [row.id, firstSubmittedAt, now, Math.max(row.last_seq, state.lastSeq)],
       )
     ).rows[0]!;
@@ -485,8 +505,12 @@ export class TimingService {
     const timing = summarizeTiming(
       segments.map(toSegment),
       fresh.first_submitted_at,
-      fresh.ended_at,
+      now,
     );
+    if (warning && timing.quality !== "unusable") {
+      timing.quality = "partial";
+      timing.reasonCodes.push("incomplete_submission");
+    }
     await tx.query(
       "INSERT INTO attempt_timing_snapshots(attempt_id,episode_id,version,first_attempt_ms,self_check_ms,post_hint_ms,total_active_ms,wall_ms,quality,reason_codes,first_submitted_at) VALUES($1,$2,1,$3,$4,$5,$6,$7,$8,$9::jsonb,$10)",
       [

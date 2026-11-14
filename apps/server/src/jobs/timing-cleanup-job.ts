@@ -12,7 +12,8 @@ export type TimingCleanupResult = {
 };
 
 /**
- * Deletes raw timing events that are no longer needed: the episode is sealed,
+ * Deletes raw timing events that are no longer needed: timing is sealed
+ * (teaching may remain paused for further correction),
  * an attempt timing snapshot already froze the aggregate, and the event is
  * older than the retention window. Segments, snapshots, diagnoses and frozen
  * metrics are never touched, so historical reports stay reproducible.
@@ -32,7 +33,12 @@ export async function cleanupSealedTimingEvents(
        FROM timing_events ev
        JOIN tutoring_episodes e ON e.id = ev.episode_id
        WHERE ev.created_at < $1
-         AND e.state = 'finished'
+         AND (e.state = 'finished' OR (
+           e.state = 'paused' AND NOT EXISTS (
+             SELECT 1 FROM timing_segments seg
+             WHERE seg.episode_id = e.id AND seg.end_at IS NULL
+           )
+         ))
          AND EXISTS (
            SELECT 1 FROM attempt_timing_snapshots s
            WHERE s.episode_id = ev.episode_id

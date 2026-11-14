@@ -22,6 +22,8 @@ import { referenceSchema, checkReference, parseModelJson } from "./practice.js";
 import { invalidateDiagnosesForEvidence } from "../tutoring/diagnosis-invalidation.js";
 import { combineHintDependency } from "../tutoring/state-rules.js";
 import type { Exposure } from "../../../../../packages/contracts/src/tutoring.js";
+import type { DiagnosisService } from "../tutoring/diagnosis-service.js";
+import type { LearningProfileService } from "../learning-profile/service.js";
 export type AssessmentDTO = {
   id: string;
   attemptId: string;
@@ -37,6 +39,10 @@ export class AssessmentService {
     private catalog: CatalogService,
     private gateway?: ModelGateway,
     private store?: FileStore,
+    private learning?: {
+      diagnosis?: DiagnosisService;
+      profiles?: LearningProfileService;
+    },
   ) {}
   async submitCandidate(
     scope: StudentScope,
@@ -300,6 +306,20 @@ export class AssessmentService {
         prior.id,
         "assessment_superseded",
       );
+    if (this.learning?.diagnosis && checked.correctness === "incorrect") {
+      await this.learning.diagnosis.analyze(scope, a.id);
+    }
+    if (this.learning?.profiles) {
+      const skills = await this.db.pool.query<{ skill_id: string }>(
+        `SELECT DISTINCT l.skill_id FROM question_bank_entries b
+         JOIN question_skill_links l ON l.entry_id=b.id AND l.is_primary
+         WHERE b.question_version_id=$1`,
+        [a.question_version_id],
+      );
+      for (const { skill_id } of skills.rows) {
+        await this.learning.profiles.rebuild(scope, skill_id);
+      }
+    }
     return {
       id: result.id,
       attemptId: a.id,

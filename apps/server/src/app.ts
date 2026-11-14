@@ -178,17 +178,21 @@ export function buildApp(deps: AppDependencies) {
       const tutoring = deps.config!.features.selfCheckEnabled
         ? new TutoringService(deps.database!, auth, timing)
         : undefined;
+      const diagnosis = deps.config!.features.selfCheckEnabled
+        ? new DiagnosisService(deps.database!, auth, deps.gateway)
+        : undefined;
+      const profiles = new LearningProfileService(deps.database!, auth);
       registerLearning(scoped, {
         auth,
         tasks: new TaskService(deps.database!, auth, catalog),
         attempts: new AttemptService(deps.database!, auth, timing),
       });
-      if (deps.config!.features.timingEnabled)
+      if (deps.config!.features.timingEnabled || tutoring)
         registerTutoring(scoped, {
           auth,
           timing,
           tutoring,
-          diagnosis: new DiagnosisService(deps.database!, auth, deps.gateway),
+          diagnosis,
         });
       registerConversations(scoped, new MessageService(deps.database!, auth));
       const tasks = new TaskService(deps.database!, auth, catalog);
@@ -199,11 +203,14 @@ export function buildApp(deps: AppDependencies) {
         catalog,
         deps.gateway,
         deps.fileStore,
+        {
+          diagnosis,
+          profiles: deps.config!.features.adaptivePracticeEnabled ? profiles : undefined,
+        },
       );
       const summaries = new SummaryService(deps.database!, auth, deps.gateway);
       const knowledge = new KnowledgeService(deps.database!, auth);
       const mistakes = new MistakeService(deps.database!, auth);
-      const profiles = new LearningProfileService(deps.database!, auth);
       const selection = deps.config!.features.adaptivePracticeEnabled
         ? new SelectionService(deps.database!, auth)
         : undefined;

@@ -40,6 +40,7 @@ export type TimingSubmission = {
 type TimingApi = {
   start(input: EpisodeStartInput): Promise<EpisodeDTO>;
   append(episodeId: string, events: TimingEventInput[]): Promise<EpisodeDTO>;
+  get?(episodeId: string): Promise<EpisodeDTO>;
 };
 
 export type TimingClient = {
@@ -85,7 +86,7 @@ export function createTimingClient(deps: {
   keepAliveMs?: number;
   maxEvents?: number;
 }): TimingClient {
-  const now = deps.monotonicNow ?? (() => Date.now());
+  const now = deps.monotonicNow ?? (() => performance.now());
   const newId = deps.newId ?? (() => crypto.randomUUID());
   const checkpointMs = deps.checkpointMs ?? TIMING_LIMITS.checkpointMs;
   const keepAliveMs = deps.keepAliveMs ?? Math.floor(TIMING_LIMITS.leaseMs / 2);
@@ -115,6 +116,7 @@ export function createTimingClient(deps: {
   let conflictState = false;
   let limited = false;
   let priorExposure = false;
+  let phase: TimingEventInput["phase"] = "initial";
   let restoredMs: number | null = null;
   let restoredEpisodeId: string | null = null;
   const listeners = new Set<(snapshot: TimingSnapshot) => void>();
@@ -154,6 +156,9 @@ export function createTimingClient(deps: {
     epoch = episode.leaseEpoch;
     version = episode.version;
     priorExposure = episode.priorExposure;
+    phase = episode.exposure !== "none"
+      ? "post_hint"
+      : episode.teachingState === "awaiting_evidence" ? "initial" : "self_check";
     if (episode.state === "finished") {
       stopTimer();
       stopKeepAlive();
@@ -177,7 +182,7 @@ export function createTimingClient(deps: {
       segmentId,
       kind,
       cumulativeActiveMs: Math.max(0, Math.round(cumulativeActiveMs)),
-      phase: "initial",
+      phase,
       expectedVersion: version,
     };
   };
@@ -348,6 +353,16 @@ export function createTimingClient(deps: {
     },
     async resume() {
       if (status !== "paused" || !episodeId) return;
+      if (deps.api.get) {
+        const fresh = await deps.api.get(episodeId);
+        applyEpisode(fresh);
+        if (fresh.state === "finished") return;
+      }
+      if (lastSubmission) {
+        // A new answer gets a fresh final event, while retries keep the old one.
+        lastSubmission = null;
+        if (phase === "initial") phase = "self_check";
+      }
       if (limited) {
         // 上一段事件已满：从零开始新的一段，服务端把旧段收尾。
         eventsInSegment = 0;
@@ -398,21 +413,20 @@ export function createTimingClient(deps: {
         const finish = makeEvent("finish", elapsed);
         segmentId = null;
         segmentStartedAt = null;
-        status = "finished";
-        pauseReason = null;
+        status = "paused";
+        pauseReason = "waiting_ai";
         stopTimer();
         stopKeepAlive();
         emit();
         await flush();
         queue = [];
+        startKeepAlive();
         lastSubmission = finish
           ? { episodeId, timingFinalEvent: finish }
           : { episodeId };
         return lastSubmission;
       }
       if (status === "paused") {
-        status = "finished";
-        pauseReason = null;
         stopKeepAlive();
         emit();
         await flush();

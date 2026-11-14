@@ -25,7 +25,9 @@ function sample(overrides: Partial<EfficiencySample> = {}): EfficiencySample {
     answerType: "number",
     complexityBand: 1,
     templateFamily: "rational_arithmetic",
-    attemptAt: new Date(`2026-03-${String(10 + seq).padStart(2, "0")}T09:00:00Z`),
+    attemptAt: new Date(
+      `2026-03-${String(10 + seq).padStart(2, "0")}T09:00:00Z`,
+    ),
     firstAttemptMs: 60_000,
     quality: "reliable",
     verification: "verified",
@@ -83,7 +85,10 @@ function fiveSamples(): EfficiencySample[] {
 describe("observeEfficiency", () => {
   it("四样本不足，不给方向", () => {
     const samples = fiveSamples().slice(0, 4);
-    const observation = observeEfficiency(current({ firstAttemptMs: 60_000 }), samples);
+    const observation = observeEfficiency(
+      current({ firstAttemptMs: 60_000 }),
+      samples,
+    );
     expect(observation.status).toBe("insufficient_samples");
     expect(observation.sampleCount).toBe(4);
     expect(observation.medianMs).toBeNull();
@@ -118,7 +123,10 @@ describe("observeEfficiency", () => {
 
   it("五个样本但只有四个不同版本仍不足", () => {
     const samples = fiveSamples();
-    samples[4] = { ...samples[4]!, questionVersionId: samples[3]!.questionVersionId };
+    samples[4] = {
+      ...samples[4]!,
+      questionVersionId: samples[3]!.questionVersionId,
+    };
     const observation = observeEfficiency(current(), samples);
     expect(observation.status).toBe("insufficient_samples");
     expect(observation.reasonCodes).toContain("VERSIONS_BELOW_MINIMUM");
@@ -146,14 +154,26 @@ describe("observeEfficiency", () => {
       sample({ questionVersionId: versionId(204), quality: "partial" }),
       sample({ questionVersionId: versionId(205), quality: "unusable" }),
       sample({ questionVersionId: versionId(206), hintDependency: "guided" }),
-      sample({ questionVersionId: versionId(207), exposure: "solution_exposed" }),
+      sample({
+        questionVersionId: versionId(207),
+        exposure: "solution_exposed",
+      }),
       sample({ questionVersionId: versionId(208), redo: true }),
       sample({ questionVersionId: versionId(209), firstEncounter: false }),
       sample({ questionVersionId: versionId(210), correctness: "incorrect" }),
       sample({ questionVersionId: versionId(211), verification: "pending" }),
-      sample({ questionVersionId: versionId(212), studentId: "55555555-5555-4555-8555-555555555555" }),
-      sample({ questionVersionId: versionId(213), skillId: "66666666-6666-4666-8666-666666666666" }),
-      sample({ questionVersionId: versionId(214), difficultyBand: "challenge" }),
+      sample({
+        questionVersionId: versionId(212),
+        studentId: "55555555-5555-4555-8555-555555555555",
+      }),
+      sample({
+        questionVersionId: versionId(213),
+        skillId: "66666666-6666-4666-8666-666666666666",
+      }),
+      sample({
+        questionVersionId: versionId(214),
+        difficultyBand: "challenge",
+      }),
       sample({ questionVersionId: versionId(215), answerType: "choice" }),
       sample({ questionVersionId: versionId(216), complexityBand: 3 }),
       sample({
@@ -167,10 +187,10 @@ describe("observeEfficiency", () => {
         firstAttemptMs: 1_000,
       }),
     ];
-    const observation = observeEfficiency(
-      current({ firstAttemptMs: 60_000 }),
-      [...base, ...noise],
-    );
+    const observation = observeEfficiency(current({ firstAttemptMs: 60_000 }), [
+      ...base,
+      ...noise,
+    ]);
     expect(observation.status).toBe("observed");
     expect(observation.sampleCount).toBe(5);
     expect(observation.medianMs).toBe(60_000);
@@ -180,7 +200,8 @@ describe("observeEfficiency", () => {
     const samples = Array.from({ length: 25 }, (_, index) =>
       sample({
         questionVersionId: versionId(300 + index),
-        templateFamily: index % 2 === 0 ? "rational_arithmetic" : "linear_equation",
+        templateFamily:
+          index % 2 === 0 ? "rational_arithmetic" : "linear_equation",
         attemptAt: new Date("2026-03-01T09:00:00Z"),
         firstAttemptMs: 10_000 + index * 1_000,
       }),
@@ -199,16 +220,20 @@ describe("observeEfficiency", () => {
   it("0.75 与 1.5 边界都算接近基线", () => {
     const baseline = fiveSamples();
     expect(
-      observeEfficiency(current({ firstAttemptMs: 45_000 }), baseline).direction,
+      observeEfficiency(current({ firstAttemptMs: 45_000 }), baseline)
+        .direction,
     ).toBe("comparable");
     expect(
-      observeEfficiency(current({ firstAttemptMs: 90_000 }), baseline).direction,
+      observeEfficiency(current({ firstAttemptMs: 90_000 }), baseline)
+        .direction,
     ).toBe("comparable");
     expect(
-      observeEfficiency(current({ firstAttemptMs: 44_000 }), baseline).direction,
+      observeEfficiency(current({ firstAttemptMs: 44_000 }), baseline)
+        .direction,
     ).toBe("faster");
     expect(
-      observeEfficiency(current({ firstAttemptMs: 91_000 }), baseline).direction,
+      observeEfficiency(current({ firstAttemptMs: 91_000 }), baseline)
+        .direction,
     ).toBe("slower");
   });
 
@@ -232,10 +257,7 @@ describe("observeEfficiency", () => {
       { redo: true },
       { firstEncounter: false },
     ]) {
-      const observation = observeEfficiency(
-        current(overrides),
-        baseline,
-      );
+      const observation = observeEfficiency(current(overrides), baseline);
       expect(observation.status).toBe("ineligible");
       expect(observation.direction).toBeNull();
       expect(observation.reasonCodes).toContain("CURRENT_SAMPLE_INELIGIBLE");
@@ -245,4 +267,17 @@ describe("observeEfficiency", () => {
   it("暴露策略版本", () => {
     expect(BASELINE_POLICY_VERSION).toBe("efficiency-v1");
   });
+});
+
+// Regression: a fast incorrect or unverified answer cannot establish efficiency.
+it.each([
+  { correctness: "incorrect", verification: "verified" },
+  { correctness: "correct", verification: "pending" },
+])("rejects current efficiency sample %j", (flags) => {
+  const observation = observeEfficiency(
+    current({ ...flags, firstAttemptMs: 1_000 }),
+    fiveSamples(),
+  );
+  expect(observation.status).toBe("ineligible");
+  expect(observation.direction).toBeNull();
 });

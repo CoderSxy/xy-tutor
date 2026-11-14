@@ -1,4 +1,4 @@
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { withTestDb } from "../helpers/database.js";
 import { catalogFixture } from "../helpers/catalog.js";
@@ -47,11 +47,13 @@ async function setup(db: Database) {
     ...overrides,
   });
   const answer = async (content: string) =>
-    (await messages.append(f.scope, {
-      conversationId: task.conversationId,
-      role: "user",
-      content,
-    })).versionId;
+    (
+      await messages.append(f.scope, {
+        conversationId: task.conversationId,
+        role: "user",
+        content,
+      })
+    ).versionId;
   return {
     f,
     tasks,
@@ -119,8 +121,8 @@ it("rejects the previous lease epoch once a new episode takes over", async () =>
       s.timing.append(s.f.scope, first.id, [stale]),
     ).rejects.toMatchObject({ code: "CONFLICT", message: "作答租约已被接管" });
     expect(
-      (await db.pool.query("SELECT count(*)::int AS n FROM timing_events")).rows[0]
-        .n,
+      (await db.pool.query("SELECT count(*)::int AS n FROM timing_events"))
+        .rows[0].n,
     ).toBe(1);
   }));
 
@@ -138,8 +140,8 @@ it("retries identical events idempotently and refuses a different payload", asyn
     expect(twice.lastSeq).toBe(once.lastSeq);
     expect(twice.version).toBe(once.version);
     expect(
-      (await db.pool.query("SELECT count(*)::int AS n FROM timing_events")).rows[0]
-        .n,
+      (await db.pool.query("SELECT count(*)::int AS n FROM timing_events"))
+        .rows[0].n,
     ).toBe(1);
 
     await expect(
@@ -204,7 +206,8 @@ it("stores one timing snapshot per attempt and degrades without an episode", asy
     expect(first.answer).toBe("1");
     expect(first.messageVersionId).toBe(messageVersionId);
     expect(
-      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0].n,
+      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0]
+        .n,
     ).toBe(1);
     expect(
       (
@@ -261,7 +264,8 @@ it("never blocks a saved answer on a stale final timing event", async () =>
     expect(saved.id).toBeTruthy();
     expect(saved.timingWarning).toBe("最终计时事件已过期，本次计时质量降级");
     expect(
-      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0].n,
+      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0]
+        .n,
     ).toBe(1);
   }));
 
@@ -293,7 +297,8 @@ it("rolls the whole answer back when the episode belongs to another question", a
       message: "作答与计时会话不匹配",
     });
     expect(
-      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0].n,
+      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0]
+        .n,
     ).toBe(0);
     expect(
       (
@@ -325,9 +330,9 @@ it("refuses an expired lease and hides episodes from other students", async () =
       { userId: other.userId, role: "student" },
       other.studentId!,
     );
-    await expect(
-      s.timing.get(otherScope, episode.id),
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(s.timing.get(otherScope, episode.id)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
     await expect(
       s.timing.append(otherScope, episode.id, [s.event(episode, "start")]),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
@@ -339,4 +344,124 @@ it("refuses an expired lease and hides episodes from other students", async () =
     await expect(
       s.timing.append(s.f.scope, episode.id, [s.event(episode, "start")]),
     ).rejects.toMatchObject({ code: "CONFLICT", message: "作答租约已过期" });
+  }));
+
+it("keeps teaching available after the first answer submission", async () =>
+  withTestDb(async (db) => {
+    const s = await setup(db);
+    const e = await s.timing.start(s.f.scope, {
+      taskId: s.task.id,
+      questionVersionId: s.question.questionVersionId,
+      requestKey: "continue-teaching",
+    });
+    await s.timing.append(s.f.scope, e.id, [s.event(e, "start")]);
+    const saved = await s.attempts.submit(s.f.scope, {
+      requestKey: "answer",
+      taskId: s.task.id,
+      questionVersionId: s.question.questionVersionId,
+      answer: "2",
+      messageVersionId: await s.answer("2"),
+      episodeId: e.id,
+      timingFinalEvent: s.event(e, "finish"),
+    });
+    expect(saved.id).toBeTruthy();
+    const { TutoringService } =
+      await import("../../apps/server/src/modules/tutoring/service.js");
+    const tutoring = new TutoringService(db, s.f.auth, s.timing);
+    const current = await tutoring.current(s.f.scope, s.task.id);
+    expect(current?.id).toBe(e.id);
+    const action = await tutoring.act(s.f.scope, e.id, {
+      requestKey: "hint",
+      expectedVersion: current!.version,
+      kind: "request_hint",
+    });
+    expect(action.content).not.toBe("");
+  }));
+
+it.each([false, true])(
+  "marks missing/stale final timing as partial (%s)",
+  async (stale) =>
+    withTestDb(async (db) => {
+      const s = await setup(db);
+      const e = await s.timing.start(s.f.scope, {
+        taskId: s.task.id,
+        questionVersionId: s.question.questionVersionId,
+        requestKey: "incomplete",
+      });
+      const first = s.event(e, "start");
+      await s.timing.append(s.f.scope, e.id, [first]);
+      if (stale) {
+        await s.timing.append(s.f.scope, e.id, [s.event(e, "pause")]);
+      }
+      const saved = await s.attempts.submit(s.f.scope, {
+        requestKey: "incomplete-answer",
+        taskId: s.task.id,
+        questionVersionId: s.question.questionVersionId,
+        answer: "1",
+        messageVersionId: await s.answer("1"),
+        episodeId: e.id,
+        ...(stale
+          ? { timingFinalEvent: { ...first, eventId: randomUUID() } }
+          : {}),
+      });
+      expect(saved.timing?.quality).toBe("partial");
+      expect(saved.timingWarning).toBeTruthy();
+      expect((await s.timing.get(s.f.scope, e.id)).timing.quality).toBe("partial");
+    }),
+);
+
+it("recovers clipped cumulative time across database round trips", async () =>
+  withTestDb(async (db) => {
+    const s = await setup(db);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    try {
+      const base = Date.now();
+      const e = await s.timing.start(s.f.scope, {
+        taskId: s.task.id,
+        questionVersionId: s.question.questionVersionId,
+        requestKey: "clipping",
+      });
+      await s.timing.append(s.f.scope, e.id, [s.event(e, "start")]);
+      vi.setSystemTime(base + 15_000);
+      await s.timing.append(s.f.scope, e.id, [
+        s.event(e, "checkpoint", 20_000),
+      ]);
+      vi.setSystemTime(base + 30_000);
+      const end = await s.timing.append(s.f.scope, e.id, [
+        s.event(e, "pause", 30_000),
+      ]);
+      expect(end.timing.totalActiveMs).toBe(30_000);
+      expect(end.timing.quality).toBe("reliable");
+    } finally {
+      vi.useRealTimers();
+    }
+  }));
+
+it("saves a late answer without reopening an episode taken over by another tab", async () =>
+  withTestDb(async (db) => {
+    const s = await setup(db);
+    const first = await s.timing.start(s.f.scope, {
+      taskId: s.task.id,
+      questionVersionId: s.question.questionVersionId,
+      requestKey: "old-tab",
+    });
+    await s.timing.append(s.f.scope, first.id, [s.event(first, "start")]);
+    const next = await s.timing.start(s.f.scope, {
+      taskId: s.task.id,
+      questionVersionId: s.question.questionVersionId,
+      requestKey: "new-tab",
+      takeOver: true,
+    });
+    const saved = await s.attempts.submit(s.f.scope, {
+      requestKey: "late-answer",
+      taskId: s.task.id,
+      questionVersionId: s.question.questionVersionId,
+      answer: "1",
+      messageVersionId: await s.answer("1"),
+      episodeId: first.id,
+      timingFinalEvent: s.event(first, "finish"),
+    });
+    expect(saved.timing?.quality).toBe("partial");
+    expect((await s.timing.get(s.f.scope, first.id)).state).toBe("finished");
+    expect((await s.timing.get(s.f.scope, next.id)).state).toBe("active");
   }));

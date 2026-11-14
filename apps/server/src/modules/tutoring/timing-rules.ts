@@ -15,6 +15,7 @@ const UNUSABLE_REASONS = new Set([
 ]);
 
 const PARTIAL_REASONS = new Set([
+  "incomplete_submission",
   "clipped",
   "unconfirmed_gap",
   "event_limit_reached",

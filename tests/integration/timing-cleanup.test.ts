@@ -62,6 +62,7 @@ async function setup(db: Database) {
       taskId: task.id,
       questionVersionId: question.questionVersionId,
       requestKey,
+      takeOver: true,
     });
   return { f, task, question, messages, timing, attempts, event, start };
 }

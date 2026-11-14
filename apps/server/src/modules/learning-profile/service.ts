@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from "node:util";
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import {
   profileSchema,
@@ -313,9 +314,9 @@ export class LearningProfileService {
     skillId: string,
   ): Promise<ProfileDTO> {
     return inTransaction(this.db, async (tx) => {
-      await tx.query(
+      const inserted = await tx.query(
         `INSERT INTO learning_profiles(student_id,skill_id) VALUES($1,$2)
-         ON CONFLICT (student_id,skill_id) DO NOTHING`,
+         ON CONFLICT (student_id,skill_id) DO NOTHING RETURNING id`,
         [studentId, skillId],
       );
       const current = (
@@ -419,7 +420,11 @@ export class LearningProfileService {
 
       const promoted = replay.band !== current.training_band;
       const version =
-        promoted || current.stale || baselineId !== current.baseline_id
+        !inserted.rowCount &&
+        (promoted || current.stale || baselineId !== current.baseline_id ||
+          !isDeepStrictEqual(knowledgeStats, current.knowledge_stats) ||
+          !isDeepStrictEqual(hintStats, current.hint_stats) ||
+          !isDeepStrictEqual(observation, current.efficiency))
           ? current.version + 1
           : current.version;
 
