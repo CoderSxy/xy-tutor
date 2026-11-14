@@ -1,0 +1,88 @@
+tests/integration/timing-cleanup.test.ts
+  s_97c29780633e34::t_441c44bb1120c3 98,108,201,211,276,286
+  s_97c29780633e34::t_34ad0aa03e2bd7 238-260
+  s_97c29780633e34::t_7c9141c03902fb 1-10,12-14,16-36,38-41,60-97,99-107,109-129,134-200,202-210,212-237,261-275,277-285,287-315
+  s_97c29780633e34::t_bf830c06396bde 11,15
+  s_97c29780633e34::t_f9e934d4cfce43 37,42-59
+  s_97c29780633e34::t_47d2583c1c6691 130-133
+tests/e2e/learning-evaluation.spec.ts
+  s_97c29780633e34::t_fd0dc4f734151b 229-235
+  s_97c29780633e34::t_ed28608feed082 252
+  s_97c29780633e34::t_a2161fdb4c1fae 499-503
+  s_97c29780633e34::t_805f59fd33a722 236
+  s_97c29780633e34::t_3e4203df090bad 541
+  s_97c29780633e34::t_efd84d0708a5e7 1-228,237-251,253-295,305-498,504-540,542-564
+  s_97c29780633e34::t_2c35c93bd9b196 296-304
+docs/superpowers/specs/2026-11-13-adaptive-self-learning-design.md
+  s_069ff81206645a::t_49c3cabfb6b055 192,282
+  s_069ff81206645a::t_26248540f712e4 167,218
+  s_069ff81206645a::t_2ac02fdd2b2083 1-166,168-191,193-217,219-281,283-324
+apps/server/src/jobs/timing-cleanup-job.ts
+  s_97c29780633e34::t_1ed207eefa417f 1-2,4-6,8-27,42-44,52-57,95
+  s_97c29780633e34::t_baaa7f86f40f71 3,7,58-94
+  s_97c29780633e34::t_3e65070ae28e78 28-41,45-51
+scripts/benchmark-adaptive-learning.ts
+  s_97c29780633e34::t_d9ec8d20d48f3a 446-461
+  s_97c29780633e34::t_9f231a8d5f443c 471,475-477
+  s_97c29780633e34::t_cc385e0cea9e29 168-172,174
+  s_97c29780633e34::t_bae4bfc610b048 1-159,161-167,173,175-445,462-470,472-474,478-526
+  s_97c29780633e34::t_581b6731cc5921 160
+packages/db/src/schema/assessments.ts
+  s_97c29780633e34::t_742fb8f9afcbf1 8,12-34
+packages/db/migrations/0029_adaptive_learning_indexes.sql
+  s_97c29780633e34::t_35a2c67ca163b0 1-2
+docs/superpowers/plans/2026-11-13-adaptive-self-learning.md
+  s_069ff81206645a::t_26248540f712e4 185,207
+  s_069ff81206645a::t_49c3cabfb6b055 222,226,283
+  s_069ff81206645a::t_d2edfb8f745072 1-184,186-206,208-221,223-225,227-255
+  s_069ff81206645a::t_03e344da0ffee7 256-282,284-389
+apps/server/src/modules/learning-profile/service.ts
+  s_97c29780633e34::t_87b40f864a776f 64
+package.json
+  s_97c29780633e34::t_54dd1eacd9971d 26
+packages/db/migrations/meta/_journal.json
+  s_97c29780633e34::t_56fc7dd9a25124 207-213
+README.md
+  s_97c29780633e34::t_3cf69b4a73c044 54
+  s_97c29780633e34::t_a7f50b6ee4f409 43-48
+packages/db/src/schema/tutoring.ts
+  s_97c29780633e34::t_b1f9653b473796 109
+docs/architecture.md
+  s_97c29780633e34::t_fe394cdb3a2243 12
+  s_97c29780633e34::t_bd17ee305049f7 30
+  s_97c29780633e34::t_dbb0958f077888 42-43
+apps/server/src/app.ts
+  s_97c29780633e34::t_bacb2d3c1d0b5f 362-365
+  s_97c29780633e34::t_91536767286d3f 31-34
+  s_97c29780633e34::t_1427a05df85ee7 343
+docs/runbooks/adaptive-learning.md
+  s_97c29780633e34::t_816ef932a2e42a 1-116
+docs/qa/adaptive-learning-phase-3.md
+  s_97c29780633e34::t_c6a76d50947179 1-142
+docs/qa/adaptive-learning-benchmark.json
+  s_97c29780633e34::t_70de010fd73766 1-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a37aca9494c563dc041445418082e5735f7139e4",
+  "prompts": {},
+  "sessions": {
+    "s_069ff81206645a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d2d9-d0d6-7d40-ab7e-cb3f40d295f5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    },
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
