@@ -25,10 +25,10 @@ import { goalLabels } from "../features/question-bank/labels";
 export function Study() {
   const { id } = useParams();
   const a = useAuth();
-  const task = useRemote<TaskDTO>(id ? a.scoped(`/api/tasks/${id}`) : null);
-  const items = useRemote<TaskItem[]>(
-    id ? a.scoped(`/api/tasks/${id}/items`) : null,
-  );
+  const taskPath = id ? a.scoped(`/api/tasks/${id}`) : null;
+  const itemsPath = id ? a.scoped(`/api/tasks/${id}/items`) : null;
+  const task = useRemote<TaskDTO>(taskPath);
+  const items = useRemote<TaskItem[]>(itemsPath);
   const tutor = useTutorRun(task.data?.conversationId);
   const images = useImageAttachments({
     studentId: a.studentId,
@@ -59,6 +59,7 @@ export function Study() {
     adaptiveEnabled && id ? a.scoped(`/api/tasks/${id}/next-practice`) : null,
   );
   const [requesting, setRequesting] = useState(false);
+  const [resuming, setResuming] = useState(false);
   if (!task.data)
     return (
       <div className="home-layout">
@@ -81,16 +82,25 @@ export function Study() {
   const data = task.data;
   // 切换会话时旧数据会先留着，等新数据到了再整体换掉，避免整块闪一下
   const ready = data.id === id;
-  const switching = !ready || items.forPath !== id;
+  const switching =
+    (task.loading && task.forPath !== taskPath) ||
+    (items.loading && items.forPath !== itemsPath);
   const resume = async () => {
+    if (!ready || resuming) return;
+    setResuming(true);
+    setError("");
     try {
-      await api(a.scoped(`/api/tasks/${id}`), {
+      const updated = await api<TaskDTO>(a.scoped(`/api/tasks/${id}`), {
         method: "PATCH",
         ...jsonBody({ expectedVersion: data.version, status: "active" }),
       });
+      setSummary(undefined);
+      task.setData(updated);
       task.reload();
     } catch (e) {
       setError(errorMessage(e));
+    } finally {
+      setResuming(false);
     }
   };
   const finish = async () => {
@@ -152,16 +162,19 @@ export function Study() {
         className={`study-main${switching ? " is-switching" : ""}`}
         aria-busy={switching}
       >
-        {(error || tutor.error || task.error) && (
+        {switching && <div className="study-switch-progress" aria-hidden="true" />}
+        {(error || tutor.error || task.error || items.error) && (
           <p className="notice error-text" role="alert">
-            {error || tutor.error || task.error}
+            {error || tutor.error || task.error || items.error}
           </p>
         )}
         {adaptiveEnabled && data.status === "active" && (
           <div className="notice next-practice" role="status">
             <span>
               <strong>
-                {decision ? `下一步：${goalLabels[decision.goal]}` : "个性化练习"}
+                {decision
+                  ? `下一步：${goalLabels[decision.goal]}`
+                  : "个性化练习"}
               </strong>
               {decision
                 ? decision.explanation
@@ -179,8 +192,12 @@ export function Study() {
         {data.status === "paused" && (
           <div className="notice">
             任务已暂停，学习进度已保存。
-            <Button variant="ghost" onClick={() => void resume()}>
-              恢复学习
+            <Button
+              variant="ghost"
+              disabled={!ready || resuming}
+              onClick={() => void resume()}
+            >
+              {resuming ? "正在恢复…" : "恢复学习"}
             </Button>
           </div>
         )}
@@ -286,6 +303,12 @@ export function Study() {
                     {summary?.text ??
                       "学习小结会在后台整理；你可以随时查看记录。"}
                   </span>
+                  <Button
+                    disabled={!ready || tutor.busy || resuming}
+                    onClick={() => void resume()}
+                  >
+                    {resuming ? "正在恢复…" : "继续学习"}
+                  </Button>
                   <Link className="text-link" to="/history">
                     查看学习记录
                   </Link>

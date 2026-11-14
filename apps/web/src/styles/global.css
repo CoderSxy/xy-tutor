@@ -1475,10 +1475,19 @@ textarea.input {
   min-width: 0;
   min-height: 0;
 }
-.study-main.is-switching::before {
-  content: "";
+.study-switch-progress {
   position: absolute;
   z-index: 4;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.study-switch-progress::before {
+  content: "";
+  position: absolute;
   top: 0;
   left: 0;
   width: 40%;

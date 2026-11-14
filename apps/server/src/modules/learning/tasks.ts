@@ -156,7 +156,7 @@ export class TaskService {
           );
       }
       const result = await tx.query(
-        "UPDATE learning_tasks SET status=$1,version=version+1,updated_at=now() WHERE id=$2 AND student_id=$3 AND version=$4 AND status NOT IN ('completed','abandoned') RETURNING id,version",
+        "UPDATE learning_tasks SET status=$1,version=version+1,updated_at=now() WHERE id=$2 AND student_id=$3 AND version=$4 AND deleted_at IS NULL AND (status IN ('active','paused') OR (status='completed' AND $1='active')) RETURNING id,version",
         [v.status, v.taskId, scope.studentId, v.expectedVersion],
       );
       if (!result.rowCount)
