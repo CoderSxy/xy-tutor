@@ -1,0 +1,58 @@
+apps/server/src/modules/learning-profile/service.ts
+  s_069ff81206645a::t_7408d0cc89b48a 423-427
+  s_069ff81206645a::t_86fb8da4462bfc 1
+  s_069ff81206645a::t_da6298b393abbd 317,319
+tests/unit/learning-efficiency.test.ts
+  s_069ff81206645a::t_d4c6634b93b745 271-278,280-283
+  s_069ff81206645a::t_af6a80123557a3 28-30,88-91,126-129,157-160,165-176,190-193,203-204,223-224,227-228,231-232,235-236,260,279
+apps/web/src/features/tutoring/timing-client.ts
+  s_069ff81206645a::t_578883dba1ed33 43,89,119,159-161,185,356,360-365,416-417
+  s_069ff81206645a::t_71fbd43327e726 357-359
+  s_069ff81206645a::t_d749ce827e39a2 423
+apps/server/src/jobs/timing-cleanup-job.ts
+  s_069ff81206645a::t_7408d0cc89b48a 15-16
+  s_069ff81206645a::t_a7b506d158c1b9 36-41
+apps/server/src/modules/learning/assessments.ts
+  s_069ff81206645a::t_e2efc3613488be 25-26,42-45,309-322
+tests/integration/learning-timing.test.ts
+  s_069ff81206645a::t_d4c6634b93b745 1,50-56,124-125,143-144,209-210,267-268,300-301,333-335,348-354,356-364,366-375,377-388,390-392,396-404,406-408,411-421,423-426,428-430,432-437
+  s_069ff81206645a::t_f530e2ba27805d 393-395,409
+  s_069ff81206645a::t_195b007c21552e 438-440,464,467
+  s_069ff81206645a::t_b6d970f2a86242 441-463,465-466
+  s_069ff81206645a::t_50e33fa2f1298c 355,365,376,389,405,410,422,427,431
+tests/integration/timing-cleanup.test.ts
+  s_069ff81206645a::t_a7b506d158c1b9 65
+apps/server/src/app.ts
+  s_069ff81206645a::t_e2efc3613488be 181-184,190,195,206-209
+apps/server/src/modules/tutoring/timing-rules.ts
+  s_069ff81206645a::t_023ccca4c3c652 18
+apps/server/src/modules/tutoring/timing-service.ts
+  s_069ff81206645a::t_023ccca4c3c652 472,484,493-500
+  s_069ff81206645a::t_543b52e7c423af 165,169-171,470-471,473,479-483,485-486,508,510-513
+apps/server/src/modules/learning-profile/efficiency.ts
+  s_069ff81206645a::t_543b52e7c423af 84-85
+tests/integration/assessment-learning-flow.test.ts
+  s_069ff81206645a::t_5dff4a5b6c7a53 46-48,50-51,53,56-57,60,63-64,147,150-151
+  s_069ff81206645a::t_30d359507492a4 1-45,49,52,54-55,58-59,61-62,65-146,148-149,152-168
+tests/unit/timing-client.test.ts
+  s_069ff81206645a::t_5dff4a5b6c7a53 66,239-248,250-254
+  s_069ff81206645a::t_195b007c21552e 255-257,259-261,267-268
+  s_069ff81206645a::t_b6d970f2a86242 258,262-266
+  s_069ff81206645a::t_c50ade3d540f29 46-65,124-126,146-148,216-218,249
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b20f8413ded427d66e654237f930c2f46a35fbe8",
+  "prompts": {},
+  "sessions": {
+    "s_069ff81206645a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1d2d9-d0d6-7d40-ab7e-cb3f40d295f5",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
