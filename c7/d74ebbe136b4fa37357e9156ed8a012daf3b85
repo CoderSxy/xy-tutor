@@ -1,0 +1,57 @@
+apps/web/src/routes/admin/students/RecordDetail.tsx
+  s_97c29780633e34::t_a421a16fa374c4 197-203
+  s_97c29780633e34::t_6bf77cd8c12b3a 9
+apps/web/src/styles/global.css
+  s_97c29780633e34::t_a3878544d342ae 3154-3208
+tests/unit/adaptive-contracts.test.ts
+  s_97c29780633e34::t_87c0295c61b42a 159
+apps/server/src/modules/student-insights/diagnosis-reviews.ts
+  s_97c29780633e34::t_4c19f62c1df62d 1-275
+apps/server/src/modules/student-insights/records.ts
+  s_97c29780633e34::t_babfeee2e626b4 276-292
+  s_97c29780633e34::t_dd18eb1929a64b 130-140
+  s_97c29780633e34::t_41719dd67c48bc 35-44
+  s_97c29780633e34::t_5df5db7f58248e 567
+  s_97c29780633e34::t_55b313de97ef82 529-544
+packages/db/src/schema/learning-profile.ts
+  s_97c29780633e34::t_1d8e10444ed69b 165-166
+tests/integration/diagnosis-review.test.ts
+  s_97c29780633e34::t_e86201aa20221b 1-477
+packages/contracts/src/learning-evaluation.ts
+  s_97c29780633e34::t_e25ae37255b630 19-22
+  s_97c29780633e34::t_8de6aacfe260a0 7
+apps/server/src/modules/student-insights/routes.ts
+  s_97c29780633e34::t_33629d9dd711c3 293-303
+  s_97c29780633e34::t_e09ef479140e2f 24-25
+  s_97c29780633e34::t_dcfbcb5a1e02f4 86
+  s_97c29780633e34::t_6953be86e8325f 291-292
+packages/db/migrations/meta/_journal.json
+  s_97c29780633e34::t_20e9c7a05bf74d 200-206
+packages/contracts/src/student-insights.ts
+  s_97c29780633e34::t_e1e5b49ccf692c 343-366
+  s_97c29780633e34::t_a94119915dd037 385
+apps/web/src/features/student-insights/api.ts
+  s_97c29780633e34::t_a08b673a3d032b 301-320
+packages/db/src/schema/learning-evaluation.ts
+  s_97c29780633e34::t_0fe6621a25cd04 1-112
+apps/web/src/features/student-insights/DiagnosisReview.tsx
+  s_97c29780633e34::t_2280a46d0dbc4c 1-230
+packages/db/migrations/0028_learning_evaluations.sql
+  s_97c29780633e34::t_7e59e8b1f2ba4e 1-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c7d74ebbe136b4fa37357e9156ed8a012daf3b85",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
