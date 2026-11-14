@@ -6,6 +6,7 @@ import {
   useTaskAttempts,
   useTaskDetail,
 } from "../../../features/student-insights/api";
+import { DiagnosisReview } from "../../../features/student-insights/DiagnosisReview";
 import { dateTime } from "../../../features/student-insights/format";
 import { InsightStatus } from "../../../features/student-insights/InsightStatus";
 import { ListPager } from "../../../features/student-insights/ListPager";
@@ -192,6 +193,13 @@ export function RecordDetail() {
                           <p className="muted">
                             核验反馈：{attempt.assessment.feedback}
                           </p>
+                        )}
+                        {attempt.diagnosis && (
+                          <DiagnosisReview
+                            studentId={studentId}
+                            diagnosis={attempt.diagnosis}
+                            onReviewed={attempts.reload}
+                          />
                         )}
                       </li>
                     ))}

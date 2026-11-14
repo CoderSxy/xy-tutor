@@ -156,6 +156,7 @@ describe("tutoring contracts", () => {
 
 describe("diagnosis review contracts", () => {
   const review = {
+    diagnosisId: "2f1c9e3a-1111-4d4d-8a8a-0a0a0a0a0a0a",
     expectedVersion: 1,
     decision: "correct" as const,
     correctedCode: "concept_gap" as const,

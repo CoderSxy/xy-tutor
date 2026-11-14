@@ -340,6 +340,30 @@ export type TaskItemDTO = {
   knowledgePoint: string | null;
 };
 
+export type DiagnosisReviewRecordDTO = {
+  id: string;
+  decision: "accept" | "correct" | "insufficient";
+  correctedCode: string | null;
+  reason: string;
+  expectedVersion: number;
+  resultVersion: number;
+  evidence: { kind: string; id: string; versionId?: string }[];
+  createdAt: string;
+};
+
+export type DiagnosisRecordDTO = {
+  id: string;
+  attemptId: string;
+  version: number;
+  status: string;
+  primaryCode: string | null;
+  summary: string;
+  evidence: { kind: string; id: string; versionId?: string }[];
+  ruleVersion: string;
+  createdAt: string;
+  reviews: DiagnosisReviewRecordDTO[];
+};
+
 export type AttemptRecordDTO = {
   id: string;
   taskId: string | null;
@@ -358,6 +382,7 @@ export type AttemptRecordDTO = {
     hintDependency: string;
     feedback: string | null;
   } | null;
+  diagnosis: DiagnosisRecordDTO | null;
 };
 
 export type MessageRecordDTO = {

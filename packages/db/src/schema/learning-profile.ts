@@ -162,6 +162,8 @@ export const practiceDecisions = pgTable(
     candidateSnapshot: jsonb("candidate_snapshot").notNull().default([]),
     exclusions: jsonb().notNull().default([]),
     recentWindow: jsonb("recent_window").notNull().default([]),
+    invalidatedAt: timestamp("invalidated_at", { withTimezone: true }),
+    invalidReason: text("invalid_reason"),
     createdAt: time("created_at"),
   },
   (t) => [

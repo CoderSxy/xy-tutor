@@ -298,6 +298,26 @@ export function insightFileDownloadPath(
   return `${studentBase(studentId)}/files/${encodeURIComponent(fileId)}/download`;
 }
 
+export type DiagnosisReviewRequest = {
+  diagnosisId: string;
+  expectedVersion: number;
+  decision: "accept" | "correct" | "insufficient";
+  correctedCode: string | null;
+  reason: string;
+  evidence: { kind: string; id: string; versionId?: string }[];
+  requestKey: string;
+};
+
+export function submitDiagnosisReview(
+  studentId: string,
+  input: DiagnosisReviewRequest,
+): Promise<{ reviewId: string; diagnosisVersion: number }> {
+  return api<{ reviewId: string; diagnosisVersion: number }>(
+    `${studentBase(studentId)}/diagnosis-reviews`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+}
+
 export function reportsPath(studentId: string, input: PageInput): string {
   return withQuery(`${studentBase(studentId)}/reports`, pageParams(input));
 }

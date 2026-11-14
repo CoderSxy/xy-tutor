@@ -21,6 +21,8 @@ import { InsightFileService } from "./files.js";
 import { resolveInsightRange } from "./metrics.js";
 import { requireAdminInsightScope } from "./policy.js";
 import { InsightQueryService } from "./queries.js";
+import { DiagnosisReviewService } from "./diagnosis-reviews.js";
+import { diagnosisReviewInputSchema } from "../../../../../packages/contracts/src/learning-evaluation.js";
 import { InsightRecordService } from "./records.js";
 import { InsightReportService } from "./reports.js";
 
@@ -81,6 +83,7 @@ function registerRoutes(
     deps.database,
     deps.gatewayConfigured ?? false,
   );
+  const reviews = new DiagnosisReviewService(deps.database);
 
   adminInsightRoute(app, "GET", "/students", async (request) => {
     const actor = requireSession(request).actor;
@@ -282,6 +285,19 @@ function registerRoutes(
         revisionId: input.revisionId,
       });
       return reply.code(result.reused ? 200 : 202).send(result);
+    },
+  );
+
+  adminInsightRoute(
+    app,
+    "POST",
+    "/students/:studentId/diagnosis-reviews",
+    async (request, reply) => {
+      const actor = requireSession(request).actor;
+      const { studentId } = request.params as { studentId: string };
+      const input = diagnosisReviewInputSchema.parse(request.body);
+      const result = await reviews.submit(actor, { ...input, studentId });
+      return reply.code(201).send(result);
     },
   );
 

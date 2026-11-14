@@ -32,6 +32,16 @@ const LATEST_FINAL_ASSESSMENT = `LEFT JOIN LATERAL (
   LIMIT 1
 ) s ON true`;
 
+// 诊断按版本追加，记录页只展示最新一版；历史结论与审核记录一并回读，供复核时对照。
+const LATEST_DIAGNOSIS = `LEFT JOIN LATERAL (
+  SELECT d.id, d.version, d.status, d.primary_code, d.summary,
+    d.evidence, d.rule_version, d.created_at
+  FROM error_diagnoses d
+  WHERE d.attempt_id = a.id
+  ORDER BY d.version DESC
+  LIMIT 1
+) d ON true`;
+
 const TASK_WHERE = `t.student_id = $1 AND t.deleted_at IS NULL
   AND t.created_at >= $2 AND t.created_at < $3
   AND ($4::uuid IS NULL OR t.revision_id = $4)
@@ -117,6 +127,17 @@ type AttemptRow = {
   correctness: string | null;
   verification: string | null;
   hintDependency: string | null;
+  diagnosisId: string | null;
+  diagnosisVersion: number | null;
+  diagnosisStatus: string | null;
+  diagnosisCode: string | null;
+  diagnosisSummary: string | null;
+  diagnosisEvidence: AttemptRecordDTO["diagnosis"] extends null
+    ? never
+    : NonNullable<AttemptRecordDTO["diagnosis"]>["evidence"] | null;
+  diagnosisRuleVersion: string | null;
+  diagnosisCreatedAt: Date | null;
+  diagnosisReviews: NonNullable<AttemptRecordDTO["diagnosis"]>["reviews"];
 };
 
 type MessageRow = {
@@ -252,6 +273,23 @@ function toAttempt(row: AttemptRow): AttemptRecordDTO {
             feedback: null,
           }
         : null,
+    diagnosis: toDiagnosis(row),
+  };
+}
+
+function toDiagnosis(row: AttemptRow): AttemptRecordDTO["diagnosis"] {
+  if (!row.diagnosisId || row.diagnosisVersion === null) return null;
+  return {
+    id: row.diagnosisId,
+    attemptId: row.id,
+    version: row.diagnosisVersion,
+    status: row.diagnosisStatus ?? "pending",
+    primaryCode: row.diagnosisCode,
+    summary: row.diagnosisSummary ?? "",
+    evidence: row.diagnosisEvidence ?? [],
+    ruleVersion: row.diagnosisRuleVersion ?? "",
+    createdAt: (row.diagnosisCreatedAt ?? row.createdAt).toISOString(),
+    reviews: row.diagnosisReviews ?? [],
   };
 }
 
@@ -488,6 +526,22 @@ export class InsightRecordService {
            v.knowledge_point AS "knowledgePoint",
            s.id AS "assessmentId", s.correctness, s.verification,
            s.hint_dependency AS "hintDependency",
+           d.id AS "diagnosisId", d.version AS "diagnosisVersion",
+           d.status AS "diagnosisStatus", d.primary_code AS "diagnosisCode",
+           d.summary AS "diagnosisSummary", d.evidence AS "diagnosisEvidence",
+           d.rule_version AS "diagnosisRuleVersion",
+           d.created_at AS "diagnosisCreatedAt",
+           COALESCE((
+             SELECT json_agg(json_build_object(
+               'id', r.id, 'decision', r.decision,
+               'correctedCode', r.corrected_code, 'reason', r.reason,
+               'expectedVersion', r.expected_version,
+               'resultVersion', r.result_version, 'evidence', r.evidence,
+               'createdAt', r.created_at
+             ) ORDER BY r.created_at, r.id)
+             FROM diagnosis_reviews r
+             WHERE r.attempt_id = a.id
+           ), '[]'::json) AS "diagnosisReviews",
            COALESCE((
              SELECT json_agg(
                json_build_object('level', h.level, 'content', mv.content)
@@ -510,6 +564,7 @@ export class InsightRecordService {
          JOIN question_versions v ON v.id = a.question_version_id
          LEFT JOIN learning_tasks t ON t.id = a.task_id
          ${LATEST_FINAL_ASSESSMENT}
+         ${LATEST_DIAGNOSIS}
          WHERE a.student_id = $1 AND a.task_id = $2
            AND (a.task_id IS NULL OR t.deleted_at IS NULL)
            AND ${VALID_ATTEMPT}

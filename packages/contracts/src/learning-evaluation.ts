@@ -4,6 +4,7 @@ import { diagnosisCodeSchema } from "./tutoring.js";
 
 export const diagnosisReviewInputSchema = z
   .object({
+    diagnosisId: z.uuid(),
     expectedVersion: z.number().int().positive(),
     decision: z.enum(["accept", "correct", "insufficient"]),
     correctedCode: diagnosisCodeSchema.nullable(),
@@ -15,6 +16,10 @@ export const diagnosisReviewInputSchema = z
   .refine(
     (value) => value.decision !== "correct" || value.correctedCode !== null,
     { message: "纠正诊断必须指定错因代码", path: ["correctedCode"] },
+  )
+  .refine(
+    (value) => value.decision === "correct" || value.correctedCode === null,
+    { message: "只有纠正诊断才能指定错因代码", path: ["correctedCode"] },
   );
 
 export type DiagnosisReviewInput = z.infer<typeof diagnosisReviewInputSchema>;
