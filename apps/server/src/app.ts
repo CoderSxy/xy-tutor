@@ -28,6 +28,10 @@ import { LearningProfileService } from "./modules/learning-profile/service.js";
 import { SelectionService } from "./modules/learning-profile/selection-service.js";
 import { registerLearningProfiles } from "./modules/learning-profile/routes.js";
 import { learningProfileRebuildHandler } from "./jobs/learning-profile-job.js";
+import {
+  startTimingCleanupScheduler,
+  timingCleanupHandler,
+} from "./jobs/timing-cleanup-job.js";
 import { TimingService } from "./modules/tutoring/timing-service.js";
 import { DiagnosisService } from "./modules/tutoring/diagnosis-service.js";
 import { registerTutoring } from "./modules/tutoring/routes.js";
@@ -336,6 +340,7 @@ export function buildApp(deps: AppDependencies) {
               new QuestionGenerationService(deps.database!, jobs, deps.gateway),
             ),
             "learning_profile.rebuild": learningProfileRebuildHandler(profiles),
+            "learning_timing.cleanup": timingCleanupHandler(deps.database!),
             ...(deps.gateway
               ? {
                   "student.insight": studentInsightHandler(
@@ -354,6 +359,10 @@ export function buildApp(deps: AppDependencies) {
         );
         scoped.addHook("onReady", async () => runner.start());
         scoped.addHook("onClose", async () => runner.stop());
+        const stopCleanupScheduler = startTimingCleanupScheduler(jobs, deps.database!, {
+          onError: (error) => scoped.log.error(error),
+        });
+        scoped.addHook("onClose", async () => stopCleanupScheduler());
       }
     });
   }

@@ -5,23 +5,33 @@ import {
   jsonb,
   timestamp,
   boolean,
+  index,
 } from "drizzle-orm/pg-core";
 import { attempts } from "./conversations.js";
 import { questionVersions } from "./questions.js";
-export const questionReferences = pgTable("question_references", {
-  id: uuid().primaryKey().defaultRandom(),
-  questionVersionId: uuid("question_version_id")
-    .notNull()
-    .references(() => questionVersions.id),
-  answer: text().notNull(),
-  answerType: text("answer_type").notNull(),
-  requiresWorking: boolean("requires_working").notNull(),
-  verification: text().notNull(),
-  evidence: jsonb().notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const questionReferences = pgTable(
+  "question_references",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    questionVersionId: uuid("question_version_id")
+      .notNull()
+      .references(() => questionVersions.id),
+    answer: text().notNull(),
+    answerType: text("answer_type").notNull(),
+    requiresWorking: boolean("requires_working").notNull(),
+    verification: text().notNull(),
+    evidence: jsonb().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("question_reference_version_time").on(
+      t.questionVersionId,
+      t.createdAt,
+    ),
+  ],
+);
 export const assessments = pgTable("assessments", {
   id: uuid().primaryKey().defaultRandom(),
   attemptId: uuid("attempt_id")

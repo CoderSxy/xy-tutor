@@ -40,11 +40,18 @@ pnpm backfill:student-insights --from 2026-01-01 --to 2026-11-10
 
 重复执行会跳过已完成的批次；中断后直接重跑即可恢复（`--no-resume`可强制从头处理），`--batch-size`控制每批事件数。结果以单行JSON输出。
 
+## 自适应学习（分阶段开关）
+
+自查与提示、计时、个性化练习和学情评估各由一个默认关闭的开关控制：`TUTOR_SELF_CHECK_ENABLED`、`LEARNING_TIMING_ENABLED`、`ADAPTIVE_PRACTICE_ENABLED`、`LEARNING_EVALUATION_ENABLED`，经`/api/capabilities`以`timing`/`selfCheck`/`adaptivePractice`/`learningEvaluation`暴露。个性化练习依赖自查开关，单独开启会在启动时报配置错误；计时可独立关闭。开关关闭时学生继续原有学习流程，已产生的证据与历史报告保留。
+
+计时事件按天由`learning_timing.cleanup`任务清理：只删除满30天、对话已封存且聚合快照已存在的原始事件，每批500条；计时段、快照、诊断与冻结指标不受影响。上线顺序、影子运行、人工门槛与回退演练见[运行手册](docs/runbooks/adaptive-learning.md)，三阶段验收记录见[QA 记录](docs/qa/adaptive-learning-phase-3.md)。
+
 ## 验证与说明
 
 - `pnpm test`：单元与真实PG集成；`pnpm test:e2e`：Chrome浏览器，独立3002/5175测试端口。
 - `pnpm typecheck && pnpm lint && pnpm build`：静态检查和构建。
 - `pnpm benchmark:student-insights`：在`_test`库的临时schema中造1000学生/100000作答，输出耗时、p95与EXPLAIN ANALYZE后自动清理；拒绝非`_test`库和生产环境。
+- `pnpm benchmark:adaptive-learning`：在`_test`库的临时schema中造100学生/10000作答/100000计时事件/10000题库条目，输出候选查询与画像重建的p50/p95、EXPLAIN与内存峰值后自动清理；结果只代表本机，不作为ECS容量保证。
 - `pnpm smoke:provider`、`pnpm smoke:oss`、`pnpm smoke:ocr`：真实服务冒烟，需配置。
 - `node --import tsx tests/ops/backup-restore.ts`：独立临时数据库实际备份恢复演练。
 - [技术栈与架构图](docs/architecture.md)

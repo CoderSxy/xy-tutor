@@ -106,6 +106,7 @@ export const timingEvents = pgTable(
     uniqueIndex("timing_event_key").on(t.episodeId, t.eventId),
     uniqueIndex("timing_event_seq").on(t.episodeId, t.seq),
     index("timing_event_episode_time").on(t.episodeId, t.receivedAt),
+    index("timing_event_created_at").on(t.createdAt),
     check(
       "timing_event_kind_check",
       sql`${t.kind} IN ('start','checkpoint','pause','resume','finish')`,

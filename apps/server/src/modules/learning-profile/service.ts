@@ -61,7 +61,7 @@ type BandedEvidence = EvidenceCandidate & { band: TrainingBand };
 
 type Tx = Parameters<Parameters<typeof inTransaction>[1]>[0];
 
-const ATTEMPT_SQL = `
+export const ATTEMPT_SQL = `
 SELECT a.id AS attempt_id,
        a.question_version_id,
        s.id AS assessment_id,

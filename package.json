@@ -23,6 +23,7 @@
     "admin:create": "node --env-file-if-exists=.env --import tsx scripts/create-admin.ts",
     "backfill:student-insights": "node --env-file-if-exists=.env --import tsx scripts/backfill-student-insights.ts",
     "benchmark:student-insights": "node --import tsx scripts/benchmark-student-insights.ts",
+    "benchmark:adaptive-learning": "node --import tsx scripts/benchmark-adaptive-learning.ts",
     "smoke:ocr": "node --env-file-if-exists=.env --import tsx scripts/smoke-ocr.ts",
     "cleanup:chat-images": "node --env-file-if-exists=.env --import tsx scripts/cleanup-chat-images.ts",
     "evaluate:tutoring": "node --import tsx scripts/evaluate-tutoring.ts"
