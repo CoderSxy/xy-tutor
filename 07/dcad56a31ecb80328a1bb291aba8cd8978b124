@@ -1,0 +1,69 @@
+apps/server/src/app.ts
+  s_97c29780633e34::t_19aceba5e28951 281-283
+  s_97c29780633e34::t_ed928671d1702f 162-163
+  s_97c29780633e34::t_931a38e824fe78 160-161
+apps/server/src/config.ts
+  s_97c29780633e34::t_01a1689ffd8e35 46
+  s_97c29780633e34::t_7681fefa26b5fc 19,26
+tests/unit/learning-metrics.test.ts
+  s_97c29780633e34::t_35c22c5cc4bbee 1-378,380,382-564
+  s_97c29780633e34::t_c608ac390ccc74 379,381
+tests/integration/learning-evaluation.test.ts
+  s_97c29780633e34::t_37eccec702af94 243,248
+  s_97c29780633e34::t_be8adf9c204024 298
+  s_97c29780633e34::t_aa4aafde63b1f2 1-242,244-247,249-297,299-345
+apps/web/src/routes/admin/students/Overview.tsx
+  s_97c29780633e34::t_5e9fe5ddd86ac2 104-107
+  s_97c29780633e34::t_6c183e060c1312 245-248
+  s_97c29780633e34::t_311466aab9adf0 11-12
+apps/server/src/modules/student-insights/routes.ts
+  s_97c29780633e34::t_93923751ca6e58 94-96
+  s_97c29780633e34::t_6dee6eb6030289 319-320
+  s_97c29780633e34::t_63de8ea7d7320c 41
+  s_97c29780633e34::t_3a1b558bbcc3b5 317-318,321-327
+  s_97c29780633e34::t_e0acd072093bf4 25-29
+  s_97c29780633e34::t_5847fbded57eb5 32
+  s_97c29780633e34::t_44bc0042f0f7ac 40
+  s_97c29780633e34::t_f7380fe0b1ec58 314-316
+apps/web/src/styles/global.css
+  s_97c29780633e34::t_ed323df71ba8f9 2837-2840
+apps/web/src/features/student-insights/api.ts
+  s_97c29780633e34::t_24676f89bb8bfa 24
+  s_97c29780633e34::t_bf3c1634abca78 163-180
+apps/server/src/modules/student-insights/learning-evaluations.ts
+  s_97c29780633e34::t_7802fd24e07842 1-508
+apps/web/src/routes/admin/students/Analysis.tsx
+  s_97c29780633e34::t_6cce7b847c1fa2 101-102
+  s_97c29780633e34::t_1788c529d3cd18 96-100
+apps/web/src/routes/admin/students/AnalysisDetail.tsx
+  s_97c29780633e34::t_72a0c973adb34b 67-69
+apps/web/src/features/student-insights/LearningEvaluationPanel.tsx
+  s_97c29780633e34::t_e696fe496dfd37 1-240
+apps/web/src/lib/types.ts
+  s_97c29780633e34::t_ac51fa41c79014 32
+packages/contracts/src/learning-evaluation.ts
+  s_97c29780633e34::t_2055b77ddd5c2a 40,46-49,52-60,62-74,77-105,112-137,145-146,148,155-231
+tests/unit/config.test.ts
+  s_97c29780633e34::t_84d0e008566df5 24
+  s_97c29780633e34::t_3d6dfa7facbbe3 34,41
+apps/server/src/modules/student-insights/learning-metrics.ts
+  s_97c29780633e34::t_f403634005ceb6 8
+  s_97c29780633e34::t_b736db740bbb16 97,105
+  s_97c29780633e34::t_6f758720671eb7 1-7,9-96,98-104,106-295
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "07dcad56a31ecb80328a1bb291aba8cd8978b124",
+  "prompts": {},
+  "sessions": {
+    "s_97c29780633e34": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2a9439ec-f123-4642-bd1f-5c75d0e1761d",
+        "model": "claude-sonnet-4-5"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
