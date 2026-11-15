@@ -30,6 +30,8 @@ export type Capabilities = {
   selfCheck?: "enabled" | "disabled";
   adaptivePractice?: "enabled" | "disabled";
   learningEvaluation?: "enabled" | "disabled";
+  practiceSets?: "enabled" | "disabled";
+  mobileStudy?: "enabled" | "disabled";
 };
 export type TaskItem = {
   id: string;

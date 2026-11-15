@@ -7,9 +7,12 @@ import {
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import {
+  changeModeInputSchema,
+  continueInputSchema,
   practiceSetCreateInputSchema,
-  type PracticeSetDTO,
+  type ContinueResult,
   type PracticeItemDTO,
+  type PracticeSetDTO,
 } from "../../../../../packages/contracts/src/practice-sets.js";
 import type { AuthService } from "../auth/service.js";
 import type { TaskService } from "./tasks.js";
@@ -22,6 +25,7 @@ import {
   computePracticeProgress,
   loadPracticeItemProgress,
 } from "./practice-progress.js";
+import { getExamProfile } from "../question-bank/exam-profiles.js";
 
 const TEMPLATE_FORMS: Record<string, "single_choice" | "fill_blank" | "worked"> =
   {
@@ -33,6 +37,7 @@ const TEMPLATE_FORMS: Record<string, "single_choice" | "fill_blank" | "worked"> 
 type ScopeSnapshot = {
   skillIds: string[];
   confirmed: boolean;
+  excludeVersionIds?: string[];
 };
 
 export class PracticeSetService {
@@ -41,6 +46,7 @@ export class PracticeSetService {
     private auth: AuthService,
     private tasks: TaskService,
     private jobs?: JobQueue,
+    private flags: { practiceSetsEnabled?: boolean } = {},
   ) {}
 
   async create(
@@ -50,6 +56,7 @@ export class PracticeSetService {
   ): Promise<PracticeSetDTO> {
     await this.tasks.resume(scope, taskId);
     const parsed = practiceSetCreateInputSchema.parse(input);
+    this.assertExamProfile(parsed.strategy, parsed.examProfileId);
     const knowledge = await this.publishedKnowledge();
     return inTransaction(this.db, async (tx) => {
       await tx.query("SELECT id FROM learning_tasks WHERE id=$1 FOR UPDATE", [
@@ -62,23 +69,33 @@ export class PracticeSetService {
         )
       ).rows[0];
       if (existing) return this.load(tx, existing.id);
+      if (this.flags.practiceSetsEnabled === false)
+        throw new AppError("CONFLICT", 409, "题组练习尚未开放");
       const confirmed = knowledge.length > 0;
       const seed = createHash("sha256")
         .update(`${taskId}:${parsed.requestKey}`)
         .digest("hex");
+      const examProfile =
+        parsed.strategy === "exam" && parsed.examProfileId
+          ? getExamProfile(parsed.examProfileId, undefined, {
+              includeFixtures: process.env.NODE_ENV === "test",
+            })
+          : undefined;
       const blueprint = buildBlueprint({
         strategy: parsed.strategy,
         seed,
+        examProfile,
       });
       const generation = confirmed ? "preparing" : "awaiting_scope";
       const set = (
         await tx.query<{ id: string }>(
-          `INSERT INTO practice_sets(task_id,mode,strategy,policy_version,seed,scope_snapshot,blueprint,generation_status,version)
-           VALUES($1,$2,$3,$4,$5,$6::jsonb,$7::jsonb,$8,1) RETURNING id`,
+          `INSERT INTO practice_sets(task_id,mode,strategy,exam_profile_id,policy_version,seed,scope_snapshot,blueprint,generation_status,version)
+           VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,1) RETURNING id`,
           [
             taskId,
             parsed.mode,
             parsed.strategy,
+            parsed.examProfileId ?? null,
             blueprint.policyVersion,
             seed,
             JSON.stringify({
@@ -221,6 +238,252 @@ export class PracticeSetService {
       "UPDATE practice_sets SET generation_status='failed',updated_at=now() WHERE id=$1 AND generation_status IN ('preparing','failed')",
       [setId],
     );
+  }
+
+  async changeMode(
+    scope: StudentScope,
+    setId: string,
+    input: unknown,
+  ): Promise<PracticeSetDTO> {
+    const parsed = changeModeInputSchema.parse(input);
+    const current = await this.get(scope, setId);
+    if (current.version !== parsed.expectedVersion)
+      throw new AppError("CONFLICT", 409, "题组已更新，请刷新后重试");
+    const updated = await this.db.pool.query(
+      `UPDATE practice_sets SET mode=$2, version=version+1, updated_at=now()
+       WHERE id=$1 AND version=$3 RETURNING id`,
+      [setId, parsed.mode, parsed.expectedVersion],
+    );
+    if (!updated.rowCount)
+      throw new AppError("CONFLICT", 409, "题组已更新，请刷新后重试");
+    return this.get(scope, setId);
+  }
+
+  async results(scope: StudentScope, setId: string) {
+    const set = await this.get(scope, setId);
+    const hide = set.mode === "batch" && set.submission === "open";
+    const reasons = hide
+      ? []
+      : (
+          await this.db.pool.query<{
+            item_id: string;
+            reason: string | null;
+          }>(
+            `SELECT sl.task_item_id AS item_id, a.evidence->>'reason' AS reason
+             FROM practice_set_slots sl
+             JOIN LATERAL (
+               SELECT psi.latest_assessment_id
+               FROM practice_submission_items psi
+               WHERE psi.task_item_id=sl.task_item_id
+               ORDER BY psi.created_at DESC LIMIT 1
+             ) psi ON true
+             LEFT JOIN assessments a ON a.id=psi.latest_assessment_id
+             WHERE sl.set_id=$1`,
+            [setId],
+          )
+        ).rows;
+    const reasonByItem = new Map(
+      reasons.map((row) => [row.item_id, row.reason]),
+    );
+    return {
+      setId,
+      items: set.items.map((item) => ({
+        itemId: item.itemId,
+        position: item.position,
+        correctness: hide ? null : item.progress.correctness,
+        reason: hide ? null : (reasonByItem.get(item.itemId ?? "") ?? null),
+      })),
+    };
+  }
+
+  async continue(
+    scope: StudentScope,
+    setId: string,
+    input: unknown,
+  ): Promise<ContinueResult> {
+    const parsed = continueInputSchema.parse(input);
+    const hash = createHash("sha256")
+      .update(JSON.stringify({ requestKey: parsed.requestKey }))
+      .digest("hex");
+    await this.get(scope, setId);
+    const existing = await this.findContinuation(setId);
+    if (existing)
+      return this.replayContinuation(existing, parsed.requestKey, hash);
+    return inTransaction(this.db, async (tx) => {
+      await tx.query("SELECT id FROM practice_sets WHERE id=$1 FOR UPDATE", [
+        setId,
+      ]);
+      const locked = await this.findContinuation(setId, tx);
+      if (locked) return this.replayContinuation(locked, parsed.requestKey, hash);
+      const current = await this.load(tx, setId);
+      if (!current.canContinue)
+        throw new AppError("CONFLICT", 409, "题组尚未完成，不能再来五题");
+      if (current.version !== parsed.expectedVersion)
+        throw new AppError("CONFLICT", 409, "题组已更新，请刷新后重试");
+      if (this.flags.practiceSetsEnabled === false)
+        throw new AppError("CONFLICT", 409, "题组练习尚未开放");
+      this.assertExamProfile(current.strategy, current.examProfileId);
+      const previous = (
+        await tx.query<{
+          student_id: string;
+          revision_id: string | null;
+          kind: string;
+          chapter_id: string | null;
+          scope_snapshot: ScopeSnapshot;
+        }>(
+          `SELECT t.student_id, t.revision_id, t.kind, t.chapter_id, s.scope_snapshot
+           FROM practice_sets s JOIN learning_tasks t ON t.id=s.task_id
+           WHERE s.id=$1`,
+          [setId],
+        )
+      ).rows[0]!;
+      const excludeVersionIds = current.items
+        .map((item) => item.questionVersionId)
+        .filter((id): id is string => !!id);
+      const task = (
+        await tx.query<{ id: string }>(
+          `INSERT INTO learning_tasks(student_id,revision_id,kind,chapter_id)
+           VALUES($1,$2,$3,$4) RETURNING id`,
+          [
+            previous.student_id,
+            previous.revision_id,
+            previous.kind,
+            previous.chapter_id,
+          ],
+        )
+      ).rows[0]!;
+      const conversation = (
+        await tx.query<{ id: string }>(
+          `INSERT INTO conversations(student_id,task_id,revision_id)
+           VALUES($1,$2,$3) RETURNING id`,
+          [previous.student_id, task.id, previous.revision_id],
+        )
+      ).rows[0]!;
+      const seed = createHash("sha256")
+        .update(`${task.id}:${parsed.requestKey}`)
+        .digest("hex");
+      const examProfile =
+        current.strategy === "exam" && current.examProfileId
+          ? getExamProfile(current.examProfileId, undefined, {
+              includeFixtures: process.env.NODE_ENV === "test",
+            })
+          : undefined;
+      const blueprint = buildBlueprint({
+        strategy: current.strategy,
+        seed,
+        examProfile,
+      });
+      const confirmed = (previous.scope_snapshot.skillIds ?? []).length > 0;
+      const created = (
+        await tx.query<{ id: string }>(
+          `INSERT INTO practice_sets(task_id,mode,strategy,exam_profile_id,policy_version,seed,scope_snapshot,blueprint,generation_status,previous_set_id,version)
+           VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,$8::jsonb,$9,$10,1) RETURNING id`,
+          [
+            task.id,
+            current.mode,
+            current.strategy,
+            current.examProfileId,
+            blueprint.policyVersion,
+            seed,
+            JSON.stringify({
+              skillIds: previous.scope_snapshot.skillIds ?? [],
+              confirmed,
+              excludeVersionIds,
+            } satisfies ScopeSnapshot),
+            JSON.stringify({ ...blueprint, attempts: 0 }),
+            confirmed ? "preparing" : "awaiting_scope",
+            setId,
+          ],
+        )
+      ).rows[0]!;
+      for (const slot of blueprint.slots) {
+        await tx.query(
+          `INSERT INTO practice_set_slots(set_id,position,question_type,state)
+           VALUES($1,$2,$3,'pending')`,
+          [created.id, slot.position, slot.questionType],
+        );
+      }
+      await tx.query(
+        `INSERT INTO practice_set_continuations(previous_set_id,request_key,payload_hash,new_set_id)
+         VALUES($1,$2,$3,$4)`,
+        [setId, parsed.requestKey, hash, created.id],
+      );
+      if (confirmed && this.jobs)
+        await enqueueJob(tx, {
+          kind: "learning.practice-set",
+          dedupeKey: `learning.practice-set:${created.id}`,
+          payload: {
+            setId: created.id,
+            studentId: scope.studentId,
+            actorId: scope.actor.userId,
+          },
+        });
+      return {
+        taskId: task.id,
+        setId: created.id,
+        conversationId: conversation.id,
+      };
+    });
+  }
+
+  private assertExamProfile(
+    strategy: PracticeSetDTO["strategy"],
+    examProfileId: string | null | undefined,
+  ) {
+    if (strategy !== "exam") return;
+    if (
+      !examProfileId ||
+      !getExamProfile(examProfileId, undefined, {
+        includeFixtures: process.env.NODE_ENV === "test",
+      })
+    )
+      throw new AppError(
+        "VALIDATION",
+        422,
+        "考试配置无效或已失效，请选择替代配置",
+      );
+  }
+
+  private async findContinuation(
+    setId: string,
+    queryable: {
+      query: (
+        sql: string,
+        params?: unknown[],
+      ) => Promise<{ rows: Record<string, unknown>[] }>;
+    } = this.db.pool,
+  ) {
+    return (
+      await queryable.query(
+        `SELECT request_key, payload_hash, new_set_id
+         FROM practice_set_continuations WHERE previous_set_id=$1`,
+        [setId],
+      )
+    ).rows[0] as
+      | { request_key: string; payload_hash: string; new_set_id: string }
+      | undefined;
+  }
+
+  private async replayContinuation(
+    existing: { request_key: string; payload_hash: string; new_set_id: string },
+    requestKey: string,
+    hash: string,
+  ): Promise<ContinueResult> {
+    if (existing.request_key === requestKey && existing.payload_hash !== hash)
+      throw new AppError("CONFLICT", 409, "重复继续请求内容不同");
+    const created = await this.load(this.db.pool, existing.new_set_id);
+    const conversation = (
+      await this.db.pool.query<{ id: string }>(
+        `SELECT id FROM conversations WHERE task_id=$1 ORDER BY created_at DESC LIMIT 1`,
+        [created.taskId],
+      )
+    ).rows[0];
+    if (!conversation) throw new AppError("NOT_FOUND", 404, "会话不存在");
+    return {
+      taskId: created.taskId,
+      setId: created.id,
+      conversationId: conversation.id,
+    };
   }
 
   private async fillOne(

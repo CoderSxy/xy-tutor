@@ -84,6 +84,7 @@ export class RunService {
         questionVersionId: z.uuid().optional(),
         episodeId: z.uuid().optional(),
         timingFinalEvent: timingEventSchema.optional(),
+        intent: z.enum(["answer", "question"]).optional(),
       })
       .strict()
       .parse(input);
@@ -91,6 +92,9 @@ export class RunService {
       throw new AppError("VALIDATION", 422, "消息不能为空");
     if (v.mode === "opening" && v.attachmentIds.length)
       throw new AppError("VALIDATION", 422, "开场消息不能附图");
+    const intent = v.intent ?? (v.questionVersionId ? "answer" : "question");
+    if (intent === "question" && v.questionVersionId)
+      throw new AppError("VALIDATION", 422, "咨询不能夹带正式作答");
     return inTransaction(this.db, async (tx) => {
       const c = (
         await tx.query(
@@ -167,7 +171,17 @@ export class RunService {
           sourceOrigin: "live",
         });
       }
-      if (v.questionVersionId) {
+      if (c.task_id) {
+        const taskStatus = (
+          await tx.query<{ status: string }>(
+            "SELECT status FROM learning_tasks WHERE id=$1",
+            [c.task_id],
+          )
+        ).rows[0];
+        if (taskStatus?.status === "completed" && intent === "answer")
+          throw new AppError("CONFLICT", 409, "任务已完成，不能再提交正式作答");
+      }
+      if (intent === "answer" && v.questionVersionId) {
         if (!c.task_id || v.mode !== "reply" || !versionId)
           throw new AppError("VALIDATION", 422, "作答需要关联学习任务");
         const valid = (

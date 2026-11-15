@@ -17,6 +17,8 @@ const schema = z.object({
   ADAPTIVE_PRACTICE_ENABLED: booleanFlag,
   LEARNING_EVALUATION_ENABLED: booleanFlag,
   LEARNING_GROUP_REFERENCE_ENABLED: booleanFlag,
+  PRACTICE_SETS_ENABLED: booleanFlag,
+  MOBILE_STUDY_ENABLED: booleanFlag,
 });
 export type FeatureFlags = {
   selfCheckEnabled: boolean;
@@ -24,6 +26,8 @@ export type FeatureFlags = {
   adaptivePracticeEnabled: boolean;
   learningEvaluationEnabled: boolean;
   groupReferenceEnabled: boolean;
+  practiceSetsEnabled: boolean;
+  mobileStudyEnabled: boolean;
 };
 export type AppConfig = {
   env: "development" | "test" | "production";
@@ -44,6 +48,8 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
     adaptivePracticeEnabled: c.ADAPTIVE_PRACTICE_ENABLED,
     learningEvaluationEnabled: c.LEARNING_EVALUATION_ENABLED,
     groupReferenceEnabled: c.LEARNING_GROUP_REFERENCE_ENABLED,
+    practiceSetsEnabled: c.PRACTICE_SETS_ENABLED,
+    mobileStudyEnabled: c.MOBILE_STUDY_ENABLED,
   };
   if (features.adaptivePracticeEnabled && !features.selfCheckEnabled)
     throw new Error("Invalid configuration");
