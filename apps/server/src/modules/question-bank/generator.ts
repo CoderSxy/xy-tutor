@@ -22,6 +22,10 @@ import {
   type BankVerification,
   type FrozenKnowledge,
 } from "./verifier.js";
+import {
+  ensureStudentContent,
+  STUDENT_LANGUAGE_POLICY,
+} from "./student-language.js";
 
 type RunRow = {
   id: string;
@@ -267,6 +271,18 @@ export class QuestionGenerationService {
       return { status: "rejected", reasons: verification.reasons };
     }
 
+    const language = await ensureStudentContent(
+      {
+        fields: { stem: candidate.stem },
+        immutableMath: [candidate.referenceAnswer],
+      },
+      this.gateway,
+      signal,
+    );
+    if (language.status !== "accepted")
+      return this.fail(run, "LANGUAGE_REJECTED");
+    candidate = { ...candidate, stem: language.fields.stem ?? candidate.stem };
+
     const entryId = await this.persist(
       run,
       skill.name,
@@ -311,14 +327,15 @@ export class QuestionGenerationService {
         ).rows[0];
         const version = (
           await tx.query(
-            `INSERT INTO question_versions(question_id,version_no,stem,reference_answer,knowledge_point,verification)
-             VALUES($1,1,$2,$3,$4,$5) RETURNING id`,
+            `INSERT INTO question_versions(question_id,version_no,stem,reference_answer,knowledge_point,verification,language_status,language_policy_version)
+             VALUES($1,1,$2,$3,$4,$5,'accepted',$6) RETURNING id`,
             [
               question.id,
               candidate.stem,
               candidate.referenceAnswer,
               skillName,
               published ? "verified" : "pending",
+              STUDENT_LANGUAGE_POLICY,
             ],
           )
         ).rows[0];

@@ -4,6 +4,10 @@ import type { StudentScope } from "../../../../../packages/contracts/src/domain.
 import type { ModelGateway } from "../../agent/provider.js";
 import type { TaskService } from "./tasks.js";
 import { equivalent } from "./verifier.js";
+import {
+  ensureStudentContent,
+  STUDENT_LANGUAGE_POLICY,
+} from "../question-bank/student-language.js";
 export const referenceSchema = z.object({
   referenceAnswer: z.string().min(1).max(10000),
   answerType: z.enum(["number", "choice", "worked", "open"]),
@@ -87,6 +91,15 @@ export class PracticeService {
     )
       return { status: "pending", reason: "本次每日5练已安排5题" };
     for (let attempt = 0; attempt < 2; attempt++) {
+      const language = await ensureStudentContent(
+        {
+          fields: { stem: v.stem },
+          immutableMath: [v.referenceAnswer],
+        },
+        this.gateway,
+      );
+      if (language.status !== "accepted") continue;
+      v.stem = language.fields.stem ?? v.stem;
       const reference: Reference = {
         referenceAnswer: v.referenceAnswer,
         answerType: v.answerType ?? "worked",
@@ -117,8 +130,8 @@ export class PracticeService {
             ],
           );
           await this.db.pool.query(
-            "UPDATE question_versions SET verification='verified' WHERE id=$1",
-            [q.questionVersionId],
+            "UPDATE question_versions SET verification='verified',language_status='accepted',language_policy_version=$2 WHERE id=$1",
+            [q.questionVersionId, STUDENT_LANGUAGE_POLICY],
           );
           if (v.role === "variant" && v.sourceQuestionId) {
             const parent = (

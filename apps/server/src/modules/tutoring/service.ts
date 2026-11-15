@@ -24,6 +24,10 @@ import {
   describeAnchor,
 } from "./anchors.js";
 import { decideTeachingTransition, nextFailedChecks } from "./state-rules.js";
+import {
+  inspectStudentText,
+  LANGUAGE_RECOVERY_HINT,
+} from "../question-bank/student-language.js";
 
 type EpisodeRow = {
   id: string;
@@ -241,7 +245,9 @@ export class TutoringService {
         action: v,
         failedChecks,
       });
-      const content = this.renderContent(v.kind, diagnosis, decision.next);
+      const content = this.publishTeachingText(
+        this.renderContent(v.kind, diagnosis, decision.next),
+      );
       const nextVersion = (
         await tx.query<{ version: number }>(
           "SELECT coalesce(max(version),0)+1 AS version FROM tutoring_states WHERE episode_id=$1",
@@ -359,6 +365,12 @@ export class TutoringService {
           ? `${describeAnchor(anchor)}\n\n把这一步完整写出来再继续。`
           : "";
     }
+  }
+
+  private publishTeachingText(text: string): string {
+    return inspectStudentText(text).status === "accepted"
+      ? text
+      : LANGUAGE_RECOVERY_HINT;
   }
 
   private async deliver(

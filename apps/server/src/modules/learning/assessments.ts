@@ -29,6 +29,7 @@ import type { DiagnosisService } from "../tutoring/diagnosis-service.js";
 import type { LearningProfileService } from "../learning-profile/service.js";
 import { equivalent } from "./verifier.js";
 import { enqueueJob } from "../../jobs/queue.js";
+import { publishStudentText } from "../question-bank/student-language.js";
 export type AssessmentDTO = {
   id: string;
   attemptId: string;
@@ -191,12 +192,18 @@ export class AssessmentService {
           ? AbortSignal.any([signal, AbortSignal.timeout(60000)])
           : AbortSignal.timeout(60000),
       );
-      return z
+      const parsed = z
         .object({
           correctness: z.enum(["correct", "incorrect", "uncertain"]),
           reason: z.string().max(2000),
         })
         .parse(parseModelJson(response.text));
+      parsed.reason = await publishStudentText(
+        parsed.reason,
+        this.gateway,
+        signal,
+      );
+      return parsed;
     } catch {
       return { correctness: "uncertain", reason: "自动判题暂时不可用" };
     }
