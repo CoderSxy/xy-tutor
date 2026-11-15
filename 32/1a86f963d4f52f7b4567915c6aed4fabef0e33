@@ -1,0 +1,23 @@
+docs/superpowers/specs/2026-11-15-mobile-mixed-practice-design.md
+  s_7767b4feb86fb0::t_bc3366fb069bb0 173,183-184,261-262,280
+  s_7767b4feb86fb0::t_7c3786fefaf160 1-172,174-182,185-260,263-279,281-372
+docs/superpowers/plans/2026-11-15-mobile-mixed-practice.md
+  s_7767b4feb86fb0::t_c1f7fe1d5b4290 1-128,130-270,272-357
+  s_7767b4feb86fb0::t_bc3366fb069bb0 129,271
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "321a86f963d4f52f7b4567915c6aed4fabef0e33",
+  "prompts": {},
+  "sessions": {
+    "s_7767b4feb86fb0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1dcf1-0819-7760-bdf5-8aa45d595b3d",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "sxy <545231960@qq.com>"
+    }
+  }
+}
