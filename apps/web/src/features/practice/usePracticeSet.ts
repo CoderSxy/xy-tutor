@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type {
-  PracticeMode,
-  PracticeSetDTO,
-  SubmissionDTO,
+import {
+  practiceSetSchema,
+  type PracticeMode,
+  type PracticeSetDTO,
+  type SubmissionDTO,
 } from "../../../../../packages/contracts/src/practice-sets.js";
 import type { AnswerPayload } from "../../../../../packages/contracts/src/question-presentation.js";
-import { ApiError, errorMessage } from "../../lib/api";
+import { ApiError, api, errorMessage, jsonBody } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import {
   changePracticeMode,
@@ -30,9 +31,12 @@ export function usePracticeSet(taskId?: string) {
   const load = useCallback(async () => {
     if (!taskId) return;
     try {
-      const dto = await fetchPracticeSet(
+      const raw = await fetchPracticeSet(
         a.scoped(`/api/tasks/${taskId}/practice-set`),
       );
+      const parsed = practiceSetSchema.safeParse(raw);
+      if (!parsed.success) throw new ApiError("题组不存在", 404, "NOT_FOUND");
+      const dto = parsed.data;
       setSet(dto);
       setSelectedItemId((current) => {
         if (current && dto.items.some((item) => item.itemId === current))
@@ -127,7 +131,6 @@ export function usePracticeSet(taskId?: string) {
 
   const retry = async (itemIds: string[]) => {
     if (!submissionId) return;
-    const { api, jsonBody } = await import("../../lib/api");
     await api(a.scoped(`/api/practice-submissions/${submissionId}/retry`), {
       method: "POST",
       ...jsonBody({ requestKey: crypto.randomUUID(), itemIds }),

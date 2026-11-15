@@ -25,7 +25,7 @@ async function fixture(db: Parameters<typeof catalogFixture>[0], stem = "1+1=?")
 async function createSet(
   db: Parameters<typeof catalogFixture>[0],
   taskId: string,
-  studentId: string,
+  _studentId: string,
 ) {
   return (
     await db.pool.query(
@@ -219,11 +219,16 @@ describe("mistake provenance defaults", () => {
           [saved.id],
         )
       ).rows[0];
-      expect(row.origin_category).toBe("unknown");
-      expect(row.origin_detail).toBe("unknown");
+      expect(row.origin_category).toBe("learning");
+      expect(row.origin_detail).toBe("daily_practice");
       expect(row.lifecycle).toBe("active");
       expect(row.original_attempt_id).toBe(attempt.id);
-      expect(row.provenance).toEqual({});
+      expect(row.provenance).toMatchObject({
+        derivedBy: "server",
+        attemptId: attempt.id,
+        questionVersionId,
+        taskId: task.id,
+      });
     }));
 
   it("stores a structured answer payload on attempts without rewriting answer", async () =>

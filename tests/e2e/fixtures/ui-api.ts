@@ -129,7 +129,6 @@ export async function mockLearningApi(
     string,
     { itemId: string; answer: unknown; version: number; updatedAt: string }
   >();
-  let draftConflict = false;
   const submissions: unknown[] = [];
   await page.route("**/api/**", async (route) => {
     const request = route.request(),
@@ -253,13 +252,15 @@ export async function mockLearningApi(
         examProfileId: null,
       };
     else if (
-      path === `/api/tasks/${taskId}/practice-set` &&
+      path.endsWith("/practice-set") &&
       request.method() === "GET"
     ) {
-      if (!practiceSet) {
+      if (path === `/api/tasks/${taskId}/practice-set` && practiceSet)
+        body = practiceSet;
+      else {
         status = 404;
         body = { error: { code: "NOT_FOUND", message: "题组不存在" } };
-      } else body = practiceSet;
+      }
     } else if (
       path === `/api/tasks/${taskId}/practice-set` &&
       request.method() === "POST"
@@ -312,10 +313,7 @@ export async function mockLearningApi(
         answer?: unknown;
       }) ?? {};
       const existing = drafts.get(draftItemId);
-      if (draftConflict && existing) {
-        status = 409;
-        body = { error: { code: "CONFLICT", message: "草稿已更新，请刷新后重试" } };
-      } else if (existing && existing.version !== input.expectedVersion) {
+      if (existing && existing.version !== input.expectedVersion) {
         status = 409;
         body = { error: { code: "CONFLICT", message: "草稿已更新，请刷新后重试" } };
       } else {

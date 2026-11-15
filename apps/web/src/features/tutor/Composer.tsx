@@ -80,10 +80,7 @@ export function Composer({
   const coarsePointer = () =>
     window.matchMedia("(pointer: coarse)").matches;
   const mobileCamera = () =>
-    navigator.maxTouchPoints > 0 &&
-    (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-      /MacIntel/.test(navigator.platform) ||
-      window.matchMedia("(pointer: coarse)").matches);
+    navigator.maxTouchPoints > 0 || coarsePointer();
   const composing = useRef(false);
   const text = value ?? inner;
   const change = (next: string) => {

@@ -370,3 +370,7 @@ type PracticeSetDTO = {
 | 数据库迁移与开关回退 | 历史任务可读，既有题组可完成，旧记录/管理只读视图正常 |
 
 真实 iOS Safari、Android Chrome 至少各检查一次软键盘和拍照流程；桌面浏览器模拟只作为补充，不能宣称覆盖真实键盘行为。每项验收在配套计划中有对应任务，缺少环境的检查如实列为未执行。
+
+## 12. 实施记录（2026-11-15）
+
+代码已按配套计划落地到 `feat/mobile-mixed-practice` 的后续工作分支：契约与迁移 `0030_mobile_mixed_practice`、错题权限/同步/补齐、中文边界、结构化题型、mixed-v1 蓝图、题组协调器、提交与进度、偏好与 API、逐题/整组 UI、三端学习壳、错题来源页签与运行手册。`practiceSetsEnabled` 与 `mobileStudyEnabled` 仍默认 false。独立 `_test` PostgreSQL 上已跑通 typecheck、lint、unit、integration、build 与 Playwright e2e；真实 iOS Safari / Android Chrome 真机检查未执行。

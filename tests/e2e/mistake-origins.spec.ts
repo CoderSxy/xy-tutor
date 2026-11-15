@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { mockLearningApi, studentId } from "./fixtures/ui-api";
+import { mockLearningApi } from "./fixtures/ui-api";
 
 const PAGE_SIZE = 20;
 

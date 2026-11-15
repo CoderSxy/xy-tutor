@@ -152,7 +152,7 @@ export class MistakeService {
   ) {}
 
   private async loadAttempt(
-    tx: { query: (sql: string, params?: unknown[]) => Promise<{ rows: any[] }> },
+    tx: { query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }> },
     scope: StudentScope,
     versionId: string,
     attemptId: string | undefined,
@@ -173,7 +173,7 @@ export class MistakeService {
   }
 
   private async authorizeQuestion(
-    tx: { query: (sql: string, params?: unknown[]) => Promise<{ rows: any[] }> },
+    tx: { query: (sql: string, params?: unknown[]) => Promise<{ rows: unknown[] }> },
     scope: StudentScope,
     q: QuestionRow | undefined,
     attempt: AttemptOriginRow | undefined,

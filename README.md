@@ -44,6 +44,8 @@ pnpm backfill:student-insights --from 2026-01-01 --to 2026-11-10
 
 自查与提示、计时、个性化练习和学情评估各由一个默认关闭的开关控制：`TUTOR_SELF_CHECK_ENABLED`、`LEARNING_TIMING_ENABLED`、`ADAPTIVE_PRACTICE_ENABLED`、`LEARNING_EVALUATION_ENABLED`，经`/api/capabilities`以`timing`/`selfCheck`/`adaptivePractice`/`learningEvaluation`暴露。个性化练习依赖自查开关，单独开启会在启动时报配置错误；计时可独立关闭。开关关闭时学生继续原有学习流程，已产生的证据与历史报告保留。
 
+混合题组与移动学习壳同样默认关闭：`PRACTICE_SETS_ENABLED`、`MOBILE_STUDY_ENABLED`，经`/api/capabilities`以`practiceSets`/`mobileStudy`暴露。关闭题组开关后，已创建的五题仍可读取、提交、重试和完成。历史错题来源补齐使用`pnpm backfill:mistakes --dry-run`预览，核对后再在授权环境 apply。操作细节见[移动端混合练习运行手册](docs/runbooks/mobile-mixed-practice.md)。
+
 计时事件按天由`learning_timing.cleanup`任务清理：只删除满30天、对话已封存且聚合快照已存在的原始事件，每批500条；计时段、快照、诊断与冻结指标不受影响。上线顺序、影子运行、人工门槛与回退演练见[运行手册](docs/runbooks/adaptive-learning.md)，三阶段验收记录见[QA 记录](docs/qa/adaptive-learning-phase-3.md)。
 
 ## 验证与说明

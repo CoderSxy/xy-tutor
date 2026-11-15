@@ -368,7 +368,8 @@ export class AssessmentService {
         }
       )?.candidate;
       if (
-        priorFinal.verification === "verified" ||
+        (priorFinal.verification === "verified" &&
+          priorFinal.correctness === v.correctness) ||
         (priorCandidate?.correctness === v.correctness &&
           priorCandidate?.reason === v.reason)
       ) {
@@ -629,7 +630,8 @@ export class AssessmentService {
       )?.candidate;
       if (
         current &&
-        (current.verification === "verified" ||
+        ((current.verification === "verified" &&
+          current.correctness === v.correctness) ||
           (currentCandidate?.correctness === v.correctness &&
             currentCandidate?.reason === v.reason))
       ) {
