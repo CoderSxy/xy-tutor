@@ -82,19 +82,23 @@ describe("exam quota", () => {
       5,
     );
     expect(
-      quota.single_choice + quota.fill_blank + quota.worked,
+      (quota.single_choice ?? 0) +
+        (quota.fill_blank ?? 0) +
+        (quota.worked ?? 0),
     ).toBe(5);
     const tied = allocateExamQuota(
       { single_choice: 1, multiple_choice: 1, fill_blank: 1, worked: 1 },
       5,
     );
     expect(
-      tied.single_choice +
-        tied.multiple_choice +
-        tied.fill_blank +
-        tied.worked,
+      (tied.single_choice ?? 0) +
+        (tied.multiple_choice ?? 0) +
+        (tied.fill_blank ?? 0) +
+        (tied.worked ?? 0),
     ).toBe(5);
-    expect(tied.single_choice).toBeGreaterThanOrEqual(tied.multiple_choice);
+    expect(tied.single_choice ?? 0).toBeGreaterThanOrEqual(
+      tied.multiple_choice ?? 0,
+    );
     expect(TEST_EXAM_PROFILE.fixture).toBe(true);
     const exam = buildBlueprint({
       strategy: "exam",

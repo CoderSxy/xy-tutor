@@ -33,9 +33,12 @@ describe("validateQuestionPresentation", () => {
       kind: "single_choice",
       correctOptionId: "opt-b",
     });
-    expect(new Set(validated.presentation.options.map((o) => o.optionId)).size).toBe(
-      4,
-    );
+    expect(validated.presentation?.kind).toBe("choice");
+    expect(
+      validated.presentation?.kind === "choice"
+        ? new Set(validated.presentation.options.map((o) => o.optionId)).size
+        : 0,
+    ).toBe(4);
   });
 
   it("rejects a single choice with two correct options or missing options", () => {
