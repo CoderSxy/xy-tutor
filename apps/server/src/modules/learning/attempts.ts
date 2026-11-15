@@ -14,6 +14,7 @@ import {
 import type { AuthService } from "../auth/service.js";
 import { TimingService } from "../tutoring/timing-service.js";
 import { recordLearningEvent } from "../student-insights/activity.js";
+import { enqueueAttemptAssessment } from "../../jobs/assessment-job.js";
 export type AttemptDTO = {
   id: string;
   answer: string;
@@ -121,6 +122,12 @@ export class AttemptService {
           ],
         )
       ).rows[0];
+      await enqueueAttemptAssessment(tx, {
+        attemptId: a.id,
+        studentId: scope.studentId,
+        actorId: scope.actor.userId,
+        taskId: v.taskId,
+      });
       await tx.query("UPDATE task_items SET status='answered' WHERE id=$1", [
         q.id,
       ]);

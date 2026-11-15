@@ -4,6 +4,8 @@ import { SummaryService } from "./modules/learning/summaries.js";
 import { KnowledgeService } from "./modules/learning/knowledge.js";
 import { ReviewService } from "./modules/learning/review.js";
 import { summaryHandler } from "./jobs/summary-job.js";
+import { assessmentHandler } from "./jobs/assessment-job.js";
+import { mistakeSyncHandler } from "./jobs/mistake-sync-job.js";
 import { MistakeService } from "./modules/learning/mistakes.js";
 import { registerMistakes } from "./modules/learning/mistake-routes.js";
 import { PracticeService } from "./modules/learning/practice.js";
@@ -61,6 +63,7 @@ import { QuestionGenerationService } from "./modules/question-bank/generator.js"
 import { questionGenerationHandler } from "./jobs/question-generation-job.js";
 import { ZodError } from "zod";
 import type { Database } from "../../../packages/db/src/client.js";
+import type { StudentScope } from "../../../packages/contracts/src/domain.js";
 import type { AppConfig } from "./config.js";
 import { AuthService } from "./modules/auth/service.js";
 import { registerAuth } from "./modules/auth/routes.js";
@@ -243,13 +246,9 @@ export function buildApp(deps: AppDependencies) {
       );
       registerMistakes(scoped, mistakes);
       const assess = async (
-        scope: Parameters<AssessmentService["submitCandidate"]>[0],
+        scope: StudentScope,
         input: unknown,
-      ) => {
-        const result = await assessment.submitCandidate(scope, input);
-        await mistakes.applyAssessment(scope, result.id);
-        return result;
-      };
+      ) => assessment.submitCandidate(scope, input);
       scoped.post("/api/assessments", async (req) =>
         assess(await scopeForRequest(auth, req), req.body),
       );
@@ -343,6 +342,8 @@ export function buildApp(deps: AppDependencies) {
               deps.gateway,
             ),
             "learning.summary": summaryHandler(summaries),
+            "learning.assess": assessmentHandler(assessment),
+            "learning.mistake-sync": mistakeSyncHandler(mistakes),
             "question_bank.generate": questionGenerationHandler(
               new QuestionGenerationService(deps.database!, jobs, deps.gateway),
             ),

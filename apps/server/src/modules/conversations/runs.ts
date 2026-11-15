@@ -14,6 +14,7 @@ import { timingEventSchema } from "../../../../../packages/contracts/src/learnin
 import type { FileStore } from "../../infra/oss.js";
 import type { AuthService } from "../auth/service.js";
 import { recordLearningEvent } from "../student-insights/activity.js";
+import { enqueueAttemptAssessment } from "../../jobs/assessment-job.js";
 import { TimingService } from "../tutoring/timing-service.js";
 import { ConversationAttachmentService } from "./attachments.js";
 import { EventStore } from "./events.js";
@@ -189,6 +190,12 @@ export class RunService {
             ],
           )
         ).rows[0];
+        await enqueueAttemptAssessment(tx, {
+          attemptId: attempt.id,
+          studentId: scope.studentId,
+          actorId: scope.actor.userId,
+          taskId: c.task_id,
+        });
         await tx.query("UPDATE task_items SET status='answered' WHERE id=$1", [
           valid.id,
         ]);

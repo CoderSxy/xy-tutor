@@ -8,18 +8,24 @@ export type Job = {
   leaseToken: string;
   attempts: number;
 };
+export async function enqueueJob(
+  tx: Pool | PoolClient,
+  input: { kind: string; dedupeKey: string; payload: unknown },
+): Promise<string> {
+  return (
+    await tx.query(
+      "INSERT INTO jobs(kind,dedupe_key,payload) VALUES($1,$2,$3) ON CONFLICT(dedupe_key) DO UPDATE SET dedupe_key=EXCLUDED.dedupe_key RETURNING id",
+      [input.kind, input.dedupeKey, JSON.stringify(input.payload)],
+    )
+  ).rows[0].id;
+}
 export class JobQueue {
   constructor(private db: Database) {}
   async enqueue(
     tx: Pool | PoolClient,
     input: { kind: string; dedupeKey: string; payload: unknown },
   ): Promise<string> {
-    return (
-      await tx.query(
-        "INSERT INTO jobs(kind,dedupe_key,payload) VALUES($1,$2,$3) ON CONFLICT(dedupe_key) DO UPDATE SET dedupe_key=EXCLUDED.dedupe_key RETURNING id",
-        [input.kind, input.dedupeKey, JSON.stringify(input.payload)],
-      )
-    ).rows[0].id;
+    return enqueueJob(tx, input);
   }
   async claim(_workerId: string, now: Date): Promise<Job | null> {
     // A crash on the final lease cannot be retried; repair processing projections atomically.
@@ -40,6 +46,21 @@ export class JobQueue {
         AND r.id::text=j.payload->>'reportId'
         AND r.generation=(j.payload->>'generation')::int
         AND r.status IN ('queued','running')
+    ), assessment_items AS (
+      UPDATE practice_submission_items i
+      SET grading_state='failed', reason_code='INTERRUPTED', updated_at=$1
+      FROM exhausted j
+      WHERE j.kind='learning.assess'
+        AND i.attempt_id::text=j.payload->>'attemptId'
+        AND i.grading_state IN ('queued','running')
+    ), mistake_items AS (
+      UPDATE practice_submission_items i
+      SET mistake_sync_state='failed', reason_code='INTERRUPTED', updated_at=$1
+      FROM exhausted j
+      JOIN assessments s ON s.id::text=j.payload->>'assessmentId'
+      JOIN attempts a ON a.id=s.attempt_id
+      WHERE j.kind='learning.mistake-sync' AND i.attempt_id=a.id
+        AND i.mistake_sync_state IN ('queued')
     ) SELECT count(*) FROM exhausted`,
       [now],
     );
@@ -128,7 +149,85 @@ export class JobQueue {
             ],
           );
       }
+      if (job?.kind === "learning.assess") {
+        const attemptId = job.payload.attemptId;
+        if (typeof attemptId === "string")
+          await client.query(
+            `UPDATE practice_submission_items
+             SET grading_state=CASE WHEN $2='failed' THEN 'failed' ELSE 'queued' END,
+                 reason_code=$3, updated_at=$4
+             WHERE attempt_id=$1 AND grading_state IN ('queued','running','failed')`,
+            [
+              attemptId,
+              job.status,
+              job.status === "failed" ? "ASSESSMENT_FAILED" : null,
+              now,
+            ],
+          );
+      }
+      if (job?.kind === "learning.mistake-sync") {
+        const assessmentId = job.payload.assessmentId;
+        if (typeof assessmentId === "string")
+          await client.query(
+            `UPDATE practice_submission_items i
+             SET mistake_sync_state=CASE WHEN $2='failed' THEN 'failed' ELSE 'queued' END,
+                 reason_code=$3, updated_at=$4
+             FROM assessments s JOIN attempts a ON a.id=s.attempt_id
+             WHERE s.id=$1 AND i.attempt_id=a.id
+               AND i.mistake_sync_state IN ('queued','failed')`,
+            [
+              assessmentId,
+              job.status,
+              job.status === "failed" ? "MISTAKE_SYNC_FAILED" : null,
+              now,
+            ],
+          );
+      }
       await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+  async retry(id: string, now = new Date()): Promise<boolean> {
+    const client = await this.db.pool.connect();
+    try {
+      await client.query("BEGIN");
+      const job = (
+        await client.query<{
+          kind: string;
+          payload: Record<string, unknown>;
+        }>(
+          `UPDATE jobs SET status='queued',attempts=0,available_at=$2,
+             lease_token=NULL,lease_expires_at=NULL,error_code=NULL
+           WHERE id=$1 AND status='failed'
+           RETURNING kind,payload`,
+          [id, now],
+        )
+      ).rows[0];
+      if (!job) return false;
+      if (job.kind === "learning.assess") {
+        const attemptId = job.payload.attemptId;
+        if (typeof attemptId === "string")
+          await client.query(
+            "UPDATE practice_submission_items SET grading_state='queued',reason_code=NULL,updated_at=$2 WHERE attempt_id=$1 AND grading_state='failed'",
+            [attemptId, now],
+          );
+      }
+      if (job.kind === "learning.mistake-sync") {
+        const assessmentId = job.payload.assessmentId;
+        if (typeof assessmentId === "string")
+          await client.query(
+            `UPDATE practice_submission_items i SET mistake_sync_state='queued',reason_code=NULL,updated_at=$3
+             FROM assessments s JOIN attempts a ON a.id=s.attempt_id
+             WHERE s.id=$1 AND i.attempt_id=a.id AND i.mistake_sync_state='failed'`,
+            [assessmentId, now, now],
+          );
+      }
+      await client.query("COMMIT");
+      return true;
     } catch (error) {
       await client.query("ROLLBACK");
       throw error;
