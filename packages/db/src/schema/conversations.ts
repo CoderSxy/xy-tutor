@@ -74,6 +74,7 @@ export const attempts = pgTable(
     ),
     requestKey: text("request_key").notNull(),
     answer: text().notNull(),
+    answerPayload: jsonb("answer_payload"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

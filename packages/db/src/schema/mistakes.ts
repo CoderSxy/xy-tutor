@@ -8,10 +8,17 @@ import {
   uniqueIndex,
   bigserial,
   boolean,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { studentProfiles } from "./auth.js";
 import { questions, questionVersions } from "./questions.js";
-import { attempts } from "./conversations.js";
+import {
+  attempts,
+  conversations,
+  messageVersions,
+} from "./conversations.js";
+import { learningTasks } from "./learning.js";
 import { assessments } from "./assessments.js";
 export const studentMistakes = pgTable(
   "student_mistakes",
@@ -32,6 +39,20 @@ export const studentMistakes = pgTable(
     lastConsolidatedQuestionId: uuid(
       "last_consolidated_question_id",
     ).references(() => questions.id),
+    originCategory: text("origin_category").notNull().default("unknown"),
+    originDetail: text("origin_detail").notNull().default("unknown"),
+    originTaskId: uuid("origin_task_id").references(() => learningTasks.id),
+    originConversationId: uuid("origin_conversation_id").references(
+      () => conversations.id,
+    ),
+    originMessageVersionId: uuid("origin_message_version_id").references(
+      () => messageVersions.id,
+    ),
+    originQuestionVersionId: uuid("origin_question_version_id").references(
+      () => questionVersions.id,
+    ),
+    provenance: jsonb().notNull().default({}),
+    lifecycle: text().notNull().default("active"),
     version: integer().notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -39,6 +60,18 @@ export const studentMistakes = pgTable(
   },
   (t) => [
     uniqueIndex("student_question_mistake").on(t.studentId, t.questionId),
+    check(
+      "student_mistake_origin_category_check",
+      sql`${t.originCategory} IN ('uploaded','learning','unknown')`,
+    ),
+    check(
+      "student_mistake_origin_detail_check",
+      sql`${t.originDetail} IN ('material_import','daily_practice','knowledge_consolidation','free_question','mistake_review','unknown')`,
+    ),
+    check(
+      "student_mistake_lifecycle_check",
+      sql`${t.lifecycle} IN ('active','revoked')`,
+    ),
   ],
 );
 export const mistakeStateEvents = pgTable(
