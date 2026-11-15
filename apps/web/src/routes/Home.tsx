@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { MessageCircle, NotebookPen, Sparkles, Target } from "lucide-react";
+import { Camera, MessageCircle, NotebookPen, Sparkles, Target } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { api, jsonBody, errorMessage } from "../lib/api";
 import type { TaskDTO, TaskKind } from "../lib/types";
@@ -37,9 +37,9 @@ const quickStarts: {
   },
   {
     kind: "free_question",
-    label: "自由提问",
-    description: "把没想明白的直接问出来",
-    icon: MessageCircle,
+    label: "拍照问老师",
+    description: "拍下题目，直接问老师",
+    icon: Camera,
   },
 ];
 
@@ -115,10 +115,6 @@ export function Home() {
       setBusy(false);
     }
   };
-  const prepareFreeQuestion = () => {
-    setDraft("我想自由提问：");
-    requestAnimationFrame(() => composerRef.current?.focus());
-  };
   const sendFreeQuestion = async (submission: ImageSubmission) => {
     setBusy(true);
     setError("");
@@ -182,8 +178,10 @@ export function Home() {
                     disabled={busy}
                     title={description}
                     onClick={() => {
-                      if (kind === "free_question") prepareFreeQuestion();
-                      else void quickStart(kind);
+                      if (kind === "free_question") {
+                        setDraft("我想拍照问老师：");
+                        requestAnimationFrame(() => composerRef.current?.focus());
+                      } else void quickStart(kind);
                     }}
                   >
                     <span className="start-card-icon">

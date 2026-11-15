@@ -435,7 +435,12 @@ export function PracticeStudyView({
 
   if (viewport.phone || a.capabilities?.mobileStudy === "enabled")
     return (
-      <MobileStudyShell header={header} progress={undefined} dock={dock}>
+      <MobileStudyShell
+        header={header}
+        progress={undefined}
+        dock={dock}
+        keyboardInset={viewport.keyboardInset}
+      >
         {body}
         {workspace}
       </MobileStudyShell>

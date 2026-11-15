@@ -1,8 +1,17 @@
 import { test, expect } from "@playwright/test";
 import { mockLearningApi } from "./fixtures/ui-api";
-for (const width of [360, 390, 768, 1024, 1280, 1440])
-  test(`workbench at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: 900 });
+for (const { width, height } of [
+  { width: 320, height: 740 },
+  { width: 360, height: 900 },
+  { width: 390, height: 900 },
+  { width: 430, height: 932 },
+  { width: 768, height: 1024 },
+  { width: 1024, height: 768 },
+  { width: 1280, height: 900 },
+  { width: 1440, height: 900 },
+])
+  test(`workbench at ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height });
     await mockLearningApi(page);
     await page.route("**/api/materials*", (r) => r.fulfill({ json: [] }));
     await page.goto("/");

@@ -88,8 +88,9 @@ export function AppShell({
 }) {
   const { pathname } = useLocation();
   const tabs = mode === "admin" ? adminTabs : studentTabs;
+  const studying = pathname.startsWith("/study/");
   return (
-    <div className="app-shell">
+    <div className={`app-shell${studying ? " is-study" : ""}`}>
       <a className="skip-link" href="#main-content">
         跳到主要内容
       </a>
@@ -138,21 +139,34 @@ export function AppShell({
       </aside>
       <div className="workspace">
         <header className="context-bar">
-          <span className="context-title">{pageTitle(pathname)}</span>
-          <span className="context-meta">{TODAY.format(new Date())}</span>
+          {studying ? (
+            <>
+              <Link className="context-back" to="/">
+                返回
+              </Link>
+              <span className="context-title">学习进行中</span>
+            </>
+          ) : (
+            <>
+              <span className="context-title">{pageTitle(pathname)}</span>
+              <span className="context-meta">{TODAY.format(new Date())}</span>
+            </>
+          )}
         </header>
         <main id="main-content" className="page-content">
           {children}
         </main>
       </div>
-      <nav className="tab-bar" aria-label="底部导航">
-        {tabs.map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === "/"} title={label}>
-            <Icon size={20} />
-            <span>{label}</span>
-          </NavLink>
-        ))}
-      </nav>
+      {!studying && (
+        <nav className="tab-bar" aria-label="底部导航">
+          {tabs.map(({ to, label, icon: Icon }) => (
+            <NavLink key={to} to={to} end={to === "/"} title={label}>
+              <Icon size={20} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      )}
     </div>
   );
 }

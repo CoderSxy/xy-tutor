@@ -338,6 +338,14 @@ textarea.input {
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+.context-back {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+  color: var(--primary);
+}
 .context-meta {
   font-size: 13px;
   color: var(--muted);
@@ -695,8 +703,8 @@ textarea.input {
   }
 }
 .session-actions button {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: 0;
@@ -724,8 +732,8 @@ textarea.input {
   font-size: 14px;
 }
 .session-edit button {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: grid;
   place-items: center;
   border: 0;
@@ -749,7 +757,7 @@ textarea.input {
   gap: 8px;
 }
 .session-confirm button {
-  min-height: 36px;
+  min-height: 44px;
   padding: 4px 16px;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1272,6 +1280,20 @@ textarea.input {
   }
   .context-meta {
     display: none;
+  }
+  .app-shell.is-study .tab-bar {
+    display: none;
+  }
+  .app-shell.is-study .session-rail {
+    display: none;
+  }
+  .app-shell.is-study .page-content {
+    height: calc(100dvh - var(--topbar-height));
+    padding-bottom: 12px;
+    overflow: hidden;
+  }
+  .app-shell.is-study .home-layout {
+    height: 100%;
   }
   .tab-bar {
     display: grid;
@@ -1916,8 +1938,8 @@ textarea.input {
   color: var(--muted);
 }
 .composer-send {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   flex: none;
   display: grid;
   place-items: center;
@@ -1960,8 +1982,8 @@ textarea.input {
 }
 .composer-image-add {
   display: grid;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   border: 0;
   border-radius: 8px;
