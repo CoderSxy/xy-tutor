@@ -185,10 +185,18 @@ export class TaskService {
       ).rows[0];
       if (task.status !== "active")
         throw new AppError("CONFLICT", 409, "请恢复任务后添加题目");
-      if (task.kind === "daily_practice") {
+      const set = (
+        await tx.query<{ id: string }>(
+          "SELECT id FROM practice_sets WHERE task_id=$1",
+          [taskId],
+        )
+      ).rows[0];
+      if (set && v.role !== "diagnostic")
+        throw new AppError("CONFLICT", 409, "本题组由系统安排，不能额外追加正式题");
+      if (task.kind === "daily_practice" && v.role !== "diagnostic") {
         const count = (
           await tx.query(
-            "SELECT count(*)::int AS n FROM task_items WHERE task_id=$1",
+            "SELECT count(*)::int AS n FROM task_items i WHERE i.task_id=$1 AND i.role <> 'diagnostic'",
             [taskId],
           )
         ).rows[0].n;

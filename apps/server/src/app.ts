@@ -6,6 +6,8 @@ import { ReviewService } from "./modules/learning/review.js";
 import { summaryHandler } from "./jobs/summary-job.js";
 import { assessmentHandler } from "./jobs/assessment-job.js";
 import { mistakeSyncHandler } from "./jobs/mistake-sync-job.js";
+import { practiceSetHandler } from "./jobs/practice-set-job.js";
+import { PracticeSetService } from "./modules/learning/practice-sets.js";
 import { MistakeService } from "./modules/learning/mistakes.js";
 import { registerMistakes } from "./modules/learning/mistake-routes.js";
 import { PracticeService } from "./modules/learning/practice.js";
@@ -344,6 +346,9 @@ export function buildApp(deps: AppDependencies) {
             "learning.summary": summaryHandler(summaries),
             "learning.assess": assessmentHandler(assessment),
             "learning.mistake-sync": mistakeSyncHandler(mistakes),
+            "learning.practice-set": practiceSetHandler(
+              new PracticeSetService(deps.database!, auth, tasks, jobs),
+            ),
             "question_bank.generate": questionGenerationHandler(
               new QuestionGenerationService(deps.database!, jobs, deps.gateway),
             ),

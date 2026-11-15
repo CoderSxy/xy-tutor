@@ -84,10 +84,19 @@ export class PracticeService {
       })
       .strict();
     let v = shape.parse(input);
+    const existingSet = (
+      await this.db.pool.query(
+        "SELECT id FROM practice_sets WHERE task_id=$1",
+        [taskId],
+      )
+    ).rows[0];
+    if (existingSet && v.role !== "diagnostic")
+      return { status: "pending", reason: "本题组由系统安排，不能额外追加正式题" };
     if (!this.gateway) return { status: "pending", reason: "核验模型尚未配置" };
     if (
       task.kind === "daily_practice" &&
-      (await this.tasks.items(scope, taskId)).length >= 5
+      (await this.tasks.items(scope, taskId)).filter((item) => item.role !== "diagnostic")
+        .length >= 5
     )
       return { status: "pending", reason: "本次每日5练已安排5题" };
     for (let attempt = 0; attempt < 2; attempt++) {

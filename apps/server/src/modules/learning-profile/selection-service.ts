@@ -265,6 +265,18 @@ export class SelectionService {
       let questionVersionId: string | null = null;
       let entryId: string | null = null;
       if (choice.status === "selected") {
+        const existingSet = (
+          await tx.query(
+            "SELECT id FROM practice_sets WHERE task_id=$1",
+            [taskId],
+          )
+        ).rows[0];
+        if (existingSet && GOAL_ITEM_ROLE[choice.goal] !== "diagnostic")
+          throw new AppError(
+            "CONFLICT",
+            409,
+            "本题组由系统安排，不能额外追加正式题",
+          );
         const formal = (
           await tx.query(
             `SELECT count(*)::int AS total FROM task_items

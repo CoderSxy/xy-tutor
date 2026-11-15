@@ -46,6 +46,12 @@ export class JobQueue {
         AND r.id::text=j.payload->>'reportId'
         AND r.generation=(j.payload->>'generation')::int
         AND r.status IN ('queued','running')
+    ), practice_sets_exhausted AS (
+      UPDATE practice_sets s SET generation_status='failed', updated_at=$1
+      FROM exhausted j
+      WHERE j.kind='learning.practice-set'
+        AND s.id::text=j.payload->>'setId'
+        AND s.generation_status IN ('preparing')
     ), assessment_items AS (
       UPDATE practice_submission_items i
       SET grading_state='failed', reason_code='INTERRUPTED', updated_at=$1
@@ -163,6 +169,14 @@ export class JobQueue {
               job.status === "failed" ? "ASSESSMENT_FAILED" : null,
               now,
             ],
+          );
+      }
+      if (job?.kind === "learning.practice-set") {
+        const setId = job.payload.setId;
+        if (typeof setId === "string" && job.status === "failed")
+          await client.query(
+            "UPDATE practice_sets SET generation_status='failed',updated_at=$2 WHERE id=$1 AND generation_status IN ('preparing','failed')",
+            [setId, now],
           );
       }
       if (job?.kind === "learning.mistake-sync") {
