@@ -18,6 +18,10 @@ import { buildBlueprint } from "./practice-blueprint.js";
 import { instantiateTemplate } from "../question-bank/templates.js";
 import { toPublicQuestion } from "../question-bank/presentation.js";
 import type { QuestionType } from "../../../../../packages/contracts/src/question-presentation.js";
+import {
+  computePracticeProgress,
+  loadPracticeItemProgress,
+} from "./practice-progress.js";
 
 const TEMPLATE_FORMS: Record<string, "single_choice" | "fill_blank" | "worked"> =
   {
@@ -379,6 +383,10 @@ export class PracticeSetService {
       knowledgePoint: string | null;
       reasonCode: string | null;
     }>;
+    const progressItems = await loadPracticeItemProgress(queryable, setId);
+    const progressByItem = new Map(
+      progressItems.map((item) => [item.itemId, item]),
+    );
     const items: PracticeItemDTO[] = slots.map((slot) => {
       const publicQuestion =
         slot.questionVersionId && slot.stem
@@ -391,6 +399,14 @@ export class PracticeSetService {
               answerSpec: slot.answerSpec,
             })
           : null;
+      const progress =
+        progressByItem.get(slot.itemId ?? slot.slotId) ?? {
+          itemId: slot.itemId ?? slot.slotId,
+          submission: "unanswered" as const,
+          grading: "none" as const,
+          correctness: null,
+          mistakeSync: "not_required" as const,
+        };
       return {
         slotId: slot.slotId,
         position: slot.position,
@@ -399,20 +415,13 @@ export class PracticeSetService {
         questionVersionId: slot.questionVersionId,
         stem: publicQuestion?.stem ?? null,
         presentation: publicQuestion?.presentation ?? null,
-        progress: {
-          itemId: slot.itemId ?? slot.slotId,
-          submission: "unanswered",
-          grading: "none",
-          correctness: null,
-          mistakeSync: "not_required",
-        },
+        progress,
         reasonCode: slot.reasonCode,
       };
     });
-    const submitted = items.filter((item) => item.progress.submission === "submitted").length;
-    const skipped = items.filter((item) => item.progress.submission === "skipped").length;
-    const verified = items.filter((item) => item.progress.grading === "verified").length;
-    const pending = items.filter((item) => item.progress.grading === "pending").length;
+    const computed = computePracticeProgress({
+      items: items.map((item) => item.progress),
+    });
     return {
       id: set.id as string,
       taskId: set.taskId as string,
@@ -421,9 +430,9 @@ export class PracticeSetService {
       strategy: set.strategy as PracticeSetDTO["strategy"],
       examProfileId: (set.examProfileId as string | null) ?? null,
       generation: set.generation as PracticeSetDTO["generation"],
-      submission: set.submission as PracticeSetDTO["submission"],
-      counts: { total: 5, submitted, skipped, verified, pending },
-      canContinue: false,
+      submission: computed.submission,
+      counts: computed.counts,
+      canContinue: computed.canContinue,
       items,
     };
   }

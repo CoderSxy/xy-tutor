@@ -134,6 +134,31 @@ function assertBlankIntegrity(value: PresentationCandidate) {
   }
 }
 
+export function assertAnswerMatchesPresentation(
+  presentation: QuestionPresentation,
+  answer: AnswerPayload,
+): void {
+  const payload = answerPayloadSchema.parse(answer);
+  if (payload.kind === "choice") {
+    if (presentation.kind !== "choice")
+      throw new PresentationValidationError("ANSWER_KIND", "作答类型不匹配");
+    const ids = new Set(presentation.options.map((item) => item.optionId));
+    if (payload.optionIds.some((id) => !ids.has(id)))
+      throw new PresentationValidationError("UNKNOWN_OPTION", "选项不存在");
+    return;
+  }
+  if (payload.kind === "blanks") {
+    if (presentation.kind !== "blank")
+      throw new PresentationValidationError("ANSWER_KIND", "作答类型不匹配");
+    const ids = new Set(presentation.blanks.map((item) => item.blankId));
+    if (payload.values.some((item) => !ids.has(item.blankId)))
+      throw new PresentationValidationError("UNKNOWN_BLANK", "空位不存在");
+    return;
+  }
+  if (presentation.kind !== "worked")
+    throw new PresentationValidationError("ANSWER_KIND", "作答类型不匹配");
+}
+
 export function serializeAnswer(
   question: ValidatedQuestion,
   answer: AnswerPayload,

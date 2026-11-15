@@ -30,6 +30,8 @@ import type { LearningProfileService } from "../learning-profile/service.js";
 import { equivalent } from "./verifier.js";
 import { enqueueJob } from "../../jobs/queue.js";
 import { publishStudentText } from "../question-bank/student-language.js";
+import { verifyStructuredAnswer } from "../question-bank/presentation.js";
+import { refreshPracticeSetState } from "./practice-progress.js";
 export type AssessmentDTO = {
   id: string;
   attemptId: string;
@@ -88,8 +90,8 @@ export class AssessmentService {
     z.uuid().parse(attemptId);
     const a = (
       await this.db.pool.query(
-        `SELECT a.id,a.answer,a.task_id,a.question_version_id,a.message_version_id,
-                a.created_at,v.stem
+        `SELECT a.id,a.answer,a.answer_payload,a.task_id,a.question_version_id,a.message_version_id,
+                a.created_at,a.student_id,v.stem
          FROM attempts a JOIN question_versions v ON v.id=a.question_version_id
          WHERE a.id=$1 AND a.student_id=$2`,
         [attemptId, scope.studentId],
@@ -111,8 +113,27 @@ export class AssessmentService {
             : "依据不足或核验不一致，暂不能可靠判定",
       };
     }
+    if (a.answer_payload) {
+      const structured = await verifyStructuredAnswer(
+        this.db,
+        a.question_version_id,
+        a.answer_payload,
+      );
+      if (
+        structured.method === "exact" ||
+        structured.verification === "pending"
+      ) {
+        const result = await this.commitStructuredAssessment(
+          scope,
+          a,
+          structured,
+        );
+        await this.refreshLinkedSet(attemptId);
+        return result;
+      }
+    }
     const candidate = await this.deriveCandidate(a, signal);
-    return this.submitCandidate(
+    const assessed = await this.submitCandidate(
       scope,
       {
         attemptId,
@@ -123,6 +144,120 @@ export class AssessmentService {
       },
       signal,
     );
+    await this.refreshLinkedSet(attemptId);
+    return assessed;
+  }
+
+  private async refreshLinkedSet(attemptId: string) {
+    const set = (
+      await this.db.pool.query<{ id: string }>(
+        `SELECT s.id FROM practice_submission_items i
+         JOIN practice_set_slots sl ON sl.task_item_id=i.task_item_id
+         JOIN practice_sets s ON s.id=sl.set_id
+         WHERE i.attempt_id=$1 LIMIT 1`,
+        [attemptId],
+      )
+    ).rows[0];
+    if (set) await refreshPracticeSetState(this.db.pool, set.id);
+  }
+
+  private async commitStructuredAssessment(
+    scope: StudentScope,
+    attempt: {
+      id: string;
+      student_id: string;
+      task_id: string | null;
+      question_version_id: string;
+      message_version_id: string | null;
+      created_at: Date;
+    },
+    structured: {
+      correctness: Correctness;
+      verification: "verified" | "pending";
+      method: "exact" | "independent" | "insufficient";
+    },
+  ): Promise<AssessmentDTO> {
+    const dependency = await this.hintDependency({
+      studentId: attempt.student_id,
+      taskId: attempt.task_id,
+      questionVersionId: attempt.question_version_id,
+      messageVersionId: attempt.message_version_id,
+      before: attempt.created_at,
+    });
+    return inTransaction(this.db, async (tx) => {
+      await tx.query(
+        "SELECT id FROM attempts WHERE id=$1 AND student_id=$2 FOR UPDATE",
+        [attempt.id, scope.studentId],
+      );
+      const current = (
+        await tx.query<{
+          id: string;
+          correctness: Correctness;
+          verification: AssessmentDTO["verification"];
+          hintDependency: AssessmentDTO["hintDependency"];
+        }>(
+          `SELECT id,correctness,verification,hint_dependency AS "hintDependency"
+           FROM assessments WHERE attempt_id=$1
+           ORDER BY created_at DESC,id DESC LIMIT 1`,
+          [attempt.id],
+        )
+      ).rows[0];
+      if (current) {
+        await this.enqueueSync(tx, scope, current.id);
+        return {
+          id: current.id,
+          attemptId: attempt.id,
+          correctness: current.correctness,
+          verification: current.verification,
+          hintDependency: current.hintDependency,
+          reason:
+            current.verification === "verified"
+              ? "已复用已有评估"
+              : "依据不足或核验不一致，暂不能可靠判定",
+        };
+      }
+      const inserted = (
+        await tx.query<{ id: string }>(
+          `INSERT INTO assessments(attempt_id,correctness,verification,hint_dependency,method,verifier_version,evidence)
+           VALUES($1,$2,$3,$4,$5,'assessment-v1',$6::jsonb) RETURNING id`,
+          [
+            attempt.id,
+            structured.correctness,
+            structured.verification,
+            dependency,
+            structured.method,
+            JSON.stringify({ structured: true }),
+          ],
+        )
+      ).rows[0]!;
+      await this.enqueueSync(tx, scope, inserted.id);
+      await tx.query(
+        `UPDATE practice_submission_items
+         SET latest_assessment_id=$1,grading_state=$2,mistake_sync_state=$3,
+             reason_code=NULL,updated_at=now()
+         WHERE attempt_id=$4 AND state='submitted'`,
+        [
+          inserted.id,
+          structured.verification === "verified" ? "verified" : "pending",
+          structured.verification === "verified" &&
+          structured.correctness === "incorrect"
+            ? "queued"
+            : "not_required",
+          attempt.id,
+        ],
+      );
+      return {
+        id: inserted.id,
+        attemptId: attempt.id,
+        correctness: structured.correctness,
+        verification: structured.verification,
+        hintDependency: dependency,
+        reason:
+          structured.verification === "verified"
+            ? "按结构化答案规范自动比对"
+            : "依据不足或核验不一致，暂不能可靠判定",
+      };
+    });
   }
 
   private async deriveCandidate(

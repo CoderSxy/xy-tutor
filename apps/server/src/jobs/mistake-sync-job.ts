@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { StudentScope } from "../../../../packages/contracts/src/domain.js";
 import type { MistakeService } from "../modules/learning/mistakes.js";
+import { refreshPracticeSetState } from "../modules/learning/practice-progress.js";
 import type { JobHandler } from "./runner.js";
 
 export const mistakeSyncJobPayloadSchema = z
@@ -56,6 +57,16 @@ export function mistakeSyncHandler(service: MistakeService): JobHandler {
         shouldSyncMistake ? "synced" : "not_required",
       ],
     );
+    const set = (
+      await service.db.pool.query<{ id: string }>(
+        `SELECT s.id FROM practice_submission_items i
+         JOIN practice_set_slots sl ON sl.task_item_id=i.task_item_id
+         JOIN practice_sets s ON s.id=sl.set_id
+         WHERE i.attempt_id=$1 LIMIT 1`,
+        [assessment.attempt_id],
+      )
+    ).rows[0];
+    if (set) await refreshPracticeSetState(service.db.pool, set.id);
     return {
       status: shouldSyncMistake ? "synced" : "not_required",
       assessmentId: latest.id,
