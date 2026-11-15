@@ -85,9 +85,9 @@ export async function verifyBankCandidate(
         input.template.params,
       );
       const same =
-        solved.answerType === input.answerType &&
-        equivalent(solved.answer, input.referenceAnswer, "number");
-      checks.answerConfirmed = same === true;
+        equivalent(solved.answer, input.referenceAnswer, "number") === true ||
+        solved.answer.trim() === input.referenceAnswer.trim();
+      checks.answerConfirmed = same;
       if (!checks.answerConfirmed) reasons.push("模板求解结果与参考答案不一致");
     } catch (error) {
       checks.templateValid = false;

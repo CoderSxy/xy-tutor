@@ -15,6 +15,7 @@ import { parseModelJson } from "../learning/practice.js";
 import type { JobQueue } from "../../jobs/queue.js";
 import {
   instantiateTemplate,
+  type InstantiatedTemplate,
   type TemplateValidationError,
 } from "./templates.js";
 import {
@@ -175,6 +176,7 @@ export class QuestionGenerationService {
     let verification: BankVerification;
     let template: TemplateRow | undefined;
     let templateFingerprint: string | undefined;
+    let structured: InstantiatedTemplate | undefined;
 
     if (templateCode === "llm") {
       if (!this.gateway) return this.fail(run, "MODEL_NOT_CONFIGURED");
@@ -240,11 +242,12 @@ export class QuestionGenerationService {
         found.status === "approved" &&
         (!run.params.templateVersion ||
           run.params.templateVersion === found.version);
+      structured = solved;
       candidate = {
         stem: solved.stem,
         referenceAnswer: solved.answer,
-        answerType: "number",
-        requiresWorking: false,
+        answerType: solved.answerType,
+        requiresWorking: solved.questionType === "worked",
       };
       templateFingerprint = solved.fingerprint;
       verification = await verifyBankCandidate({
@@ -292,6 +295,7 @@ export class QuestionGenerationService {
       templateCode,
       knowledge,
       templateFingerprint,
+      structured,
     );
     await this.db.pool.query(
       "UPDATE question_generation_runs SET status='succeeded',result_entry_id=$2,completed_at=now() WHERE id=$1",
@@ -309,6 +313,7 @@ export class QuestionGenerationService {
     templateCode: string,
     knowledge: FrozenKnowledge[],
     templateFingerprint?: string,
+    structured?: InstantiatedTemplate,
   ): Promise<string> {
     const published = verification.status === "verified";
     const fingerprint =
@@ -327,8 +332,8 @@ export class QuestionGenerationService {
         ).rows[0];
         const version = (
           await tx.query(
-            `INSERT INTO question_versions(question_id,version_no,stem,reference_answer,knowledge_point,verification,language_status,language_policy_version)
-             VALUES($1,1,$2,$3,$4,$5,'accepted',$6) RETURNING id`,
+            `INSERT INTO question_versions(question_id,version_no,stem,reference_answer,knowledge_point,verification,language_status,language_policy_version,question_type,presentation,answer_spec)
+             VALUES($1,1,$2,$3,$4,$5,'accepted',$6,$7,$8::jsonb,$9::jsonb) RETURNING id`,
             [
               question.id,
               candidate.stem,
@@ -336,6 +341,11 @@ export class QuestionGenerationService {
               skillName,
               published ? "verified" : "pending",
               STUDENT_LANGUAGE_POLICY,
+              structured?.questionType && structured.questionType !== "legacy"
+                ? structured.questionType
+                : "legacy",
+              JSON.stringify(structured?.presentation ?? {}),
+              JSON.stringify(structured?.answerSpec ?? {}),
             ],
           )
         ).rows[0];

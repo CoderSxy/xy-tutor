@@ -1,4 +1,9 @@
 import { createHash } from "node:crypto";
+import type {
+  AnswerSpec,
+  QuestionPresentation,
+  QuestionType,
+} from "../../../../../packages/contracts/src/question-presentation.js";
 
 export class TemplateValidationError extends Error {
   constructor(
@@ -13,8 +18,11 @@ export class TemplateValidationError extends Error {
 export type InstantiatedTemplate = {
   stem: string;
   answer: string;
-  answerType: "number";
+  answerType: "number" | "choice" | "worked";
   fingerprint: string;
+  questionType: QuestionType;
+  presentation: QuestionPresentation | null;
+  answerSpec: AnswerSpec | null;
 };
 
 type Fraction = { n: bigint; d: bigint };
@@ -126,16 +134,15 @@ function instantiateRationalArithmetic(
         : op === "*"
           ? multiply(left, right)
           : divide(left, right);
-  return {
-    stem: `计算 ${formatFraction(left)} ${op} ${formatFraction(right)} 的值，结果写成最简分数或整数。`,
-    answer: formatFraction(result),
-    answerType: "number",
-    fingerprint: fingerprintOf("rational_arithmetic", version, {
-      op,
-      a: formatFraction(left),
-      b: formatFraction(right),
-    }),
-  };
+  const answer = formatFraction(result);
+  const fingerprint = fingerprintOf("rational_arithmetic", version, {
+    op,
+    a: formatFraction(left),
+    b: formatFraction(right),
+    form: params.form ?? "number",
+  });
+  const stem = `计算 ${formatFraction(left)} ${op} ${formatFraction(right)} 的值，结果写成最简分数或整数。`;
+  return withForm(stem, answer, fingerprint, params.form);
 }
 
 function instantiateLinearEquation(
@@ -154,15 +161,120 @@ function instantiateLinearEquation(
   const x = subtract(fraction(c, a), fraction(b, 1n));
   const inner =
     b < 0n ? `x - ${-b}` : b > 0n ? `x + ${b}` : "x";
+  const answer = formatFraction(x);
+  const fingerprint = fingerprintOf("linear_equation", version, {
+    a: a.toString(),
+    b: b.toString(),
+    c: c.toString(),
+    form: params.form ?? "number",
+  });
+  const stem = `解方程 ${a}(${inner}) = ${c}，把解写成最简分数或整数。`;
+  return withForm(stem, answer, fingerprint, params.form);
+}
+
+function distractors(answer: string): string[] {
+  const value = fractionFromAnswer(answer);
+  const candidates = [
+    formatFraction({ n: -value.n, d: value.d }),
+    formatFraction(add(value, fraction(1n, 1n))),
+    formatFraction(subtract(value, fraction(1n, 1n))),
+    value.n === 0n ? "1" : formatFraction(fraction(value.d, value.n)),
+  ];
+  const unique: string[] = [];
+  for (const item of candidates) {
+    if (item === answer) continue;
+    if (unique.includes(item)) continue;
+    unique.push(item);
+    if (unique.length === 3) break;
+  }
+  while (unique.length < 3) unique.push(`${unique.length + 7}`);
+  return unique.slice(0, 3);
+}
+
+function fractionFromAnswer(answer: string): Fraction {
+  const parts = answer.split("/");
+  if (parts.length === 1) return fraction(BigInt(parts[0]!), 1n);
+  return fraction(BigInt(parts[0]!), BigInt(parts[1]!));
+}
+
+function withForm(
+  stem: string,
+  answer: string,
+  fingerprint: string,
+  form: unknown,
+): InstantiatedTemplate {
+  if (form === "single_choice") {
+    const labels = [answer, ...distractors(answer)];
+    const options = labels.map((label) => ({
+      optionId: `opt-${createHash("sha256").update(label).digest("hex").slice(0, 8)}`,
+      label,
+    }));
+    const seed = Number.parseInt(fingerprint.slice(0, 8), 16);
+    options.sort((a, b) => {
+      const ha = Number.parseInt(
+        createHash("sha256").update(`${seed}:${a.optionId}`).digest("hex").slice(0, 8),
+        16,
+      );
+      const hb = Number.parseInt(
+        createHash("sha256").update(`${seed}:${b.optionId}`).digest("hex").slice(0, 8),
+        16,
+      );
+      return ha - hb;
+    });
+    const correct = options.find((item) => item.label === answer)!;
+    return {
+      stem: `${stem}请选择正确答案。`,
+      answer,
+      answerType: "choice",
+      fingerprint,
+      questionType: "single_choice",
+      presentation: { kind: "choice", multiple: false, options },
+      answerSpec: { kind: "single_choice", correctOptionId: correct.optionId },
+    };
+  }
+  if (form === "fill_blank") {
+    return {
+      stem: `${stem}把答案填入空中。`,
+      answer,
+      answerType: "number",
+      fingerprint,
+      questionType: "fill_blank",
+      presentation: { kind: "blank", blanks: [{ blankId: "result", label: "结果" }] },
+      answerSpec: {
+        kind: "fill_blank",
+        blanks: [{ blankId: "result", validation: "number", answer }],
+      },
+    };
+  }
+  if (form === "worked") {
+    return {
+      stem,
+      answer,
+      answerType: "worked",
+      fingerprint,
+      questionType: "worked",
+      presentation: {
+        kind: "worked",
+        requirements: "写出计算过程，并给出最简结果。",
+        requiresWorking: true,
+      },
+      answerSpec: {
+        kind: "worked",
+        requiresWorking: true,
+        rubric: ["计算", answer],
+        referenceAnswer: `计算过程略，结果为 ${answer}。`,
+        verificationStrategy: "deterministic",
+      },
+    };
+  }
   return {
-    stem: `解方程 ${a}(${inner}) = ${c}，把解写成最简分数或整数。`,
-    answer: formatFraction(x),
+    stem,
+    answer,
     answerType: "number",
-    fingerprint: fingerprintOf("linear_equation", version, {
-      a: a.toString(),
-      b: b.toString(),
-      c: c.toString(),
-    }),
+    fingerprint,
+    questionType: "legacy",
+    presentation: null,
+    answerSpec: null,
   };
 }
 
