@@ -463,6 +463,14 @@ it("错题列表支持过滤，事件分页且只在详情审计", () =>
     expect(all.json().total).toBe(2);
     expect(
       all.json().items.every(
+        (item: { originCategory?: string }) =>
+          item.originCategory === "uploaded" ||
+          item.originCategory === "learning" ||
+          item.originCategory === "unknown",
+      ),
+    ).toBe(true);
+    expect(
+      all.json().items.every(
         (item: { knowledgePoint: string }) => item.knowledgePoint === "分数",
       ),
     ).toBe(true);

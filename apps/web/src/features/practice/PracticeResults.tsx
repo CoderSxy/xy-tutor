@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { PracticeSetDTO } from "../../../../../packages/contracts/src/practice-sets.js";
 
 export function PracticeResults({ set }: { set: PracticeSetDTO }) {
@@ -28,7 +29,14 @@ export function PracticeResults({ set }: { set: PracticeSetDTO }) {
                           ? "需要订正"
                           : "未作答"}
             {item.progress.mistakeSync === "queued" && " · 错题同步中"}
-            {item.progress.mistakeSync === "synced" && " · 已加入学习错题"}
+            {item.progress.mistakeSync === "synced" && (
+              <>
+                {" · "}
+                <Link className="text-link" to="/mistakes?origin=learning">
+                  已加入学习错题
+                </Link>
+              </>
+            )}
             {item.progress.mistakeSync === "failed" && " · 错题同步失败"}
           </li>
         ))}

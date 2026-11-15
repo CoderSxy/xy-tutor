@@ -56,3 +56,16 @@ export const stateLabels: Record<string, string> = {
   consolidated_pending_review: "已巩固，待复习",
   mastered: "已掌握",
 };
+export const originLabels: Record<string, string> = {
+  uploaded: "上传错题",
+  learning: "学习错题",
+  unknown: "来源待确认",
+};
+export const originDetailLabels: Record<string, string> = {
+  material_import: "资料导入",
+  daily_practice: "每日练习",
+  knowledge_consolidation: "知识点巩固",
+  free_question: "自由提问",
+  mistake_review: "错题回顾",
+  unknown: "来源不明",
+};

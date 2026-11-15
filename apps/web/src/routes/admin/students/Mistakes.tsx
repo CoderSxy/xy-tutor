@@ -6,7 +6,7 @@ import { filterSearch, useMistakes } from "../../../features/student-insights/ap
 import { dateTime } from "../../../features/student-insights/format";
 import { InsightStatus } from "../../../features/student-insights/InsightStatus";
 import { ListPager } from "../../../features/student-insights/ListPager";
-import { stateLabels } from "../../../lib/types";
+import { originLabels, stateLabels } from "../../../lib/types";
 import type { StudentOutletContext } from "./StudentLayout";
 
 const PAGE_SIZE = 20;
@@ -88,6 +88,7 @@ export function Mistakes() {
                     <th scope="col">题目</th>
                     <th scope="col">知识点</th>
                     <th scope="col">状态</th>
+                    <th scope="col">来源</th>
                     <th scope="col">加入时间</th>
                     <th scope="col">下次复习</th>
                   </tr>
@@ -105,6 +106,11 @@ export function Mistakes() {
                       </th>
                       <td>{mistake.knowledgePoint ?? "未标注"}</td>
                       <td>{stateLabels[mistake.status] ?? mistake.status}</td>
+                      <td>
+                        {originLabels[mistake.originCategory ?? ""] ??
+                          mistake.originCategory ??
+                          "来源待确认"}
+                      </td>
                       <td>{dateTime(mistake.createdAt)}</td>
                       <td>
                         {mistake.dueAt ? dateTime(mistake.dueAt) : "未安排"}

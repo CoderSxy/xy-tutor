@@ -159,6 +159,7 @@ type MistakeRow = {
   stem: string;
   knowledgePoint: string | null;
   revisionId: string;
+  originCategory: string | null;
 };
 
 type MistakeEventRow = {
@@ -315,6 +316,7 @@ function toMistake(row: MistakeRow): MistakeRecordDTO {
     stem: row.stem,
     knowledgePoint: row.knowledgePoint,
     revisionId: row.revisionId,
+    originCategory: row.originCategory ?? "unknown",
   };
 }
 
@@ -670,7 +672,8 @@ export class InsightRecordService {
         `SELECT m.id, m.question_id AS "questionId", m.status,
            m.created_at AS "createdAt", m.due_at AS "dueAt",
            v.stem, v.knowledge_point AS "knowledgePoint",
-           q.revision_id AS "revisionId"
+           q.revision_id AS "revisionId",
+           m.origin_category AS "originCategory"
          ${MISTAKE_FROM}
          WHERE ${MISTAKE_WHERE}
          ORDER BY m.created_at DESC, m.id DESC
@@ -699,7 +702,8 @@ export class InsightRecordService {
           `SELECT m.id, m.question_id AS "questionId", m.status,
              m.created_at AS "createdAt", m.due_at AS "dueAt",
              v.stem, v.knowledge_point AS "knowledgePoint",
-             q.revision_id AS "revisionId"
+             q.revision_id AS "revisionId",
+             m.origin_category AS "originCategory"
            ${MISTAKE_FROM}
            WHERE m.id = $1 AND m.student_id = $2`,
           [mistakeId, scope.studentId],
