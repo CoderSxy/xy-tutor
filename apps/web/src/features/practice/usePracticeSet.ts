@@ -24,7 +24,6 @@ export function usePracticeSet(taskId?: string) {
   const navigate = useNavigate();
   const [set, setSet] = useState<PracticeSetDTO>();
   const [selectedItemId, setSelectedItemId] = useState<string>();
-  const [submissionId, setSubmissionId] = useState<string>();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(!!taskId);
 
@@ -94,10 +93,13 @@ export function usePracticeSet(taskId?: string) {
   }, [taskId, load]);
 
   useEffect(() => {
-    if (set?.generation !== "preparing") return;
+    const active = set?.generation === "preparing" || set?.items.some(item =>
+      item.progress.grading === "queued" || item.progress.grading === "running" ||
+      item.progress.mistakeSync === "queued");
+    if (!active) return;
     const timer = window.setInterval(() => void load(), 2000);
     return () => window.clearInterval(timer);
-  }, [set?.generation, load]);
+  }, [set, load]);
 
   const selectItem = (itemId: string) => setSelectedItemId(itemId);
 
@@ -124,25 +126,31 @@ export function usePracticeSet(taskId?: string) {
         ...input,
       },
     );
-    setSubmissionId(result.id);
     await load();
     return result;
   };
 
   const retry = async (itemIds: string[]) => {
-    if (!submissionId) return;
-    await api(a.scoped(`/api/practice-submissions/${submissionId}/retry`), {
-      method: "POST",
-      ...jsonBody({ requestKey: crypto.randomUUID(), itemIds }),
-    });
+    const groups = new Map<string, string[]>();
+    for (const itemId of itemIds) {
+      const submissionId = set?.items.find(item => item.itemId === itemId)?.progress.submissionId;
+      if (!submissionId) throw new Error("作答记录尚未恢复，请刷新后重试。");
+      groups.set(submissionId, [...(groups.get(submissionId) ?? []), itemId]);
+    }
+    for (const [submissionId, ids] of groups) {
+      await api(a.scoped(`/api/practice-submissions/${submissionId}/retry`), {
+        method: "POST",
+        ...jsonBody({ requestKey: crypto.randomUUID(), itemIds: ids }),
+      });
+    }
     await load();
   };
 
-  const retryGeneration = async () => {
+  const retryGeneration = async (skillIds?: string[]) => {
     if (!set) return;
     const updated = await retryPracticeGeneration(
       a.scoped(`/api/practice-sets/${set.id}/retry-generation`),
-      { requestKey: crypto.randomUUID(), expectedVersion: set.version },
+      { requestKey: crypto.randomUUID(), expectedVersion: set.version, skillIds },
     );
     setSet(updated);
   };

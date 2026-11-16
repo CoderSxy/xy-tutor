@@ -11,6 +11,7 @@ export const assessmentJobPayloadSchema = z
     studentId: z.uuid(),
     actorId: z.uuid(),
     taskId: z.uuid().optional(),
+    forceReassessment: z.boolean().optional(),
   })
   .strict();
 
@@ -34,7 +35,9 @@ export function assessmentHandler(service: AssessmentService): JobHandler {
       actor: { userId: input.actorId, role: "student" },
       studentId: input.studentId,
     };
-    const result = await service.assessAttempt(scope, input.attemptId, signal);
+    const result = await service.assessAttempt(scope, input.attemptId, signal, {
+      forceReassessment: input.forceReassessment,
+    });
     return {
       assessmentId: result.id,
       correctness: result.correctness,

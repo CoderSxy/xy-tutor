@@ -25,14 +25,21 @@ import {
   computePracticeProgress,
   loadPracticeItemProgress,
 } from "./practice-progress.js";
+import { searchEligibleQuestions } from "../question-bank/search.js";
+import {
+  targetDifficulty,
+  type RecentDecision,
+} from "../learning-profile/selection-policy.js";
 import { getExamProfile } from "../question-bank/exam-profiles.js";
 
-const TEMPLATE_FORMS: Record<string, "single_choice" | "fill_blank" | "worked"> =
-  {
-    single_choice: "single_choice",
-    fill_blank: "fill_blank",
-    worked: "worked",
-  };
+const TEMPLATE_FORMS: Record<
+  string,
+  "single_choice" | "fill_blank" | "worked"
+> = {
+  single_choice: "single_choice",
+  fill_blank: "fill_blank",
+  worked: "worked",
+};
 
 type ScopeSnapshot = {
   skillIds: string[];
@@ -57,7 +64,7 @@ export class PracticeSetService {
     await this.tasks.resume(scope, taskId);
     const parsed = practiceSetCreateInputSchema.parse(input);
     this.assertExamProfile(parsed.strategy, parsed.examProfileId);
-    const knowledge = await this.publishedKnowledge();
+    const knowledge = await this.validSkills(parsed.skillIds ?? []);
     return inTransaction(this.db, async (tx) => {
       await tx.query("SELECT id FROM learning_tasks WHERE id=$1 FOR UPDATE", [
         taskId,
@@ -143,7 +150,10 @@ export class PracticeSetService {
     return dto;
   }
 
-  async getByTask(scope: StudentScope, taskId: string): Promise<PracticeSetDTO | null> {
+  async getByTask(
+    scope: StudentScope,
+    taskId: string,
+  ): Promise<PracticeSetDTO | null> {
     await this.tasks.resume(scope, taskId);
     const row = (
       await this.db.pool.query<{ id: string }>(
@@ -157,13 +167,39 @@ export class PracticeSetService {
   async retryGeneration(
     scope: StudentScope,
     setId: string,
-    input: { requestKey: string; expectedVersion: number },
+    input: { requestKey: string; expectedVersion: number; skillIds?: string[] },
   ): Promise<PracticeSetDTO> {
     const current = await this.get(scope, setId);
     if (current.version !== input.expectedVersion)
       throw new AppError("CONFLICT", 409, "题组已更新，请刷新后重试");
+    const skillIds = input.skillIds
+      ? await this.validSkills(input.skillIds)
+      : null;
+    if (skillIds && current.items.some((item) => item.itemId)) {
+      const snapshot = (
+        await this.db.pool.query<{ scope_snapshot: ScopeSnapshot }>(
+          "SELECT scope_snapshot FROM practice_sets WHERE id=$1",
+          [setId],
+        )
+      ).rows[0]!;
+      if (
+        JSON.stringify([...snapshot.scope_snapshot.skillIds].sort()) !==
+        JSON.stringify([...skillIds].sort())
+      )
+        throw new AppError("CONFLICT", 409, "已有题目，不能更换本题组范围");
+    }
     await this.db.pool.query(
-      "UPDATE practice_sets SET generation_status='preparing',version=version+1,updated_at=now() WHERE id=$1 AND generation_status IN ('failed','insufficient_pool','preparing')",
+      `UPDATE practice_sets SET generation_status=CASE WHEN $2::jsonb IS NOT NULL THEN 'preparing' WHEN scope_snapshot->>'confirmed'='true' THEN 'preparing' ELSE generation_status END,
+       scope_snapshot=CASE WHEN $2::jsonb IS NOT NULL THEN scope_snapshot || $2::jsonb ELSE scope_snapshot END,
+       blueprint=blueprint || '{"attempts":0}'::jsonb, version=version+1,updated_at=now()
+       WHERE id=$1 AND generation_status IN ('awaiting_scope','failed','insufficient_pool','preparing')`,
+      [
+        setId,
+        skillIds?.length ? JSON.stringify({ skillIds, confirmed: true }) : null,
+      ],
+    );
+    await this.db.pool.query(
+      "UPDATE practice_set_slots SET state='pending',reason_code=NULL WHERE set_id=$1 AND state='failed'",
       [setId],
     );
     if (this.jobs)
@@ -189,21 +225,28 @@ export class PracticeSetService {
     return this.get(scope, setId);
   }
 
-  async generateAll(scope: StudentScope, setId: string): Promise<PracticeSetDTO> {
+  async generateAll(
+    scope: StudentScope,
+    setId: string,
+  ): Promise<PracticeSetDTO> {
     const set = (
       await this.db.pool.query<{
         blueprint: { attempts?: number; slots: { position: number }[] };
         generation_status: string;
-      }>(
-        "SELECT blueprint,generation_status FROM practice_sets WHERE id=$1",
-        [setId],
-      )
+      }>("SELECT blueprint,generation_status FROM practice_sets WHERE id=$1", [
+        setId,
+      ])
     ).rows[0];
     if (!set) throw new AppError("NOT_FOUND", 404, "题组不存在");
-    if (set.generation_status === "awaiting_scope") return this.get(scope, setId);
+    if (set.generation_status === "awaiting_scope")
+      return this.get(scope, setId);
     let attempts = set.blueprint.attempts ?? 0;
     const slots = (
-      await this.db.pool.query<{ position: number; state: string; tries: number }>(
+      await this.db.pool.query<{
+        position: number;
+        state: string;
+        tries: number;
+      }>(
         `SELECT position,state,COALESCE((SELECT count(*) FROM task_items i WHERE i.id=practice_set_slots.task_item_id),0)::int AS tries
          FROM practice_set_slots WHERE set_id=$1 ORDER BY position`,
         [setId],
@@ -224,11 +267,7 @@ export class PracticeSetService {
       `UPDATE practice_sets SET blueprint = blueprint || jsonb_build_object('attempts',$2::int),
          generation_status=$3, updated_at=now()
        WHERE id=$1`,
-      [
-        setId,
-        attempts,
-        await this.projectGeneration(setId, attempts),
-      ],
+      [setId, attempts, await this.projectGeneration(setId, attempts)],
     );
     return this.get(scope, setId);
   }
@@ -314,7 +353,8 @@ export class PracticeSetService {
         setId,
       ]);
       const locked = await this.findContinuation(setId, tx);
-      if (locked) return this.replayContinuation(locked, parsed.requestKey, hash);
+      if (locked)
+        return this.replayContinuation(locked, parsed.requestKey, hash);
       const current = await this.load(tx, setId);
       if (!current.canContinue)
         throw new AppError("CONFLICT", 409, "题组尚未完成，不能再来五题");
@@ -337,9 +377,12 @@ export class PracticeSetService {
           [setId],
         )
       ).rows[0]!;
-      const excludeVersionIds = current.items
-        .map((item) => item.questionVersionId)
-        .filter((id): id is string => !!id);
+      const excludeVersionIds = [
+        ...(previous.scope_snapshot.excludeVersionIds ?? []),
+        ...current.items
+          .map((item) => item.questionVersionId)
+          .filter((id): id is string => !!id),
+      ];
       const task = (
         await tx.query<{ id: string }>(
           `INSERT INTO learning_tasks(student_id,revision_id,kind,chapter_id)
@@ -491,99 +534,206 @@ export class PracticeSetService {
     position: number,
     scope: StudentScope,
   ): Promise<boolean> {
-    const slot = (
-      await this.db.pool.query<{
-        id: string;
-        question_type: QuestionType;
-        state: string;
-      }>(
-        "SELECT id,question_type,state FROM practice_set_slots WHERE set_id=$1 AND position=$2",
-        [setId, position],
-      )
-    ).rows[0];
-    if (!slot || slot.state === "bound") return slot?.state === "bound";
-    const form = TEMPLATE_FORMS[slot.question_type];
-    if (!form) {
-      await this.db.pool.query(
-        "UPDATE practice_set_slots SET state='failed',reason_code='unsupported_type',updated_at=now() WHERE id=$1 AND state='pending'",
-        [slot.id],
-      );
-      return false;
-    }
-    const params =
-      form === "single_choice" || form === "fill_blank" || form === "worked"
-        ? {
-            a: 1 + (position % 3),
-            b: 2,
-            c: 1,
-            d: 2 + position,
-            op: "+",
-            form,
-          }
-        : { a: 2, b: 1, c: 6, form };
-    let generated;
-    try {
-      generated = instantiateTemplate(
-        form === "worked" ? "linear_equation" : "rational_arithmetic",
-        1,
-        params,
-      );
-    } catch {
-      await this.db.pool.query(
-        "UPDATE practice_set_slots SET state='failed',reason_code='candidate_invalid',updated_at=now() WHERE id=$1 AND state='pending'",
-        [slot.id],
-      );
-      return false;
-    }
+    // A set lock serializes candidate selection across slots and workers, so duplicate
+    // content cannot be bound twice by concurrent fill requests.
     return inTransaction(this.db, async (tx) => {
-      const locked = (
-        await tx.query<{ id: string; state: string }>(
-          "SELECT id,state FROM practice_set_slots WHERE id=$1 FOR UPDATE",
-          [slot.id],
-        )
-      ).rows[0];
-      if (!locked || locked.state === "bound") return locked?.state === "bound";
-      const task = (
-        await tx.query<{ id: string }>(
-          "SELECT task_id AS id FROM practice_sets WHERE id=$1",
+      const set = (
+        await tx.query<{
+          task_id: string;
+          seed: string;
+          scope_snapshot: ScopeSnapshot;
+        }>(
+          "SELECT task_id,seed,scope_snapshot FROM practice_sets WHERE id=$1 FOR UPDATE",
           [setId],
         )
-      ).rows[0]!;
-      const question = (
-        await tx.query<{ id: string }>(
-          "INSERT INTO questions(student_id,source_type) VALUES($1,'practice') RETURNING id",
-          [scope.studentId],
-        )
-      ).rows[0]!;
-      const version = (
-        await tx.query<{ id: string }>(
-          `INSERT INTO question_versions(question_id,version_no,stem,reference_answer,question_type,presentation,answer_spec,verification,language_status)
-           VALUES($1,1,$2,$3,$4,$5::jsonb,$6::jsonb,'verified','accepted') RETURNING id`,
-          [
-            question.id,
-            generated.stem,
-            generated.answer,
-            generated.questionType,
-            JSON.stringify(generated.presentation ?? {}),
-            JSON.stringify(generated.answerSpec ?? {}),
-          ],
-        )
-      ).rows[0]!;
-      const item = (
-        await tx.query<{ id: string }>(
-          `INSERT INTO task_items(task_id,question_version_id,position,role)
-           SELECT $1,$2,$3,'original'
-           WHERE NOT EXISTS (SELECT 1 FROM practice_set_slots WHERE set_id=$4 AND position=$3 AND state='bound')
-           RETURNING id`,
-          [task.id, version.id, position, setId],
+      ).rows[0];
+      if (!set?.scope_snapshot.confirmed) return false;
+      const slot = (
+        await tx.query<{
+          id: string;
+          question_type: QuestionType;
+          state: string;
+        }>(
+          "SELECT id,question_type,state FROM practice_set_slots WHERE set_id=$1 AND position=$2 FOR UPDATE",
+          [setId, position],
         )
       ).rows[0];
-      if (!item) return false;
-      const bound = await tx.query(
-        "UPDATE practice_set_slots SET task_item_id=$2,state='bound',reason_code=NULL,updated_at=now() WHERE id=$1 AND state='pending' RETURNING id",
+      if (!slot || slot.state === "bound") return slot?.state === "bound";
+      const skills = await this.validSkills(set.scope_snapshot.skillIds);
+      const excluded = (
+        await tx.query<{ id: string; stem: string }>(
+          `SELECT DISTINCT v.id,v.stem FROM question_versions v
+         LEFT JOIN task_items i ON i.question_version_id=v.id
+         LEFT JOIN learning_tasks t ON t.id=i.task_id
+         WHERE v.id=ANY($1::uuid[]) OR (t.student_id=$2 AND (t.id=$3 OR t.created_at > now()-interval '30 days'))`,
+          [
+            set.scope_snapshot.excludeVersionIds ?? [],
+            scope.studentId,
+            set.task_id,
+          ],
+        )
+      ).rows;
+      const normalize = (stem: string) =>
+        stem.normalize("NFKC").replace(/\s+/g, "").trim();
+      const excludedStems = new Set(excluded.map((v) => normalize(v.stem)));
+      const ranked = [];
+      for (const skillId of skills) {
+        const profile = (
+          await tx.query<{
+            training_band: "repair" | "consolidation" | "advance";
+          }>(
+            "SELECT training_band FROM learning_profiles WHERE student_id=$1 AND skill_id=$2",
+            [scope.studentId, skillId],
+          )
+        ).rows[0];
+        const recent = (
+          await tx.query<RecentDecision>(
+            `SELECT goal,difficulty,question_version_id AS "questionVersionId" FROM practice_decisions WHERE student_id=$1 AND skill_id=$2 ORDER BY created_at DESC LIMIT 20`,
+            [scope.studentId, skillId],
+          )
+        ).rows.reverse();
+        const desired = targetDifficulty(
+          profile?.training_band ?? "repair",
+          recent,
+        );
+        const candidates = await searchEligibleQuestions(
+          tx,
+          scope,
+          {
+            skillId,
+            goal: profile?.training_band === "advance" ? "transfer" : "repair",
+            answerType: slot.question_type,
+            limit: 50,
+          },
+          { databaseExcludedVersionIds: excluded.map((v) => v.id) },
+        );
+        for (const candidate of candidates)
+          ranked.push({
+            ...candidate,
+            preferred: candidate.difficulty === desired,
+          });
+      }
+      ranked.sort(
+        (a, b) =>
+          Number(b.preferred) - Number(a.preferred) ||
+          b.matchedCauseCount - a.matchedCauseCount ||
+          a.seenCount - b.seenCount ||
+          createHash("sha256")
+            .update(set.seed + a.questionVersionId)
+            .digest("hex")
+            .localeCompare(
+              createHash("sha256")
+                .update(set.seed + b.questionVersionId)
+                .digest("hex"),
+            ),
+      );
+      let versionId: string | undefined;
+      for (const candidate of ranked) {
+        const v = (
+          await tx.query<{ stem: string; question_type: string }>(
+            "SELECT stem,question_type FROM question_versions WHERE id=$1",
+            [candidate.questionVersionId],
+          )
+        ).rows[0];
+        if (
+          v?.question_type === slot.question_type &&
+          !excludedStems.has(normalize(v.stem))
+        ) {
+          versionId = candidate.questionVersionId;
+          break;
+        }
+      }
+      if (!versionId) {
+        const templates = (
+          await tx.query<{ family: string; version: number }>(
+            `SELECT family,version FROM question_templates WHERE skill_id=ANY($1::uuid[]) AND status='approved' AND approved_at IS NOT NULL AND approved_by IS NOT NULL ORDER BY family`,
+            [skills],
+          )
+        ).rows;
+        let generated;
+        for (let variant = 0; variant < 64 && !generated; variant++) {
+          for (const template of templates) {
+            if (!TEMPLATE_FORMS[slot.question_type]) continue;
+            const bytes = createHash("sha256")
+              .update(`${set.seed}:${position}:${variant}:${template.family}`)
+              .digest();
+            try {
+              const candidate = instantiateTemplate(
+                template.family,
+                template.version,
+                {
+                  a: 1 + (bytes[0]! % 19),
+                  b: 1 + (bytes[1]! % 17),
+                  c: 1 + (bytes[2]! % 29),
+                  d: 1 + (bytes[3]! % 19),
+                  op: bytes[4]! % 2 ? "+" : "-",
+                  form: TEMPLATE_FORMS[slot.question_type],
+                },
+              );
+              if (
+                candidate.questionType === slot.question_type &&
+                !excludedStems.has(normalize(candidate.stem))
+              ) {
+                generated = candidate;
+                break;
+              }
+            } catch {
+              /* Unsupported or withdrawn template versions cannot fill this slot. */
+            }
+          }
+        }
+        if (generated) {
+          const question = (
+            await tx.query<{ id: string }>(
+              "INSERT INTO questions(student_id,source_type) VALUES($1,'practice') RETURNING id",
+              [scope.studentId],
+            )
+          ).rows[0]!;
+          versionId = (
+            await tx.query<{ id: string }>(
+              `INSERT INTO question_versions(question_id,version_no,stem,reference_answer,question_type,presentation,answer_spec,verification,language_status)
+             VALUES($1,1,$2,$3,$4,$5::jsonb,$6::jsonb,'verified','accepted') RETURNING id`,
+              [
+                question.id,
+                generated.stem,
+                generated.answer,
+                generated.questionType,
+                JSON.stringify(generated.presentation ?? {}),
+                JSON.stringify(generated.answerSpec ?? {}),
+              ],
+            )
+          ).rows[0]!.id;
+          await tx.query(
+            `INSERT INTO question_references(question_version_id,answer,answer_type,requires_working,verification,evidence)
+             VALUES($1,$2,$3,$4,'verified',$5::jsonb)`,
+            [
+              versionId,
+              generated.answer,
+              generated.answerType,
+              generated.questionType === "worked",
+              JSON.stringify({ source: "approved_template", seed: set.seed }),
+            ],
+          );
+        }
+      }
+      if (!versionId) {
+        await tx.query(
+          "UPDATE practice_set_slots SET state='failed',reason_code='insufficient_pool',updated_at=now() WHERE id=$1",
+          [slot.id],
+        );
+        return false;
+      }
+      const item = (
+        await tx.query<{ id: string }>(
+          "INSERT INTO task_items(task_id,question_version_id,position,role) VALUES($1,$2,$3,'original') RETURNING id",
+          [set.task_id, versionId, position],
+        )
+      ).rows[0]!;
+      await tx.query(
+        "UPDATE practice_set_slots SET task_item_id=$2,state='bound',reason_code=NULL,updated_at=now() WHERE id=$1",
         [slot.id, item.id],
       );
-      return !!bound.rowCount;
+      return true;
     });
   }
 
@@ -597,21 +747,57 @@ export class PracticeSetService {
     const bound = slots.filter((slot) => slot.state === "bound").length;
     if (bound === 5) return "ready";
     if (attempts >= 10 || slots.every((slot) => slot.state !== "pending"))
-      return bound > 0 ? "insufficient_pool" : "failed";
+      return "insufficient_pool";
     return "preparing";
   }
 
-  private async publishedKnowledge(): Promise<string[]> {
-    const rows = (
-      await this.db.pool.query<{ id: string }>(
-        "SELECT id FROM knowledge_items WHERE status='published' LIMIT 20",
+  async listScopes(
+    scope: StudentScope,
+  ): Promise<Array<{ id: string; name: string }>> {
+    await this.auth.requireStudentAccess(scope.actor, scope.studentId);
+    return (
+      await this.db.pool.query<{ id: string; name: string }>(
+        `SELECT s.id,s.name FROM skills s WHERE s.status='active' AND EXISTS (
+       SELECT 1 FROM skill_content_links l JOIN knowledge_items k ON k.id=l.knowledge_item_id
+       WHERE l.skill_id=s.id AND k.status='published') AND NOT EXISTS (
+       SELECT 1 FROM skill_prerequisites p WHERE p.skill_id=s.id AND NOT EXISTS (
+         SELECT 1 FROM skill_content_links l JOIN knowledge_items k ON k.id=l.knowledge_item_id
+         JOIN skills prerequisite ON prerequisite.id=l.skill_id AND prerequisite.status='active'
+         WHERE l.skill_id=p.prerequisite_id AND k.status='published')) ORDER BY s.name,s.id`,
       )
     ).rows;
-    return rows.map((row) => row.id);
+  }
+
+  private async validSkills(ids: string[]): Promise<string[]> {
+    if (!ids.length) return [];
+    const rows = (
+      await this.db.pool.query<{ id: string }>(
+        `SELECT s.id FROM skills s WHERE s.id=ANY($1::uuid[]) AND s.status='active' AND EXISTS (
+       SELECT 1 FROM skill_content_links l JOIN knowledge_items k ON k.id=l.knowledge_item_id
+       WHERE l.skill_id=s.id AND k.status='published') AND NOT EXISTS (
+       SELECT 1 FROM skill_prerequisites p WHERE p.skill_id=s.id AND NOT EXISTS (
+         SELECT 1 FROM skill_content_links l JOIN knowledge_items k ON k.id=l.knowledge_item_id
+         JOIN skills prerequisite ON prerequisite.id=l.skill_id AND prerequisite.status='active'
+         WHERE l.skill_id=p.prerequisite_id AND k.status='published')) ORDER BY s.id`,
+        [ids],
+      )
+    ).rows;
+    if (rows.length !== new Set(ids).size)
+      throw new AppError(
+        "VALIDATION",
+        422,
+        "所选范围尚未发布或已失效，请重新选择",
+      );
+    return rows.map((r) => r.id);
   }
 
   private async load(
-    queryable: { query: (sql: string, params?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }> },
+    queryable: {
+      query: (
+        sql: string,
+        params?: unknown[],
+      ) => Promise<{ rows: Record<string, unknown>[] }>;
+    },
     setId: string,
   ): Promise<PracticeSetDTO> {
     const set = (
@@ -662,14 +848,13 @@ export class PracticeSetService {
               answerSpec: slot.answerSpec,
             })
           : null;
-      const progress =
-        progressByItem.get(slot.itemId ?? slot.slotId) ?? {
-          itemId: slot.itemId ?? slot.slotId,
-          submission: "unanswered" as const,
-          grading: "none" as const,
-          correctness: null,
-          mistakeSync: "not_required" as const,
-        };
+      const progress = progressByItem.get(slot.itemId ?? slot.slotId) ?? {
+        itemId: slot.itemId ?? slot.slotId,
+        submission: "unanswered" as const,
+        grading: "none" as const,
+        correctness: null,
+        mistakeSync: "not_required" as const,
+      };
       return {
         slotId: slot.slotId,
         position: slot.position,

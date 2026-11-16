@@ -65,11 +65,11 @@ export async function loadPracticeItemProgress(
   const rows = (
     await db.query(
       `SELECT sl.id AS slot_id, sl.task_item_id AS item_id,
-              si.state AS submission, si.grading_state AS grading,
+              si.submission_id, si.state AS submission, si.grading_state AS grading,
               si.mistake_sync_state AS mistake_sync, a.correctness
        FROM practice_set_slots sl
        LEFT JOIN LATERAL (
-         SELECT psi.state, psi.grading_state, psi.mistake_sync_state,
+         SELECT psi.submission_id, psi.state, psi.grading_state, psi.mistake_sync_state,
                 psi.latest_assessment_id
          FROM practice_submission_items psi
          WHERE psi.task_item_id = sl.task_item_id
@@ -82,6 +82,7 @@ export async function loadPracticeItemProgress(
       [setId],
     )
   ).rows as Array<{
+    submission_id: string | null;
     slot_id: string;
     item_id: string | null;
     submission: string | null;
@@ -91,6 +92,7 @@ export async function loadPracticeItemProgress(
   }>;
   return rows.map((row) => ({
     itemId: row.item_id ?? row.slot_id,
+    ...(row.submission_id ? { submissionId: row.submission_id } : {}),
     submission:
       row.submission === "submitted" || row.submission === "skipped"
         ? row.submission

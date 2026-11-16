@@ -85,6 +85,7 @@ export class AssessmentService {
     scope: StudentScope,
     attemptId: string,
     signal?: AbortSignal,
+    options: { forceReassessment?: boolean } = {},
   ): Promise<AssessmentDTO> {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);
     z.uuid().parse(attemptId);
@@ -99,7 +100,10 @@ export class AssessmentService {
     ).rows[0];
     if (!a) throw new AppError("NOT_FOUND", 404, "作答不存在");
     const existing = await this.existingAssessment(attemptId);
-    if (existing) {
+    if (
+      existing &&
+      !(options.forceReassessment && existing.verification === "pending")
+    ) {
       await this.enqueueSync(this.db.pool, scope, existing.id as string);
       return {
         id: existing.id,
@@ -119,10 +123,7 @@ export class AssessmentService {
         a.question_version_id,
         a.answer_payload,
       );
-      if (
-        structured.method === "exact" ||
-        structured.verification === "pending"
-      ) {
+      if (structured.method === "exact") {
         const result = await this.commitStructuredAssessment(
           scope,
           a,
@@ -143,6 +144,7 @@ export class AssessmentService {
         ...(a.task_id ? { taskId: a.task_id } : {}),
       },
       signal,
+      options,
     );
     await this.refreshLinkedSet(attemptId);
     return assessed;
@@ -301,8 +303,41 @@ export class AssessmentService {
           reason: "按已核验参考答案自动比对",
         };
     }
-    if (!this.gateway) return { correctness: "uncertain", reason: "无法自动判题" };
+    if (!this.gateway)
+      return { correctness: "uncertain", reason: "无法自动判题" };
     try {
+      let images: LoadedImage[] = [];
+      if (hasImage && a.message_version_id) {
+        if (!this.store)
+          return { correctness: "uncertain", reason: "图片暂时无法读取" };
+        const attachments = await this.db.pool.query<{ file_id: string; size: number }>(
+          "SELECT ma.file_id,f.size FROM message_attachments ma JOIN files f ON f.id=ma.file_id WHERE ma.message_version_id=$1 ORDER BY ma.position",
+          [a.message_version_id],
+        );
+        if (attachments.rows.length > MAX_MODEL_IMAGES ||
+            attachments.rows.reduce((sum, row) => sum + Number(row.size), 0) > MAX_MODEL_IMAGE_BYTES)
+          return { correctness: "uncertain", reason: "图片证据超出读取限制" };
+        const reader = new ImageEvidenceReader(this.db, this.store);
+        try {
+          images = await reader.load(
+            attachments.rows.map((row) => row.file_id),
+            signal
+              ? AbortSignal.any([
+                  signal,
+                  AbortSignal.timeout(IMAGE_READ_TIMEOUT_MS),
+                ])
+              : AbortSignal.timeout(IMAGE_READ_TIMEOUT_MS),
+          );
+        } finally {
+          reader.release();
+        }
+      }
+      const evidence = JSON.stringify({
+        stem: (a as { stem?: string }).stem,
+        answer: a.answer,
+        referenceAnswer: ref?.answer ?? null,
+        requiresWorking: ref?.requires_working ?? null,
+      });
       const response = await this.gateway.complete(
         {
           priority: "background",
@@ -313,12 +348,16 @@ export class AssessmentService {
               {
                 role: "user",
                 timestamp: Date.now(),
-                content: JSON.stringify({
-                  stem: (a as { stem?: string }).stem,
-                  answer: a.answer,
-                  referenceAnswer: ref?.answer ?? null,
-                  requiresWorking: ref?.requires_working ?? null,
-                }),
+                content: images.length
+                  ? [
+                      { type: "text" as const, text: evidence },
+                      ...images.map((image) => ({
+                        type: "image" as const,
+                        data: image.data,
+                        mimeType: image.mimeType,
+                      })),
+                    ]
+                  : evidence,
               },
             ],
           },
@@ -348,6 +387,7 @@ export class AssessmentService {
     scope: StudentScope,
     input: unknown,
     signal?: AbortSignal,
+    options: { forceReassessment?: boolean } = {},
   ): Promise<AssessmentDTO> {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);
     const v = z
@@ -370,7 +410,8 @@ export class AssessmentService {
       if (
         (priorFinal.verification === "verified" &&
           priorFinal.correctness === v.correctness) ||
-        (priorCandidate?.correctness === v.correctness &&
+        (!options.forceReassessment &&
+          priorCandidate?.correctness === v.correctness &&
           priorCandidate?.reason === v.reason)
       ) {
         await this.enqueueSync(this.db.pool, scope, priorFinal.id as string);
@@ -406,10 +447,7 @@ export class AssessmentService {
     let images: LoadedImage[] = [];
     let imageUnreadable = false;
     if (hasImageEvidence) {
-      const total = attachments.reduce(
-        (sum, row) => sum + Number(row.size),
-        0,
-      );
+      const total = attachments.reduce((sum, row) => sum + Number(row.size), 0);
       if (
         !this.store ||
         attachments.length > MAX_MODEL_IMAGES ||
@@ -523,9 +561,7 @@ export class AssessmentService {
       ref &&
       this.gateway &&
       !imageUnreadable &&
-      (ref.requires_working ||
-        ref.answer_type === "worked" ||
-        hasImageEvidence)
+      (ref.requires_working || ref.answer_type === "worked" || hasImageEvidence)
     ) {
       try {
         const r = await this.gateway.complete(
@@ -549,13 +585,11 @@ export class AssessmentService {
                             hasImageEvidence: true,
                           }),
                         },
-                        ...images.map(
-                          (image): ImageContent => ({
-                            type: "image",
-                            data: image.data,
-                            mimeType: image.mimeType,
-                          }),
-                        ),
+                        ...images.map((image): ImageContent => ({
+                          type: "image",
+                          data: image.data,
+                          mimeType: image.mimeType,
+                        })),
                       ]
                     : JSON.stringify({
                         stem: a.stem,
@@ -632,7 +666,8 @@ export class AssessmentService {
         current &&
         ((current.verification === "verified" &&
           current.correctness === v.correctness) ||
-          (currentCandidate?.correctness === v.correctness &&
+          (!options.forceReassessment &&
+            currentCandidate?.correctness === v.correctness &&
             currentCandidate?.reason === v.reason))
       ) {
         reused = {
@@ -787,7 +822,10 @@ export class AssessmentService {
   }): Promise<Exposure> {
     if (!a.taskId) return "none";
     const rows = (
-      await this.db.pool.query<{ content: string; episode_started: Date | null }>(
+      await this.db.pool.query<{
+        content: string;
+        episode_started: Date | null;
+      }>(
         `SELECT mv.content, ep.started_at AS episode_started
          FROM message_versions mv
          JOIN messages m ON m.id=mv.message_id

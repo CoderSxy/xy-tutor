@@ -479,3 +479,126 @@ it("main_agent_and_independent_verification_read_the_same_image_version", async 
       mimeType: "image/png",
     });
   }));
+
+it.each([false, true])(
+  "independently grades structured worked answers and retries pending evidence (image: %s)",
+  async (imageOnly) =>
+    withTestDb(async (db) => {
+      const f = await catalogFixture(db);
+      const r = await f.publish("人教版", "方程");
+      const tasks = new TaskService(db, f.auth, f.catalog);
+      const t = await tasks.create(f.scope, {
+        revisionId: r.id,
+        kind: "daily_practice",
+      });
+      const q = await tasks.addQuestion(f.scope, t.id, {
+        stem: "解方程2(x+1)=6，写出步骤。",
+        referenceAnswer: "x=2",
+        role: "original",
+      });
+      await insertVerifiedReference(f, q.questionVersionId, "x=2", true);
+      await db.pool.query(
+        `UPDATE question_versions SET question_type='worked',presentation=$2,answer_spec=$3 WHERE id=$1`,
+        [
+          q.questionVersionId,
+          JSON.stringify({
+            kind: "worked",
+            requiresWorking: true,
+            requirements: "写出步骤",
+          }),
+          JSON.stringify({
+            kind: "worked",
+            requiresWorking: true,
+            rubric: ["去括号", "x=2"],
+            referenceAnswer: "x=2",
+            verificationStrategy: "independent",
+          }),
+        ],
+      );
+      const message = await new MessageService(db, f.auth).append(f.scope, {
+        conversationId: t.conversationId,
+        role: "user",
+        content: "两边除以2，得x+1=3，所以x=2",
+      });
+      const a = await new AttemptService(db, f.auth).submit(f.scope, {
+        taskId: t.id,
+        messageVersionId: message.versionId,
+        questionVersionId: q.questionVersionId,
+        answer: "两边除以2，得x+1=3，所以x=2",
+        requestKey: "worked-retry",
+      });
+      let attachmentIds: string[] = [];
+      if (imageOnly) {
+        const image = await uploadAnswerImage(
+          f,
+          t.conversationId,
+          answerPng(60),
+        );
+        attachmentIds = [image.fileId];
+        await inTransaction(db, (tx) =>
+          new ConversationAttachmentService(
+            db,
+            f.auth,
+            f.store,
+          ).validateAndBind(
+            tx,
+            f.scope,
+            t.conversationId,
+            message.versionId,
+            attachmentIds,
+          ),
+        );
+        await db.pool.query("UPDATE attempts SET answer='' WHERE id=$1", [
+          a.id,
+        ]);
+      }
+      await db.pool.query(`UPDATE attempts SET answer_payload=$2 WHERE id=$1`, [
+        a.id,
+        JSON.stringify({
+          kind: "worked",
+          text: imageOnly ? "" : "两边除以2，得x+1=3，所以x=2",
+          attachmentIds,
+        }),
+      ]);
+      const pending = await new AssessmentService(
+        db,
+        f.auth,
+        f.catalog,
+      ).assessAttempt(f.scope, a.id);
+      expect(pending.verification).toBe("pending");
+      const faux = fauxProvider();
+      const models = createModels();
+      models.setProvider(faux.provider);
+      faux.setResponses([
+        (context) => {
+          expect(imageBlocks(context.messages).length).toBe(imageOnly ? 1 : 0);
+          return fauxAssistantMessage(
+            JSON.stringify({ correctness: "correct", reason: "方程变换正确" }),
+          );
+        },
+        fauxAssistantMessage(
+          JSON.stringify({
+            correctness: "correct",
+            evidenceSufficient: true,
+            criteriaSatisfied: true,
+            reason: "步骤完整",
+          }),
+        ),
+      ]);
+      const service = new AssessmentService(
+        db,
+        f.auth,
+        f.catalog,
+        new ModelGateway({ models, model: faux.getModel() }, new ModelBudget()),
+        f.store,
+      );
+      const result = await service.assessAttempt(f.scope, a.id, undefined, {
+        forceReassessment: true,
+      });
+      expect(result).toMatchObject({
+        correctness: "correct",
+        verification: "verified",
+      });
+      expect(result.id).not.toBe(pending.id);
+    }),
+);

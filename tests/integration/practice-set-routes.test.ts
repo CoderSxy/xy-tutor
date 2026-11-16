@@ -1,3 +1,4 @@
+import { seedPracticeScope } from "../helpers/practice.js";
 import { expect, it } from "vitest";
 import { withTestDb } from "../helpers/database.js";
 import { catalogFixture } from "../helpers/catalog.js";
@@ -6,35 +7,15 @@ import { buildApp } from "../../apps/server/src/app.js";
 import { loadConfig } from "../../apps/server/src/config.js";
 import { TaskService } from "../../apps/server/src/modules/learning/tasks.js";
 import { PracticeSetService } from "../../apps/server/src/modules/learning/practice-sets.js";
-import type { Database } from "../../packages/db/src/client.js";
 
 const password = "long-test-password";
 const config = loadConfig({ NODE_ENV: "test" });
 
-async function seedKnowledge(db: Database, actorId: string) {
-  const batchId = (
-    await db.pool.query<{ id: string }>(
-      "INSERT INTO knowledge_batches(actor_id) VALUES($1) RETURNING id",
-      [actorId],
-    )
-  ).rows[0]!.id;
-  const runId = (
-    await db.pool.query<{ id: string }>(
-      "INSERT INTO knowledge_parse_runs(batch_id,status) VALUES($1,'succeeded') RETURNING id",
-      [batchId],
-    )
-  ).rows[0]!.id;
-  await db.pool.query(
-    `INSERT INTO knowledge_items(batch_id,parse_run_id,title,summary,status,published_at)
-     VALUES($1,$2,'有理数','加减运算','published',now())`,
-    [batchId, runId],
-  );
-}
 
 it("keeps existing sets usable when the create flag is off", async () =>
   withTestDb(async (db) => {
     const f = await catalogFixture(db);
-    await seedKnowledge(db, f.admin.userId);
+    const skillId = await seedPracticeScope(db, f.admin.userId);
     const token = (await f.auth.login({ login: "student", password })).sessionToken;
     expect(config.features.practiceSetsEnabled).toBe(false);
     const app = buildApp({ database: db, config });
@@ -58,6 +39,7 @@ it("keeps existing sets usable when the create flag is off", async () =>
 
     const sets = new PracticeSetService(db, f.auth, tasks);
     const created = await sets.create(f.scope, task.id, {
+    skillIds: [skillId],
       requestKey: "direct",
       mode: "batch",
       strategy: "mixed",

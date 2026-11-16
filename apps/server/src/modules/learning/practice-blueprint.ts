@@ -3,9 +3,7 @@ import type { QuestionType } from "../../../../../packages/contracts/src/questio
 import type { BankCandidate } from "../../../../../packages/contracts/src/question-bank.js";
 import type { ProfileDTO } from "../../../../../packages/contracts/src/learning-profile.js";
 import type { ExamProfile } from "../question-bank/exam-profiles.js";
-import {
-  type RecentDecision,
-} from "../learning-profile/selection-policy.js";
+import { type RecentDecision } from "../learning-profile/selection-policy.js";
 
 export const MIXED_POLICY_VERSION = "mixed-v1";
 const TYPE_ORDER: QuestionType[] = [
@@ -93,9 +91,7 @@ function slotsFromQuota(quota: TypeQuota, seed: string): BlueprintSlot[] {
 function seededShuffle<T>(items: T[], seed: string): T[] {
   const copy = [...items];
   for (let i = copy.length - 1; i > 0; i -= 1) {
-    const digest = createHash("sha256")
-      .update(`${seed}:${i}`)
-      .digest();
+    const digest = createHash("sha256").update(`${seed}:${i}`).digest();
     const j = digest[0]! % (i + 1);
     [copy[i], copy[j]] = [copy[j]!, copy[i]!];
   }
@@ -108,9 +104,14 @@ function arrangeWithoutTriple(types: QuestionType[]): QuestionType[] {
   while (remaining.length) {
     const index = remaining.findIndex((type, i) => {
       if (out.length < 2) return true;
-      return !(out[out.length - 1] === type && out[out.length - 2] === type && i >= 0);
+      return !(
+        out[out.length - 1] === type &&
+        out[out.length - 2] === type &&
+        i >= 0
+      );
     });
-    const pick = index >= 0 ? remaining.splice(index, 1)[0]! : remaining.shift()!;
+    const pick =
+      index >= 0 ? remaining.splice(index, 1)[0]! : remaining.shift()!;
     out.push(pick);
   }
   return out;
@@ -181,6 +182,14 @@ export function selectSlotCandidate(input: {
     (a, b) =>
       b.matchedCauseCount - a.matchedCauseCount ||
       a.seenCount - b.seenCount ||
+      createHash("sha256")
+        .update(`${input.seed}:${a.questionVersionId}`)
+        .digest("hex")
+        .localeCompare(
+          createHash("sha256")
+            .update(`${input.seed}:${b.questionVersionId}`)
+            .digest("hex"),
+        ) ||
       a.entryId.localeCompare(b.entryId) ||
       a.questionVersionId.localeCompare(b.questionVersionId),
   );

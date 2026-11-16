@@ -52,7 +52,7 @@ export function continuePracticeSet(
 
 export function retryPracticeGeneration(
   path: string,
-  input: { requestKey: string; expectedVersion: number },
+  input: { requestKey: string; expectedVersion: number; skillIds?: string[] },
 ) {
   return api<PracticeSetDTO>(path, { method: "POST", ...jsonBody(input) });
 }

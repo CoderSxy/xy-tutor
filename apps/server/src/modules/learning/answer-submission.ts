@@ -13,6 +13,7 @@ import {
   type SubmissionDTO,
   type SubmitPracticeInput,
 } from "../../../../../packages/contracts/src/practice-sets.js";
+import { answerPayloadSchema } from "../../../../../packages/contracts/src/question-presentation.js";
 import type { AuthService } from "../auth/service.js";
 import { ConversationAttachmentService } from "../conversations/attachments.js";
 import { enqueueAttemptAssessment } from "../../jobs/assessment-job.js";
@@ -110,11 +111,6 @@ export class AnswerSubmissionService {
     for (const id of [...entryIds, ...skipped]) {
       if (!byId.has(id)) throw new AppError("NOT_FOUND", 404, "题目不存在");
     }
-    if (parsed.finalize) {
-      const covered = new Set([...entryIds, ...skipped]);
-      if (bound.some((item) => !covered.has(item.itemId!)))
-        throw new AppError("VALIDATION", 422, "交卷前请作答或确认跳过空题");
-    }
     const rows = (
       await this.db.pool.query<{
         item_id: string;
@@ -158,6 +154,22 @@ export class AnswerSubmissionService {
           throw new AppError("CONFLICT", 409, "重复作答请求内容不同");
         return replay.id;
       }
+      if (parsed.finalize) {
+        const prior = (
+          await tx.query<{ task_item_id: string }>(
+            `SELECT DISTINCT task_item_id FROM practice_submission_items
+           WHERE task_item_id=ANY($1::uuid[]) AND state IN ('submitted','skipped')`,
+            [bound.map((item) => item.itemId!)],
+          )
+        ).rows;
+        const covered = new Set([
+          ...entryIds,
+          ...skipped,
+          ...prior.map((item) => item.task_item_id),
+        ]);
+        if (bound.some((item) => !covered.has(item.itemId!)))
+          throw new AppError("VALIDATION", 422, "交卷前请作答或确认跳过空题");
+      }
       const submission = (
         await tx.query<{ id: string }>(
           `INSERT INTO practice_submissions(set_id,request_key,payload_hash,state)
@@ -192,8 +204,12 @@ export class AnswerSubmissionService {
           await tx.query<{
             attempt_id: string | null;
             payload: unknown;
+            grading_state: string;
+            mistake_sync_state: string;
+            latest_assessment_id: string | null;
+            reason_code: string | null;
           }>(
-            `SELECT psi.attempt_id, a.answer_payload AS payload
+            `SELECT psi.attempt_id, a.answer_payload AS payload, psi.grading_state, psi.mistake_sync_state, psi.latest_assessment_id, psi.reason_code
              FROM practice_submission_items psi
              LEFT JOIN attempts a ON a.id=psi.attempt_id
              WHERE psi.task_item_id=$1 AND psi.state='submitted'
@@ -204,7 +220,7 @@ export class AnswerSubmissionService {
         let attemptId = previous?.attempt_id ?? null;
         const same =
           previous?.payload &&
-          JSON.stringify(previous.payload) === JSON.stringify(entry.answer);
+          JSON.stringify(answerPayloadSchema.parse(previous.payload)) === JSON.stringify(entry.answer);
         if (!same) {
           const validated = validateQuestionPresentation(
             {
@@ -241,7 +257,10 @@ export class AnswerSubmissionService {
               [message.id, text],
             )
           ).rows[0]!;
-          if (entry.answer.kind === "worked" && entry.answer.attachmentIds.length)
+          if (
+            entry.answer.kind === "worked" &&
+            entry.answer.attachmentIds.length
+          )
             await this.attachments.validateAndBind(
               tx,
               scope,
@@ -296,14 +315,21 @@ export class AnswerSubmissionService {
           );
         }
         await tx.query(
-          `INSERT INTO practice_submission_items(submission_id,task_item_id,attempt_id,state,grading_state,mistake_sync_state)
-           VALUES($1,$2,$3,'submitted','queued','not_required')`,
-          [submission.id, entry.itemId, attemptId],
+          `INSERT INTO practice_submission_items(submission_id,task_item_id,attempt_id,state,grading_state,mistake_sync_state,latest_assessment_id,reason_code)
+           VALUES($1,$2,$3,'submitted',$4,$5,$6,$7)`,
+          [
+            submission.id,
+            entry.itemId,
+            attemptId,
+            same ? previous!.grading_state : "queued",
+            same ? previous!.mistake_sync_state : "not_required",
+            same ? previous!.latest_assessment_id : null,
+            same ? previous!.reason_code : null,
+          ],
         );
-        await tx.query(
-          "UPDATE task_items SET status='answered' WHERE id=$1",
-          [entry.itemId],
-        );
+        await tx.query("UPDATE task_items SET status='answered' WHERE id=$1", [
+          entry.itemId,
+        ]);
         await tx.query(
           "DELETE FROM practice_answer_drafts WHERE student_id=$1 AND task_item_id=$2",
           [scope.studentId, entry.itemId],
@@ -333,46 +359,64 @@ export class AnswerSubmissionService {
     const setId = current.setId;
     await this.sets.get(scope, setId);
     await inTransaction(this.db, async (tx) => {
+      await tx.query("SELECT id FROM practice_sets WHERE id=$1 FOR UPDATE", [
+        setId,
+      ]);
       for (const itemId of parsed.itemIds) {
         const row = (
           await tx.query<{
             attempt_id: string | null;
             grading_state: string;
+            mistake_sync_state: string;
+            latest_assessment_id: string | null;
           }>(
-            `SELECT attempt_id, grading_state FROM practice_submission_items
+            `SELECT attempt_id, grading_state, mistake_sync_state, latest_assessment_id FROM practice_submission_items
              WHERE submission_id=$1 AND task_item_id=$2`,
             [submissionId, itemId],
           )
         ).rows[0];
         if (!row) throw new AppError("NOT_FOUND", 404, "题目不存在");
-        if (row.grading_state !== "failed" || !row.attempt_id) continue;
-        const job = (
-          await tx.query<{ id: string }>(
-            `SELECT id FROM jobs
-             WHERE kind='learning.assess' AND payload->>'attemptId'=$1 AND status='failed'
-             ORDER BY created_at DESC LIMIT 1`,
-            [row.attempt_id],
-          )
-        ).rows[0];
-        if (job)
+        if (!row.attempt_id) continue;
+        const reassess =
+          row.grading_state === "failed" || row.grading_state === "pending";
+        const sync =
+          !reassess &&
+          row.mistake_sync_state === "failed" &&
+          row.latest_assessment_id;
+        if (!reassess && !sync) continue;
+        const kind = reassess ? "learning.assess" : "learning.mistake-sync";
+        const payload = reassess
+          ? {
+              attemptId: row.attempt_id,
+              studentId: scope.studentId,
+              actorId: scope.actor.userId,
+              forceReassessment: true,
+            }
+          : {
+              assessmentId: row.latest_assessment_id,
+              studentId: scope.studentId,
+              actorId: scope.actor.userId,
+            };
+        const identity = reassess ? row.attempt_id : row.latest_assessment_id;
+        await tx.query(
+          `INSERT INTO jobs(kind,dedupe_key,payload) VALUES($1,$2,$3::jsonb)
+           ON CONFLICT(dedupe_key) DO UPDATE SET status='queued',attempts=0,available_at=now(),
+             lease_token=NULL,lease_expires_at=NULL,error_code=NULL,payload=EXCLUDED.payload
+           WHERE jobs.status IN ('failed','completed')`,
+          [kind, `${kind}:${identity}`, JSON.stringify(payload)],
+        );
+        if (reassess)
           await tx.query(
-            `UPDATE jobs SET status='queued',attempts=0,available_at=now(),
-               lease_token=NULL,lease_expires_at=NULL,error_code=NULL
-             WHERE id=$1 AND status='failed'`,
-            [job.id],
+            `UPDATE practice_submission_items SET grading_state='queued', reason_code=NULL, updated_at=now()
+             WHERE attempt_id=$1 AND grading_state IN ('failed','pending')`,
+            [row.attempt_id],
           );
         else
-          await enqueueAttemptAssessment(tx, {
-            attemptId: row.attempt_id,
-            studentId: scope.studentId,
-            actorId: scope.actor.userId,
-          });
-        await tx.query(
-          `UPDATE practice_submission_items
-           SET grading_state='queued', reason_code=NULL, updated_at=now()
-           WHERE submission_id=$1 AND task_item_id=$2 AND grading_state='failed'`,
-          [submissionId, itemId],
-        );
+          await tx.query(
+            `UPDATE practice_submission_items SET mistake_sync_state='queued', reason_code=NULL, updated_at=now()
+             WHERE attempt_id=$1 AND mistake_sync_state='failed'`,
+            [row.attempt_id],
+          );
       }
       await refreshPracticeSetState(tx, setId);
     });
@@ -450,7 +494,12 @@ export class AnswerSubmissionService {
     ).length;
     let state: SubmissionDTO["state"] = "grading";
     if (pending) state = "needs_review";
-    else if (!queued && !failed && verified === stateItems.length && stateItems.length)
+    else if (
+      !queued &&
+      !failed &&
+      verified === stateItems.length &&
+      stateItems.length
+    )
       state = "completed";
     return {
       id: row.id,

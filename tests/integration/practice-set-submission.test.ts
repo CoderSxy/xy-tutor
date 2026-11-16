@@ -1,3 +1,4 @@
+import { seedPracticeScope } from "../helpers/practice.js";
 import { expect, it } from "vitest";
 import { withTestDb } from "../helpers/database.js";
 import { catalogFixture } from "../helpers/catalog.js";
@@ -14,32 +15,17 @@ import { mistakeSyncHandler } from "../../apps/server/src/jobs/mistake-sync-job.
 import type { PracticeSetDTO } from "../../packages/contracts/src/practice-sets.js";
 import type { AnswerPayload } from "../../packages/contracts/src/question-presentation.js";
 
-async function seedKnowledge(db: Database, actorId: string) {
-  const batchId = (
-    await db.pool.query<{ id: string }>(
-      "INSERT INTO knowledge_batches(actor_id) VALUES($1) RETURNING id",
-      [actorId],
-    )
-  ).rows[0]!.id;
-  const runId = (
-    await db.pool.query<{ id: string }>(
-      "INSERT INTO knowledge_parse_runs(batch_id,status) VALUES($1,'succeeded') RETURNING id",
-      [batchId],
-    )
-  ).rows[0]!.id;
-  await db.pool.query(
-    `INSERT INTO knowledge_items(batch_id,parse_run_id,title,summary,status,published_at)
-     VALUES($1,$2,'有理数','加减运算','published',now())`,
-    [batchId, runId],
-  );
-}
 
-async function readySet(db: Database, f: Awaited<ReturnType<typeof catalogFixture>>) {
-  await seedKnowledge(db, f.admin.userId);
+async function readySet(
+  db: Database,
+  f: Awaited<ReturnType<typeof catalogFixture>>,
+) {
+  const skillId = await seedPracticeScope(db, f.admin.userId);
   const tasks = new TaskService(db, f.auth, f.catalog);
   const task = await tasks.create(f.scope, { kind: "daily_practice" });
   const sets = new PracticeSetService(db, f.auth, tasks);
   const created = await sets.create(f.scope, task.id, {
+    skillIds: [skillId],
     requestKey: "submit-set",
     mode: "batch",
     strategy: "mixed",
@@ -72,7 +58,11 @@ async function payloadFor(
     );
     return {
       kind: "choice",
-      optionIds: [correct ? spec.correctOptionId : other?.optionId ?? spec.correctOptionId],
+      optionIds: [
+        correct
+          ? spec.correctOptionId
+          : (other?.optionId ?? spec.correctOptionId),
+      ],
     };
   }
   if (row.question_type === "fill_blank") {
@@ -102,7 +92,9 @@ it("creates attempts and messages for step and batch submits and reuses the same
     const f = await catalogFixture(db);
     const { task, sets, ready } = await readySet(db, f);
     const submissions = new AnswerSubmissionService(db, f.auth, sets);
-    const first = ready.items.find((item) => item.questionType === "single_choice")!;
+    const first = ready.items.find(
+      (item) => item.questionType === "single_choice",
+    )!;
     const step = await submissions.submit(f.scope, ready.id, {
       requestKey: "step-1",
       expectedVersion: ready.version,
@@ -116,9 +108,9 @@ it("creates attempts and messages for step and batch submits and reuses the same
       finalize: false,
     });
     expect(step.state).toBe("grading");
-    expect(step.items.find((item) => item.itemId === first.itemId)?.submission).toBe(
-      "submitted",
-    );
+    expect(
+      step.items.find((item) => item.itemId === first.itemId)?.submission,
+    ).toBe("submitted");
     const attempt = (
       await db.pool.query<{ answer_payload: unknown; answer: string }>(
         "SELECT answer_payload, answer FROM attempts WHERE task_id=$1",
@@ -177,8 +169,12 @@ it("rolls back the whole batch when any item option blank or attachment is unaut
     const f = await catalogFixture(db);
     const { ready, sets } = await readySet(db, f);
     const submissions = new AnswerSubmissionService(db, f.auth, sets);
-    const choice = ready.items.find((item) => item.questionType === "single_choice")!;
-    const blank = ready.items.find((item) => item.questionType === "fill_blank")!;
+    const choice = ready.items.find(
+      (item) => item.questionType === "single_choice",
+    )!;
+    const blank = ready.items.find(
+      (item) => item.questionType === "fill_blank",
+    )!;
     const worked = ready.items.find((item) => item.questionType === "worked")!;
     const valid = await payloadFor(db, choice.itemId!);
     await expect(
@@ -217,7 +213,10 @@ it("rolls back the whole batch when any item option blank or attachment is unaut
         entries: [
           {
             itemId: blank.itemId!,
-            answer: { kind: "blanks", values: [{ blankId: "nope", value: "1" }] },
+            answer: {
+              kind: "blanks",
+              values: [{ blankId: "nope", value: "1" }],
+            },
           },
         ],
         skippedItemIds: [],
@@ -250,7 +249,8 @@ it("rolls back the whole batch when any item option blank or attachment is unaut
       ).rows[0].n,
     ).toBe(0);
     expect(
-      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0].n,
+      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0]
+        .n,
     ).toBe(0);
   }));
 
@@ -260,7 +260,9 @@ it("retries only the failed item and ignores hints as attempts", async () =>
     const { task, ready, sets } = await readySet(db, f);
     const submissions = new AnswerSubmissionService(db, f.auth, sets);
     const drafts = new PracticeDraftService(db, f.auth, sets);
-    const choice = ready.items.find((item) => item.questionType === "single_choice")!;
+    const choice = ready.items.find(
+      (item) => item.questionType === "single_choice",
+    )!;
     await drafts.put(f.scope, ready.id, choice.itemId!, {
       expectedVersion: 1,
       answer: await payloadFor(db, choice.itemId!),
@@ -271,7 +273,8 @@ it("retries only the failed item and ignores hints as attempts", async () =>
       content: "这题怎么做？请老师讲一下。",
     });
     expect(
-      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0].n,
+      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0]
+        .n,
     ).toBe(0);
 
     const submitted = await submissions.submit(f.scope, ready.id, {
@@ -287,7 +290,10 @@ it("retries only the failed item and ignores hints as attempts", async () =>
       finalize: false,
     });
     const other = ready.items.find(
-      (item) => item.itemId && item.itemId !== choice.itemId && item.questionType === "fill_blank",
+      (item) =>
+        item.itemId &&
+        item.itemId !== choice.itemId &&
+        item.questionType === "fill_blank",
     )!;
     const second = await submissions.submit(f.scope, ready.id, {
       requestKey: "grade-2",
@@ -370,9 +376,9 @@ it("finalizes four verified answers and one skip then completes after sync", asy
       skippedItemIds: [skip.itemId!],
       finalize: true,
     });
-    expect(submitted.items.filter((item) => item.submission === "skipped")).toHaveLength(
-      1,
-    );
+    expect(
+      submitted.items.filter((item) => item.submission === "skipped"),
+    ).toHaveLength(1);
     const assessments = new AssessmentService(db, f.auth, f.catalog);
     const mistakes = new MistakeService(db, f.auth);
     const assess = assessmentHandler(assessments);
@@ -383,7 +389,9 @@ it("finalizes four verified answers and one skip then completes after sync", asy
         kind: string;
         payload: Record<string, unknown>;
         attempts: number;
-      }>("SELECT id,kind,payload,attempts FROM jobs WHERE kind='learning.assess'")
+      }>(
+        "SELECT id,kind,payload,attempts FROM jobs WHERE kind='learning.assess'",
+      )
     ).rows;
     expect(jobs).toHaveLength(4);
     for (const job of jobs) {
@@ -442,4 +450,123 @@ it("finalizes four verified answers and one skip then completes after sync", asy
     ).toBe(1);
     const fetched = await submissions.get(f.scope, submitted.id);
     expect(fetched.id).toBe(submitted.id);
+  }));
+
+it("finalizes remaining items using previously submitted progress without resetting reused grading", async () =>
+  withTestDb(async (db) => {
+    const f = await catalogFixture(db);
+    const { ready, sets } = await readySet(db, f);
+    const submissions = new AnswerSubmissionService(db, f.auth, sets);
+    const first = ready.items.find(item => item.questionType === "fill_blank")!;
+    const answer = await payloadFor(db, first.itemId!);
+    await submissions.submit(f.scope, ready.id, {
+      requestKey: "prior-step",
+      expectedVersion: ready.version,
+      entries: [{ itemId: first.itemId!, answer }],
+      skippedItemIds: [],
+      finalize: false,
+    });
+    await db.pool.query(
+      "UPDATE practice_submission_items SET grading_state='verified' WHERE task_item_id=$1",
+      [first.itemId],
+    );
+    const final = await submissions.submit(f.scope, ready.id, {
+      requestKey: "remaining-final",
+      expectedVersion: (await sets.get(f.scope, ready.id)).version,
+      entries: [],
+      skippedItemIds: ready.items.filter(item => item.itemId !== first.itemId).map((item) => item.itemId!),
+      finalize: true,
+    });
+    expect(final.state).toBe("completed");
+    await submissions.submit(f.scope, ready.id, {
+      requestKey: "reuse-final",
+      expectedVersion: (await sets.get(f.scope, ready.id)).version,
+      entries: [{ itemId: first.itemId!, answer }],
+      skippedItemIds: [],
+      finalize: true,
+    });
+    const rows = (
+      await db.pool.query(
+        "SELECT grading_state FROM practice_submission_items WHERE task_item_id=$1",
+        [first.itemId],
+      )
+    ).rows;
+    expect(rows.every((row) => row.grading_state === "verified")).toBe(true);
+    expect(
+      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0]
+        .n,
+    ).toBe(1);
+  }));
+
+it("retries pending assessment and failed mistake sync through separate jobs", async () =>
+  withTestDb(async (db) => {
+    const f = await catalogFixture(db);
+    const { ready, sets } = await readySet(db, f);
+    const submissions = new AnswerSubmissionService(db, f.auth, sets);
+    const choices = ready.items
+      .filter((item) => item.questionType === "single_choice")
+      .slice(0, 2);
+    const entries = await Promise.all(
+      choices.map(async (item) => ({
+        itemId: item.itemId!,
+        answer: await payloadFor(db, item.itemId!, false),
+      })),
+    );
+    const submitted = await submissions.submit(f.scope, ready.id, {
+      requestKey: "retry-states",
+      expectedVersion: ready.version,
+      entries,
+      skippedItemIds: [],
+      finalize: false,
+    });
+    const assessments = new AssessmentService(db, f.auth, f.catalog);
+    for (const row of (
+      await db.pool.query(
+        "SELECT attempt_id FROM practice_submission_items WHERE submission_id=$1",
+        [submitted.id],
+      )
+    ).rows)
+      await assessments.assessAttempt(f.scope, row.attempt_id);
+    await db.pool.query(
+      "UPDATE jobs SET status='completed' WHERE kind='learning.assess'",
+    );
+    await db.pool.query(
+      "UPDATE practice_submission_items SET grading_state='pending' WHERE task_item_id=$1",
+      [choices[0]!.itemId],
+    );
+    await db.pool.query(
+      "UPDATE practice_submission_items SET grading_state='verified',mistake_sync_state='failed' WHERE task_item_id=$1",
+      [choices[1]!.itemId],
+    );
+    await db.pool.query(
+      "UPDATE jobs SET status='failed' WHERE kind='learning.mistake-sync'",
+    );
+    const result = await submissions.retry(f.scope, submitted.id, {
+      requestKey: "recover-states",
+      itemIds: choices.map((item) => item.itemId!),
+    });
+    expect(
+      result.items.find((item) => item.itemId === choices[0]!.itemId)?.grading,
+    ).toBe("queued");
+    expect(
+      result.items.find((item) => item.itemId === choices[1]!.itemId),
+    ).toMatchObject({ grading: "verified", mistakeSync: "queued" });
+    const assessmentJobs = (
+      await db.pool.query(
+        "SELECT status,payload FROM jobs WHERE kind='learning.assess'",
+      )
+    ).rows;
+    expect(
+      assessmentJobs.filter((job) => job.status === "queued"),
+    ).toHaveLength(1);
+    expect(
+      assessmentJobs.find((job) => job.status === "queued").payload
+        .forceReassessment,
+    ).toBe(true);
+    const syncJobs = (
+      await db.pool.query(
+        "SELECT status FROM jobs WHERE kind='learning.mistake-sync'",
+      )
+    ).rows;
+    expect(syncJobs.filter((job) => job.status === "queued")).toHaveLength(1);
   }));

@@ -24,8 +24,16 @@ export async function searchEligibleQuestions(
   db: Database | pg.PoolClient,
   scope: StudentScope,
   query: BankSearchQueryInput,
+  internal: { databaseExcludedVersionIds?: readonly string[] } = {},
 ): Promise<BankCandidate[]> {
   const parsed = bankSearchQuerySchema.parse(query);
+  // Internal exclusions originate from database records, rather than public input.
+  const excludedVersionIds = [
+    ...new Set([
+      ...(parsed.excludeVersionIds ?? []),
+      ...(internal.databaseExcludedVersionIds ?? []),
+    ]),
+  ];
   const queryable = "pool" in db ? db.pool : db;
   const rows = (
     await queryable.query<CandidateRow>(
@@ -60,11 +68,17 @@ export async function searchEligibleQuestions(
          JOIN question_skill_links l
            ON l.entry_id = e.id AND l.is_primary
          JOIN question_versions v ON v.id = e.question_version_id
+         JOIN skills skill ON skill.id=l.skill_id AND skill.status='active'
         WHERE e.status = 'published'
           AND l.skill_id = $1::uuid
           AND (e.visibility = 'shared' OR e.owner_id = $2::uuid)
           AND ($3::text IS NULL OR e.difficulty_band = $3::text)
           AND NOT (e.question_version_id = ANY($4::uuid[]))
+          AND NOT EXISTS (
+            SELECT 1 FROM question_versions excluded
+            WHERE excluded.id=ANY($4::uuid[]) AND
+              regexp_replace(normalize(excluded.stem, NFKC), '\\s+', '', 'g') = regexp_replace(normalize(v.stem, NFKC), '\\s+', '', 'g')
+          )
           AND (
             $6::text IS NULL
             OR v.question_type = $6
@@ -96,23 +110,22 @@ export async function searchEligibleQuestions(
         parsed.skillId,
         scope.studentId,
         parsed.difficulty ?? null,
-        parsed.excludeVersionIds ?? [],
+        excludedVersionIds,
         parsed.limit,
         parsed.answerType ?? null,
       ],
     )
   ).rows;
-  const candidates = rows
-    .map((row) => ({
-      entryId: row.entry_id,
-      questionVersionId: row.question_version_id,
-      skillId: row.skill_id,
-      difficulty: row.difficulty_band,
-      complexityBand: row.complexity_band,
-      answerType: row.answer_type,
-      templateFamily: row.template_family,
-      matchedCauseCount: Number(row.matched_cause_count),
-      seenCount: Number(row.seen_count),
-    }))
+  const candidates = rows.map((row) => ({
+    entryId: row.entry_id,
+    questionVersionId: row.question_version_id,
+    skillId: row.skill_id,
+    difficulty: row.difficulty_band,
+    complexityBand: row.complexity_band,
+    answerType: row.answer_type,
+    templateFamily: row.template_family,
+    matchedCauseCount: Number(row.matched_cause_count),
+    seenCount: Number(row.seen_count),
+  }));
   return candidates.map((row) => bankCandidateSchema.parse(row));
 }

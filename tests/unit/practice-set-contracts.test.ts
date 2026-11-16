@@ -290,3 +290,12 @@ describe("mistake provenance contracts", () => {
     );
   });
 });
+
+it("accepts persisted submission identities for retry after refreshing", () => {
+  const id = "54000000-0000-4000-8000-000000000001";
+  const result = practiceItemProgressSchema.safeParse({
+    itemId: id, submissionId: id, submission: "submitted",
+    grading: "pending", correctness: "uncertain", mistakeSync: "not_required",
+  });
+  expect(result.success).toBe(true);
+});

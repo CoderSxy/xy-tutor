@@ -66,6 +66,7 @@ export const practiceMistakeSyncSchema = z.enum([
 export const practiceItemProgressSchema = z
   .object({
     itemId: z.uuid(),
+    submissionId: z.uuid().optional(),
     submission: practiceItemSubmissionSchema,
     grading: practiceGradingSchema,
     correctness: practiceCorrectnessSchema.nullable(),
@@ -205,6 +206,7 @@ export const practiceSetCreateInputSchema = z
     mode: practiceModeSchema,
     strategy: practiceStrategySchema.default("mixed"),
     examProfileId: z.string().trim().min(1).max(120).nullable().optional(),
+    skillIds: z.array(z.uuid()).min(1).max(20).optional(),
   })
   .strict();
 export type PracticeSetCreateInput = z.infer<
@@ -215,6 +217,7 @@ export const retryGenerationInputSchema = z
   .object({
     requestKey: z.string().trim().min(1).max(120),
     expectedVersion: z.number().int().positive(),
+    skillIds: z.array(z.uuid()).min(1).max(20).optional(),
   })
   .strict();
 export type RetryGenerationInput = z.infer<typeof retryGenerationInputSchema>;

@@ -45,13 +45,20 @@ describe("validateQuestionPresentation", () => {
     expect(() =>
       validateQuestionPresentation({
         ...singleChoice,
-        answerSpec: { kind: "multiple_choice", correctOptionIds: ["opt-b", "opt-c"] },
+        answerSpec: {
+          kind: "multiple_choice",
+          correctOptionIds: ["opt-b", "opt-c"],
+        },
       }),
     ).toThrow();
     expect(() =>
       validateQuestionPresentation({
         ...singleChoice,
-        presentation: { kind: "choice", multiple: false, options: [{ optionId: "opt-a", label: "1" }] },
+        presentation: {
+          kind: "choice",
+          multiple: false,
+          options: [{ optionId: "opt-a", label: "1" }],
+        },
       }),
     ).toThrow();
   });
@@ -121,7 +128,12 @@ describe("choice and blank verification", () => {
         kind: "fill_blank",
         blanks: [
           { blankId: "b1", validation: "number", answer: "1" },
-          { blankId: "b2", validation: "number", answer: "1/2", equivalents: ["0.5"] },
+          {
+            blankId: "b2",
+            validation: "number",
+            answer: "1/2",
+            equivalents: ["0.5"],
+          },
         ],
       },
       referenceAnswer: "1;1/2",
@@ -171,33 +183,40 @@ describe("choice and blank verification", () => {
 });
 
 describe("worked answers and public DTO stripping", () => {
-  it("accepts a different valid worked method that still hits the rubric", () => {
-    const worked = validateQuestionPresentation({
-      questionType: "worked",
-      stem: "解方程 2(x+1)=6，写出步骤。",
-      presentation: {
-        kind: "worked",
-        requirements: "写出关键步骤和最终结果",
-        requiresWorking: true,
-      },
-      answerSpec: {
-        kind: "worked",
-        requiresWorking: true,
-        rubric: ["去括号", "x=2"],
+  it.each(["两边除以2，得x+1=3，所以x=2", "去括号 x=2", ""])(
+    "leaves worked evidence %s for independent validation",
+    (text) => {
+      const worked = validateQuestionPresentation({
+        questionType: "worked",
+        stem: "解方程 2(x+1)=6，写出步骤。",
+        presentation: {
+          kind: "worked",
+          requirements: "写出关键步骤和最终结果",
+          requiresWorking: true,
+        },
+        answerSpec: {
+          kind: "worked",
+          requiresWorking: true,
+          rubric: ["去括号", "x=2"],
+          referenceAnswer: "先去括号得 2x+2=6，再移项得 2x=4，所以 x=2。",
+          verificationStrategy: "deterministic",
+        },
         referenceAnswer: "先去括号得 2x+2=6，再移项得 2x=4，所以 x=2。",
-        verificationStrategy: "deterministic",
-      },
-      referenceAnswer: "先去括号得 2x+2=6，再移项得 2x=4，所以 x=2。",
-      rubric: ["去括号", "x=2"],
-    });
-    expect(
-      verifyAnswerPayload(worked, {
-        kind: "worked",
-        text: "两边同时除以 2 得到 x+1=3，因此 x=2。去括号后结果相同。",
-        attachmentIds: [],
-      }).correctness,
-    ).toBe("correct");
-  });
+        rubric: ["去括号", "x=2"],
+      });
+      expect(
+        verifyAnswerPayload(worked, {
+          kind: "worked",
+          text,
+          attachmentIds: [],
+        }),
+      ).toEqual({
+        correctness: "uncertain",
+        verification: "pending",
+        method: "insufficient",
+      });
+    },
+  );
 
   it("omits answerSpec, rubric and referenceAnswer from the public JSON", () => {
     const validated = validateQuestionPresentation(singleChoice);
@@ -217,9 +236,9 @@ describe("worked answers and public DTO stripping", () => {
     expect(json).not.toContain("referenceAnswer");
     expect(json).not.toContain("secret-answer");
     expect(json).not.toContain("secret-rubric");
-    expect(serializeAnswer(validated, { kind: "choice", optionIds: ["opt-b"] })).toBe(
-      "2",
-    );
+    expect(
+      serializeAnswer(validated, { kind: "choice", optionIds: ["opt-b"] }),
+    ).toBe("2");
     expect(inspectStudentText(validated.stem).status).toBe("accepted");
   });
 });

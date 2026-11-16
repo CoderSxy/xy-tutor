@@ -253,21 +253,12 @@ export function verifyAnswerPayload(
     };
   }
   if (payload.kind === "worked" && question.answerSpec.kind === "worked") {
-    const text = payload.text.normalize("NFKC");
-    const rubric = question.answerSpec.rubric.length
-      ? question.answerSpec.rubric
-      : question.rubric;
-    if (!rubric.length)
-      return {
-        correctness: "uncertain",
-        verification: "pending",
-        method: "insufficient",
-      };
-    const hits = rubric.every((item) => text.includes(item.normalize("NFKC")));
+    // A rubric describes mathematical criteria, not required answer substrings.
+    // Worked text and image evidence must be assessed independently.
     return {
-      correctness: hits ? "correct" : "incorrect",
-      verification: "verified",
-      method: "exact",
+      correctness: "uncertain",
+      verification: "pending",
+      method: "insufficient",
     };
   }
   throw new PresentationValidationError("ANSWER_KIND", "作答类型不匹配");

@@ -12,6 +12,7 @@ import { TutoringActions } from "../tutoring/TutoringActions";
 import { useQuestionTiming } from "../tutoring/useQuestionTiming";
 import { useAuth } from "../../lib/auth";
 import { errorMessage } from "../../lib/api";
+import { useRemote } from "../../lib/useRemote";
 import { kindLabels } from "../../lib/types";
 import type { TaskDTO } from "../../lib/types";
 import type { useTutorRun } from "../tutor/useTutorRun";
@@ -56,6 +57,19 @@ export function PracticeStudyView({
     setId: set.id,
     scoped: a.scoped,
   });
+  const scopes = useRemote<{ id: string; name: string }[]>(
+    set.generation === "awaiting_scope" || set.generation === "insufficient_pool"
+      ? a.scoped("/api/practice-skills") : null,
+  );
+  const [selectedSkill, setSelectedSkill] = useState("");
+  const [confirmingScope, setConfirmingScope] = useState(false);
+  const confirmScope = async () => {
+    if (!selectedSkill || confirmingScope) return;
+    setConfirmingScope(true);
+    try { await practice.retryGeneration([selectedSkill]); }
+    catch (err) { setError(errorMessage(err)); }
+    finally { setConfirmingScope(false); }
+  };
   const selected =
     set.items.find((item) => item.itemId === practice.selectedItemId) ??
     set.items.find((item) => item.itemId);
@@ -214,18 +228,18 @@ export function PracticeStudyView({
           }
         />
       ))}
-      {itemFailed(set) && (
+      {itemRetryable(set) && (
         <Button
           variant="outline"
           onClick={() =>
             void practice.retry(
               set.items
-                .filter((item) => item.progress.grading === "failed" && item.itemId)
+                .filter((item) => (item.progress.grading === "failed" || item.progress.grading === "pending" || item.progress.mistakeSync === "failed") && item.itemId)
                 .map((item) => item.itemId!),
             )
           }
         >
-          重试失败的批改
+          重试批改 / 错题同步
         </Button>
       )}
     </>
@@ -243,8 +257,26 @@ export function PracticeStudyView({
       )}
       {set.generation === "awaiting_scope" && (
         <StatusPanel title="先确认学习范围">
-          告诉老师当前章节后，再生成本组练习。
+          选择已发布的知识点，确认本组练习范围。
         </StatusPanel>
+      )}
+      {(set.generation === "awaiting_scope" || set.generation === "insufficient_pool") && (
+        <div className="question-tools">
+          <label>
+            练习知识点
+            <select aria-label="练习知识点" value={selectedSkill}
+              onChange={event => setSelectedSkill(event.target.value)}>
+              <option value="">请选择知识点</option>
+              {scopes.data?.map(scope => <option key={scope.id} value={scope.id}>{scope.name}</option>)}
+            </select>
+          </label>
+          <Button disabled={!selectedSkill || confirmingScope} onClick={() => void confirmScope()}>
+            {confirmingScope ? "正在准备…" : "确认范围并出题"}
+          </Button>
+          {scopes.error && <p role="alert">{scopes.error}</p>}
+          {!scopes.loading && !scopes.error && scopes.data?.length === 0 &&
+            <p>暂无已发布的学习知识点，请联系管理员完善知识点和题源。</p>}
+        </div>
       )}
       {(set.generation === "failed" ||
         set.generation === "insufficient_pool") && (
@@ -460,6 +492,6 @@ export function PracticeStudyView({
   );
 }
 
-function itemFailed(set: { items: PracticeItemDTO[] }) {
-  return set.items.some((item) => item.progress.grading === "failed");
+function itemRetryable(set: { items: PracticeItemDTO[] }) {
+  return set.items.some((item) => item.progress.grading === "failed" || item.progress.grading === "pending" || item.progress.mistakeSync === "failed");
 }

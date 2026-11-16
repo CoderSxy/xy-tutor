@@ -6,6 +6,7 @@ import type { PracticeSetService } from "./practice-sets.js";
 import type { PracticeDraftService } from "./practice-drafts.js";
 import type { AnswerSubmissionService } from "./answer-submission.js";
 import type { PracticePreferencesService } from "./practice-preferences.js";
+import { retryGenerationInputSchema } from "../../../../../packages/contracts/src/practice-sets.js";
 import { listExamProfiles } from "../question-bank/exam-profiles.js";
 
 export function registerPracticeSets(
@@ -51,12 +52,7 @@ export function registerPracticeSets(
     deps.sets.retryGeneration(
       await scopeForRequest(deps.auth, req),
       id.parse(req.params).id,
-      z
-        .object({
-          requestKey: z.string().trim().min(1).max(120),
-          expectedVersion: z.number().int().positive(),
-        })
-        .parse(req.body),
+      retryGenerationInputSchema.parse(req.body),
     ),
   );
   app.put("/api/practice-sets/:id/drafts/:itemId", async (req) =>
@@ -112,6 +108,9 @@ export function registerPracticeSets(
   );
   app.patch("/api/practice-preferences", async (req) =>
     deps.preferences.patch(await scopeForRequest(deps.auth, req), req.body),
+  );
+  app.get("/api/practice-skills", async (req) =>
+    deps.sets.listScopes(await scopeForRequest(deps.auth, req)),
   );
   app.get("/api/practice-exam-profiles", async (req) => {
     await scopeForRequest(deps.auth, req);

@@ -15,27 +15,12 @@ import { mistakeSyncHandler } from "../../apps/server/src/jobs/mistake-sync-job.
 import type { AnswerPayload } from "../../packages/contracts/src/question-presentation.js";
 import { TEST_EXAM_PROFILE } from "../../apps/server/src/modules/question-bank/exam-profiles.js";
 
-async function seedKnowledge(db: Database, actorId: string) {
-  const batchId = (
-    await db.pool.query<{ id: string }>(
-      "INSERT INTO knowledge_batches(actor_id) VALUES($1) RETURNING id",
-      [actorId],
-    )
-  ).rows[0]!.id;
-  const runId = (
-    await db.pool.query<{ id: string }>(
-      "INSERT INTO knowledge_parse_runs(batch_id,status) VALUES($1,'succeeded') RETURNING id",
-      [batchId],
-    )
-  ).rows[0]!.id;
-  await db.pool.query(
-    `INSERT INTO knowledge_items(batch_id,parse_run_id,title,summary,status,published_at)
-     VALUES($1,$2,'有理数','加减运算','published',now())`,
-    [batchId, runId],
-  );
-}
+import { seedPracticeScope as seedKnowledge } from "../helpers/practice.js";
 
-async function payloadFor(db: Database, itemId: string): Promise<AnswerPayload> {
+async function payloadFor(
+  db: Database,
+  itemId: string,
+): Promise<AnswerPayload> {
   const row = (
     await db.pool.query<{
       question_type: string;
@@ -51,7 +36,9 @@ async function payloadFor(db: Database, itemId: string): Promise<AnswerPayload> 
     return { kind: "choice", optionIds: [spec.correctOptionId] };
   }
   if (row.question_type === "fill_blank") {
-    const spec = row.answer_spec as { blanks: { blankId: string; answer: string }[] };
+    const spec = row.answer_spec as {
+      blanks: { blankId: string; answer: string }[];
+    };
     return {
       kind: "blanks",
       values: spec.blanks.map((blank) => ({
@@ -92,7 +79,9 @@ async function completeSet(
     skippedItemIds: [skip.itemId!],
     finalize: true,
   });
-  const assess = assessmentHandler(new AssessmentService(db, f.auth, f.catalog));
+  const assess = assessmentHandler(
+    new AssessmentService(db, f.auth, f.catalog),
+  );
   const sync = mistakeSyncHandler(new MistakeService(db, f.auth));
   for (const job of (
     await db.pool.query<{
@@ -102,10 +91,7 @@ async function completeSet(
       attempts: number;
     }>("SELECT id,kind,payload,attempts FROM jobs WHERE kind='learning.assess'")
   ).rows)
-    await assess(
-      { ...job, leaseToken: "t" },
-      new AbortController().signal,
-    );
+    await assess({ ...job, leaseToken: "t" }, new AbortController().signal);
   for (const job of (
     await db.pool.query<{
       id: string;
@@ -123,12 +109,13 @@ async function completeSet(
 it("rejects continue before completion and keeps a single successor", async () =>
   withTestDb(async (db) => {
     const f = await catalogFixture(db);
-    await seedKnowledge(db, f.admin.userId);
+    const skillId = await seedKnowledge(db, f.admin.userId);
     const tasks = new TaskService(db, f.auth, f.catalog);
     const task = await tasks.create(f.scope, { kind: "daily_practice" });
     const sets = new PracticeSetService(db, f.auth, tasks);
     const created = await sets.create(f.scope, task.id, {
       requestKey: "c1",
+      skillIds: [skillId],
       mode: "step",
       strategy: "mixed",
     });
@@ -141,7 +128,9 @@ it("rejects continue before completion and keeps a single successor", async () =
 
     const ready = await sets.generateAll(f.scope, created.id);
     const drafts = new PracticeDraftService(db, f.auth, sets);
-    const choice = ready.items.find((item) => item.questionType === "single_choice")!;
+    const choice = ready.items.find(
+      (item) => item.questionType === "single_choice",
+    )!;
     await drafts.put(f.scope, created.id, choice.itemId!, {
       expectedVersion: 1,
       answer: {
@@ -158,7 +147,9 @@ it("rejects continue before completion and keeps a single successor", async () =
       mode: "batch",
     });
     expect(switched.mode).toBe("batch");
-    expect(switched.items.map((item) => item.questionVersionId)).toEqual(versionIds);
+    expect(switched.items.map((item) => item.questionVersionId)).toEqual(
+      versionIds,
+    );
     expect((await drafts.list(f.scope, created.id)).length).toBeGreaterThan(0);
 
     const completed = await completeSet(db, f, sets, created.id);
@@ -174,6 +165,11 @@ it("rejects continue before completion and keeps a single successor", async () =
     ]);
     expect(first.setId).toBe(second.setId);
     expect(first.taskId).not.toBe(completed.taskId);
+    const nextReady = await sets.generateAll(f.scope, first.setId);
+    expect(nextReady.generation).toBe("ready");
+    expect(
+      new Set([...ready.items, ...nextReady.items].map((i) => i.stem)).size,
+    ).toBe(10);
     const replay = await sets.continue(f.scope, completed.id, {
       requestKey: "k-a",
       expectedVersion: 1,
@@ -214,7 +210,8 @@ it("rejects continue before completion and keeps a single successor", async () =
       ).rows[0]!.status,
     ).toBe("completed");
     expect(
-      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0].n,
+      (await db.pool.query("SELECT count(*)::int AS n FROM attempts")).rows[0]
+        .n,
     ).toBe(4);
     await expect(
       new RunService(db, f.auth).submit(f.scope, {
@@ -230,13 +227,14 @@ it("rejects continue before completion and keeps a single successor", async () =
 it("rejects invalid exam profiles", async () =>
   withTestDb(async (db) => {
     const f = await catalogFixture(db);
-    await seedKnowledge(db, f.admin.userId);
+    const skillId = await seedKnowledge(db, f.admin.userId);
     const tasks = new TaskService(db, f.auth, f.catalog);
     const task = await tasks.create(f.scope, { kind: "daily_practice" });
     const sets = new PracticeSetService(db, f.auth, tasks);
     await expect(
       sets.create(f.scope, task.id, {
         requestKey: "exam-bad",
+        skillIds: [skillId],
         mode: "step",
         strategy: "exam",
         examProfileId: "not-real",
@@ -244,6 +242,7 @@ it("rejects invalid exam profiles", async () =>
     ).rejects.toMatchObject({ status: 422 });
     const ok = await sets.create(f.scope, task.id, {
       requestKey: "exam-ok",
+      skillIds: [skillId],
       mode: "step",
       strategy: "exam",
       examProfileId: TEST_EXAM_PROFILE.profileId,

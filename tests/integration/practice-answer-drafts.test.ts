@@ -1,3 +1,4 @@
+import { seedPracticeScope } from "../helpers/practice.js";
 import { expect, it } from "vitest";
 import { withTestDb } from "../helpers/database.js";
 import { catalogFixture } from "../helpers/catalog.js";
@@ -5,37 +6,16 @@ import { TaskService } from "../../apps/server/src/modules/learning/tasks.js";
 import { PracticeSetService } from "../../apps/server/src/modules/learning/practice-sets.js";
 import { PracticeDraftService } from "../../apps/server/src/modules/learning/practice-drafts.js";
 
-async function seedKnowledge(
-  db: Parameters<Parameters<typeof withTestDb>[0]>[0],
-  actorId: string,
-) {
-  const batchId = (
-    await db.pool.query<{ id: string }>(
-      "INSERT INTO knowledge_batches(actor_id) VALUES($1) RETURNING id",
-      [actorId],
-    )
-  ).rows[0]!.id;
-  const runId = (
-    await db.pool.query<{ id: string }>(
-      "INSERT INTO knowledge_parse_runs(batch_id,status) VALUES($1,'succeeded') RETURNING id",
-      [batchId],
-    )
-  ).rows[0]!.id;
-  await db.pool.query(
-    `INSERT INTO knowledge_items(batch_id,parse_run_id,title,summary,status,published_at)
-     VALUES($1,$2,'有理数','加减运算','published',now())`,
-    [batchId, runId],
-  );
-}
 
 it("keeps the newer draft when versions conflict", async () =>
   withTestDb(async (db) => {
     const f = await catalogFixture(db);
-    await seedKnowledge(db, f.admin.userId);
+    const skillId = await seedPracticeScope(db, f.admin.userId);
     const tasks = new TaskService(db, f.auth, f.catalog);
     const task = await tasks.create(f.scope, { kind: "daily_practice" });
     const sets = new PracticeSetService(db, f.auth, tasks);
     const created = await sets.create(f.scope, task.id, {
+    skillIds: [skillId],
       requestKey: "draft-set",
       mode: "step",
       strategy: "mixed",
