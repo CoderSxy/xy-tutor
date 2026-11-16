@@ -16,6 +16,10 @@ import { tutorPrompt, nextActions } from "./prompts.js";
 import { buildContext, type TutorContext } from "./context.js";
 import { createTeachingTools, type TeachingServices } from "./tools.js";
 import { classifyTutorMessage } from "../modules/tutoring/state-rules.js";
+import {
+  LANGUAGE_STATUS_HINT,
+  StudentTextGate,
+} from "../modules/question-bank/student-language.js";
 export class TutorExecutor implements RunExecutor {
   constructor(
     private db: Database,
@@ -77,21 +81,18 @@ export class TutorExecutor implements RunExecutor {
       );
     }
     let usage: unknown;
-    let turns = 0,
-      buffer = "",
-      partial = "",
-      timer: ReturnType<typeof setTimeout> | undefined;
+    let turns = 0;
+    let saved = false;
+    const gate = new StudentTextGate();
     const messages = new MessageService(this.db, this.auth);
-    const flush = async () => {
-      if (timer) clearTimeout(timer);
-      timer = undefined;
-      if (!buffer) return;
-      const text = buffer;
-      buffer = "";
-      await this.runs.events.append(runId, {
-        type: "text_delta",
-        data: { text },
-      });
+    const emit = async (chunks: string[]) => {
+      for (const text of chunks) {
+        if (!text) continue;
+        await this.runs.events.append(runId, {
+          type: "text_delta",
+          data: { text },
+        });
+      }
     };
     const agent = new Agent({
       initialState: {
@@ -126,7 +127,8 @@ export class TutorExecutor implements RunExecutor {
       },
     });
     const save = async (text: string, incomplete = false) => {
-      if (!text) return;
+      if (!text || saved) return;
+      saved = true;
       const m = await messages.append(scope, {
         conversationId: run.conversation_id,
         role: "assistant",
@@ -180,26 +182,23 @@ export class TutorExecutor implements RunExecutor {
     };
     agent.subscribe(async (event) => {
       if (event.type === "message_start" && event.message.role === "assistant")
-        partial = "";
+        await this.runs.events.append(runId, {
+          type: "tool_status",
+          data: { name: "language_check", status: "running", hint: LANGUAGE_STATUS_HINT },
+        });
       if (
         event.type === "message_update" &&
         event.assistantMessageEvent.type === "text_delta"
       ) {
-        const delta = event.assistantMessageEvent.delta;
-        partial += delta;
-        buffer += delta;
-        if (Buffer.byteLength(buffer) >= 4096) await flush();
-        else if (!timer)
-          timer = setTimeout(() => {
-            void flush().catch(() => agent.abort());
-          }, 100);
+        await emit(gate.push(event.assistantMessageEvent.delta).published);
       }
       if (event.type === "message_end" && event.message.role === "assistant") {
-        await flush();
         usage = event.message.usage;
         if (event.message.stopReason === "error") throw Error("MODEL_ERROR");
-        await save(partial, signal.aborted);
-        partial = "";
+        if (signal.aborted) gate.cancel();
+        const done = gate.finish();
+        await emit(done.published);
+        await save(gate.publishedText(), signal.aborted);
       }
       if (event.type === "tool_execution_start") {
         await this.db.pool.query(
@@ -240,7 +239,6 @@ export class TutorExecutor implements RunExecutor {
           timestamp: Date.now(),
         } as AgentMessage);
       else await agent.prompt(run.input_text);
-      await flush();
       signal.throwIfAborted();
       await this.runs.events.append(runId, {
         type: "suggested_actions",
@@ -249,8 +247,10 @@ export class TutorExecutor implements RunExecutor {
     } finally {
       signal.removeEventListener("abort", abort);
       reader?.release();
-      await flush();
-      if (partial) await save(partial, true);
+      if (signal.aborted) gate.cancel();
+      const leftover = gate.finish();
+      await emit(leftover.published);
+      if (gate.publishedText()) await save(gate.publishedText(), true);
     }
   }
 }

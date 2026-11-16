@@ -4,6 +4,14 @@ import { SummaryService } from "./modules/learning/summaries.js";
 import { KnowledgeService } from "./modules/learning/knowledge.js";
 import { ReviewService } from "./modules/learning/review.js";
 import { summaryHandler } from "./jobs/summary-job.js";
+import { assessmentHandler } from "./jobs/assessment-job.js";
+import { mistakeSyncHandler } from "./jobs/mistake-sync-job.js";
+import { practiceSetHandler } from "./jobs/practice-set-job.js";
+import { PracticeSetService } from "./modules/learning/practice-sets.js";
+import { PracticeDraftService } from "./modules/learning/practice-drafts.js";
+import { AnswerSubmissionService } from "./modules/learning/answer-submission.js";
+import { PracticePreferencesService } from "./modules/learning/practice-preferences.js";
+import { registerPracticeSets } from "./modules/learning/practice-set-routes.js";
 import { MistakeService } from "./modules/learning/mistakes.js";
 import { registerMistakes } from "./modules/learning/mistake-routes.js";
 import { PracticeService } from "./modules/learning/practice.js";
@@ -61,6 +69,7 @@ import { QuestionGenerationService } from "./modules/question-bank/generator.js"
 import { questionGenerationHandler } from "./jobs/question-generation-job.js";
 import { ZodError } from "zod";
 import type { Database } from "../../../packages/db/src/client.js";
+import type { StudentScope } from "../../../packages/contracts/src/domain.js";
 import type { AppConfig } from "./config.js";
 import { AuthService } from "./modules/auth/service.js";
 import { registerAuth } from "./modules/auth/routes.js";
@@ -196,6 +205,36 @@ export function buildApp(deps: AppDependencies) {
         });
       registerConversations(scoped, new MessageService(deps.database!, auth));
       const tasks = new TaskService(deps.database!, auth, catalog);
+      const practiceSets = new PracticeSetService(
+        deps.database!,
+        auth,
+        tasks,
+        jobs,
+        {
+          practiceSetsEnabled: deps.config!.features.practiceSetsEnabled,
+        },
+      );
+      const practiceDrafts = new PracticeDraftService(
+        deps.database!,
+        auth,
+        practiceSets,
+      );
+      const practiceSubmissions = new AnswerSubmissionService(
+        deps.database!,
+        auth,
+        practiceSets,
+      );
+      const practicePreferences = new PracticePreferencesService(
+        deps.database!,
+        auth,
+      );
+      registerPracticeSets(scoped, {
+        auth,
+        sets: practiceSets,
+        drafts: practiceDrafts,
+        submissions: practiceSubmissions,
+        preferences: practicePreferences,
+      });
       const practice = new PracticeService(deps.database!, tasks, deps.gateway);
       const assessment = new AssessmentService(
         deps.database!,
@@ -243,13 +282,9 @@ export function buildApp(deps: AppDependencies) {
       );
       registerMistakes(scoped, mistakes);
       const assess = async (
-        scope: Parameters<AssessmentService["submitCandidate"]>[0],
+        scope: StudentScope,
         input: unknown,
-      ) => {
-        const result = await assessment.submitCandidate(scope, input);
-        await mistakes.applyAssessment(scope, result.id);
-        return result;
-      };
+      ) => assessment.submitCandidate(scope, input);
       scoped.post("/api/assessments", async (req) =>
         assess(await scopeForRequest(auth, req), req.body),
       );
@@ -290,6 +325,12 @@ export function buildApp(deps: AppDependencies) {
             ? "enabled"
             : "disabled",
           learningEvaluation: deps.config!.features.learningEvaluationEnabled
+            ? "enabled"
+            : "disabled",
+          practiceSets: deps.config!.features.practiceSetsEnabled
+            ? "enabled"
+            : "disabled",
+          mobileStudy: deps.config!.features.mobileStudyEnabled
             ? "enabled"
             : "disabled",
         };
@@ -343,6 +384,9 @@ export function buildApp(deps: AppDependencies) {
               deps.gateway,
             ),
             "learning.summary": summaryHandler(summaries),
+            "learning.assess": assessmentHandler(assessment),
+            "learning.mistake-sync": mistakeSyncHandler(mistakes),
+            "learning.practice-set": practiceSetHandler(practiceSets),
             "question_bank.generate": questionGenerationHandler(
               new QuestionGenerationService(deps.database!, jobs, deps.gateway),
             ),

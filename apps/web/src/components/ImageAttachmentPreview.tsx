@@ -119,7 +119,7 @@ export function ImageAttachmentPreview({
             <img
               src={image.src}
               alt={image.alt}
-              loading="lazy"
+              loading="eager"
               onLoad={onImageLoad}
               onError={() => onImageError?.(image)}
             />

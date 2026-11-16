@@ -15,6 +15,7 @@ import type {
 } from "./types";
 import { useRemote } from "./useRemote";
 import { useStudentVisit } from "../features/student-insights/useStudentVisit";
+import { clearStudentDrafts } from "../features/practice/draft-cache";
 type AuthState = {
   session: Session | null;
   loading: boolean;
@@ -67,7 +68,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
   const caps = useRemote<Capabilities>(session ? "/api/capabilities" : null);
   const logout = async () => {
+    const currentStudent = studentId;
     await api("/api/auth/logout", { method: "POST" });
+    if (currentStudent) clearStudentDrafts(sessionStorage, currentStudent);
     setSession(null);
     setStudent("");
     setStudents([]);

@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import { MAX_MESSAGE_IMAGES } from "../../../../../packages/contracts/src/conversation-images.js";
+import { timingEventSchema } from "../../../../../packages/contracts/src/learning-timing.js";
 import { z } from "zod";
 import { scopeForRequest } from "../learning/routes.js";
 import type { RunService } from "./runs.js";
@@ -26,6 +27,10 @@ export function registerRuns(
         message: z.string(),
         attachmentIds: z.array(z.uuid()).max(MAX_MESSAGE_IMAGES).default([]),
         questionVersionId: z.uuid().optional(),
+        intent: z.enum(["answer", "question"]).optional(),
+        mode: z.enum(["reply", "opening"]).optional(),
+        episodeId: z.uuid().optional(),
+        timingFinalEvent: timingEventSchema.optional(),
       })
       .strict()
       .parse(req.body);

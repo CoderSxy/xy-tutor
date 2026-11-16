@@ -11,6 +11,7 @@ import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { AuthService } from "../auth/service.js";
 import type { ModelGateway } from "../../agent/provider.js";
 import { parseModelJson } from "./practice.js";
+import { publishStudentText } from "../question-bank/student-language.js";
 export type SummaryContent = {
   text: string;
   attemptCount: number;
@@ -95,7 +96,7 @@ export class SummaryService {
         const generated = z
           .object({ text: z.string().max(3000) })
           .parse(parseModelJson(r.text));
-        content.text = generated.text;
+        content.text = await publishStudentText(generated.text, this.gateway);
         model = this.gateway.runtime.model.id;
       } catch {
         /* The factual summary remains useful without a model. */

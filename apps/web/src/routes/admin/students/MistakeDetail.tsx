@@ -9,7 +9,7 @@ import {
 import { dateTime } from "../../../features/student-insights/format";
 import { InsightStatus } from "../../../features/student-insights/InsightStatus";
 import { ListPager } from "../../../features/student-insights/ListPager";
-import { stateLabels } from "../../../lib/types";
+import { originLabels, stateLabels } from "../../../lib/types";
 import type { StudentOutletContext } from "./StudentLayout";
 
 const PAGE_SIZE = 20;
@@ -60,6 +60,9 @@ export function MistakeDetail() {
                   detail.data.mistake.status}
                 {detail.data.mistake.dueAt
                   ? ` · 下次复习 ${dateTime(detail.data.mistake.dueAt)}`
+                  : ""}
+                {detail.data.mistake.originCategory
+                  ? ` · ${originLabels[detail.data.mistake.originCategory] ?? detail.data.mistake.originCategory}`
                   : ""}
               </p>
             </div>

@@ -59,11 +59,22 @@ export async function searchEligibleQuestions(
          FROM question_bank_entries e
          JOIN question_skill_links l
            ON l.entry_id = e.id AND l.is_primary
+         JOIN question_versions v ON v.id = e.question_version_id
         WHERE e.status = 'published'
           AND l.skill_id = $1::uuid
           AND (e.visibility = 'shared' OR e.owner_id = $2::uuid)
           AND ($3::text IS NULL OR e.difficulty_band = $3::text)
           AND NOT (e.question_version_id = ANY($4::uuid[]))
+          AND (
+            $6::text IS NULL
+            OR v.question_type = $6
+            OR COALESCE((
+              SELECT qr.answer_type FROM question_references qr
+              WHERE qr.question_version_id = e.question_version_id
+              ORDER BY qr.created_at DESC, qr.id
+              LIMIT 1
+            ), 'unknown') = $6
+          )
           AND EXISTS (
             SELECT 1 FROM skill_content_links scl
             JOIN knowledge_items ki ON ki.id = scl.knowledge_item_id
@@ -87,6 +98,7 @@ export async function searchEligibleQuestions(
         parsed.difficulty ?? null,
         parsed.excludeVersionIds ?? [],
         parsed.limit,
+        parsed.answerType ?? null,
       ],
     )
   ).rows;
@@ -102,8 +114,5 @@ export async function searchEligibleQuestions(
       matchedCauseCount: Number(row.matched_cause_count),
       seenCount: Number(row.seen_count),
     }))
-    .filter(
-      (row) => !parsed.answerType || row.answerType === parsed.answerType,
-    );
   return candidates.map((row) => bankCandidateSchema.parse(row));
 }

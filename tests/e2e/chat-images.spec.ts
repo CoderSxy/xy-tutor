@@ -188,6 +188,10 @@ async function setupChat(page: Page, plan: Plan = {}) {
       const rest = path.slice("/api/tasks/".length);
       if (rest.endsWith("/items")) return reply(route, 200, []);
       if (rest.endsWith("/summary")) return reply(route, 200, null);
+      if (rest.endsWith("/practice-set"))
+        return reply(route, 404, {
+          error: { code: "NOT_FOUND", message: "题组不存在" },
+        });
       const task =
         rest === seedTaskId
           ? seed

@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../lib/auth";
 import { useRemote } from "../lib/useRemote";
 import { api, jsonBody, errorMessage } from "../lib/api";
 import type { MistakeDTO } from "../lib/types";
-import { stateLabels } from "../lib/types";
+import { originDetailLabels, originLabels, stateLabels } from "../lib/types";
 import { StatusPanel } from "../components/StatusPanel";
 import { Button } from "../components/ui/button";
 import { Field, Textarea } from "../components/ui/field";
@@ -97,6 +97,14 @@ export function MistakeDetail() {
       <section className="panel">
         <div className="section-head">
           <span className="badge">{stateLabels[detail.data.status]}</span>
+          <span className="badge">
+            {originLabels[detail.data.originCategory] ??
+              detail.data.originCategory}
+          </span>
+          <span className="badge">
+            {originDetailLabels[detail.data.originDetail] ??
+              detail.data.originDetail}
+          </span>
           <Button
             variant="ghost"
             onClick={() => {
@@ -122,10 +130,34 @@ export function MistakeDetail() {
         ) : (
           <Markdown>{detail.data.stem}</Markdown>
         )}
+        <dl className="insight-mini-stats">
+          <div>
+            <dt>来源</dt>
+            <dd>
+              {originLabels[detail.data.originCategory]}
+              {detail.data.originDetail
+                ? ` · ${originDetailLabels[detail.data.originDetail] ?? detail.data.originDetail}`
+                : ""}
+            </dd>
+          </div>
+          {detail.data.originTaskId && (
+            <div>
+              <dt>原学习任务</dt>
+              <dd>
+                <Link
+                  className="text-link"
+                  to={`/study/${detail.data.originTaskId}`}
+                >
+                  打开当时的学习会话
+                </Link>
+              </dd>
+            </div>
+          )}
+        </dl>
         <div className="form-actions">
           {sources.data?.map((s, i) => (
             <Button variant="outline" key={i} onClick={() => setSource(s)}>
-              查看原图 · 第 {s.pageIndex + 1} 页
+              查看原图 · 第{s.pageIndex + 1}页
             </Button>
           ))}
         </div>

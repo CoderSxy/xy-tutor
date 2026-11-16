@@ -7,6 +7,7 @@ import {
 import type { StudentScope } from "../../../../../packages/contracts/src/domain.js";
 import { AppError } from "../../../../../packages/contracts/src/api.js";
 import type { AuthService } from "../auth/service.js";
+import { MistakeService } from "../learning/mistakes.js";
 import { recordLearningEvent } from "../student-insights/activity.js";
 import type { UploadService } from "../uploads/service.js";
 import type { CatalogService } from "../catalog/service.js";
@@ -317,7 +318,7 @@ export class MaterialService {
       })
       .strict()
       .parse(input);
-    return inTransaction(this.db, async (tx) => {
+    const result = await inTransaction(this.db, async (tx) => {
       const q = (
         await tx.query(
           "SELECT * FROM questions WHERE id=$1 AND student_id=$2 FOR UPDATE",
@@ -361,6 +362,10 @@ export class MaterialService {
       );
       return { questionVersionId: next.id };
     });
+    // The old version is now invalid evidence: revoke affected mistakes
+    // immediately instead of waiting for the next lazy projection rebuild.
+    await new MistakeService(this.db, this.auth).rebuild(scope);
+    return result;
   }
   async sources(scope: StudentScope, versionId: string) {
     await this.auth.requireStudentAccess(scope.actor, scope.studentId);

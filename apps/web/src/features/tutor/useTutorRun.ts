@@ -141,13 +141,17 @@ export function useTutorRun(conversationId?: string) {
     input: string | ImageSubmission,
     questionVersionId?: string,
     timing?: () => Promise<TimingHandoff>,
+    intent?: "answer" | "question",
   ) => {
     if (!conversationId) return false;
     const submission: ImageSubmission =
       typeof input === "string" ? { message: input, attachmentIds: [] } : input;
     const message = submission.message;
     const attachments = submission.attachmentIds;
-    const question = submission.questionVersionId ?? questionVersionId;
+    const question =
+      intent === "question"
+        ? undefined
+        : (submission.questionVersionId ?? questionVersionId);
     setError("");
     setTimingWarning("");
     let handoff: TimingHandoff | undefined;
@@ -177,10 +181,11 @@ export function useTutorRun(conversationId?: string) {
         a.scoped(`/api/conversations/${conversationId}/runs`),
         {
           method: "POST",
-          ...jsonBody({
+            ...jsonBody({
             message,
             requestKey: pending!.requestKey,
-            questionVersionId: question,
+            intent: intent ?? (question ? "answer" : "question"),
+            ...(question ? { questionVersionId: question } : {}),
             attachmentIds: attachments,
             ...(handoff ?? {}),
           }),

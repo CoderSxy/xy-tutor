@@ -16,6 +16,10 @@ import {
   type TaskDTO,
   type TaskPage,
 } from "./contracts.js";
+import {
+  computePracticeProgress,
+  loadPracticeItemProgress,
+} from "./practice-progress.js";
 export class TaskService {
   constructor(
     private db: Database,
@@ -142,18 +146,36 @@ export class TaskService {
         locked?.version === v.expectedVersion &&
         locked.kind === "daily_practice"
       ) {
-        const progress = (
-          await tx.query(
-            "SELECT count(*)::int AS total,count(*) FILTER (WHERE status <> 'pending')::int AS done FROM task_items WHERE task_id=$1",
+        const set = (
+          await tx.query<{ id: string }>(
+            "SELECT id FROM practice_sets WHERE task_id=$1",
             [v.taskId],
           )
         ).rows[0];
-        if (progress.total < 5 || progress.done < 5)
-          throw new AppError(
-            "CONFLICT",
-            409,
-            "每日5练尚未完成，请先暂停保存进度",
-          );
+        if (set) {
+          const progress = computePracticeProgress({
+            items: await loadPracticeItemProgress(tx, set.id),
+          });
+          if (!progress.canContinue)
+            throw new AppError(
+              "CONFLICT",
+              409,
+              "每日5练尚未完成，请先暂停保存进度",
+            );
+        } else {
+          const progress = (
+            await tx.query(
+              "SELECT count(*)::int AS total,count(*) FILTER (WHERE status <> 'pending')::int AS done FROM task_items WHERE task_id=$1",
+              [v.taskId],
+            )
+          ).rows[0];
+          if (progress.total < 5 || progress.done < 5)
+            throw new AppError(
+              "CONFLICT",
+              409,
+              "每日5练尚未完成，请先暂停保存进度",
+            );
+        }
       }
       const result = await tx.query(
         "UPDATE learning_tasks SET status=$1,version=version+1,updated_at=now() WHERE id=$2 AND student_id=$3 AND version=$4 AND deleted_at IS NULL AND (status IN ('active','paused') OR (status='completed' AND $1='active')) RETURNING id,version",
@@ -185,10 +207,18 @@ export class TaskService {
       ).rows[0];
       if (task.status !== "active")
         throw new AppError("CONFLICT", 409, "请恢复任务后添加题目");
-      if (task.kind === "daily_practice") {
+      const set = (
+        await tx.query<{ id: string }>(
+          "SELECT id FROM practice_sets WHERE task_id=$1",
+          [taskId],
+        )
+      ).rows[0];
+      if (set && v.role !== "diagnostic")
+        throw new AppError("CONFLICT", 409, "本题组由系统安排，不能额外追加正式题");
+      if (task.kind === "daily_practice" && v.role !== "diagnostic") {
         const count = (
           await tx.query(
-            "SELECT count(*)::int AS n FROM task_items WHERE task_id=$1",
+            "SELECT count(*)::int AS n FROM task_items i WHERE i.task_id=$1 AND i.role <> 'diagnostic'",
             [taskId],
           )
         ).rows[0].n;

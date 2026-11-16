@@ -30,6 +30,8 @@ export type Capabilities = {
   selfCheck?: "enabled" | "disabled";
   adaptivePractice?: "enabled" | "disabled";
   learningEvaluation?: "enabled" | "disabled";
+  practiceSets?: "enabled" | "disabled";
+  mobileStudy?: "enabled" | "disabled";
 };
 export type TaskItem = {
   id: string;
@@ -53,4 +55,17 @@ export const stateLabels: Record<string, string> = {
   corrected_pending_practice: "已订正，待巩固",
   consolidated_pending_review: "已巩固，待复习",
   mastered: "已掌握",
+};
+export const originLabels: Record<string, string> = {
+  uploaded: "上传错题",
+  learning: "学习错题",
+  unknown: "来源待确认",
+};
+export const originDetailLabels: Record<string, string> = {
+  material_import: "资料导入",
+  daily_practice: "每日练习",
+  knowledge_consolidation: "知识点巩固",
+  free_question: "自由提问",
+  mistake_review: "错题回顾",
+  unknown: "来源不明",
 };

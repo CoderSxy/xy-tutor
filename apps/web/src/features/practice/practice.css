@@ -1,0 +1,143 @@
+.practice-study {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  gap: 16px;
+}
+.practice-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.practice-counts {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.practice-mode,
+.practice-nav,
+.practice-next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.practice-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  min-width: 0;
+}
+.practice-card + .practice-card {
+  margin-top: 12px;
+}
+.practice-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.practice-card-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.practice-choices,
+.practice-blanks {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+.practice-choice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.practice-choice:has(input:checked) {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.practice-choice input {
+  width: 18px;
+  height: 18px;
+}
+.practice-results {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+.practice-results ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.practice-intent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.practice-intent select,
+.practice-dock-target {
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 8px 12px;
+}
+.practice-dock-target {
+  display: flex;
+  align-items: center;
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.practice-dock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mobile-study-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  height: calc(100dvh - var(--topbar-height) - 12px);
+}
+.mobile-study-header,
+.mobile-study-scroll,
+.mobile-study-dock {
+  min-width: 0;
+}
+.mobile-study-scroll {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.practice-skip-list {
+  margin: 0 0 16px;
+  padding-left: 18px;
+}
+@media (min-width: 1200px) {
+  .practice-study.is-split {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.9fr) minmax(400px, 1.1fr);
+    gap: 20px;
+    align-items: stretch;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .practice-choice,
+  .practice-card {
+    transition: none;
+  }
+}

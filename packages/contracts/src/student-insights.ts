@@ -404,6 +404,7 @@ export type MistakeRecordDTO = {
   stem: string;
   knowledgePoint: string | null;
   revisionId: string;
+  originCategory?: string;
 };
 
 export type MistakeEventDTO = {

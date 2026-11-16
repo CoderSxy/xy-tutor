@@ -145,4 +145,39 @@ describe("linear_equation template", () => {
       instantiateTemplate("linear_equation", 2, { a: 2, b: 1, c: 4 }),
     ).toThrow(TemplateValidationError);
   });
+
+  it("can instantiate a stable single-choice form", () => {
+    const params = { a: 1, b: 2, c: 1, d: 2, op: "+", form: "single_choice" };
+    const first = instantiateTemplate("rational_arithmetic", 1, params);
+    const second = instantiateTemplate("rational_arithmetic", 1, params);
+    expect(first.questionType).toBe("single_choice");
+    expect(first.presentation?.kind).toBe("choice");
+    expect(first.answerSpec?.kind).toBe("single_choice");
+    expect(first.presentation).toEqual(second.presentation);
+    expect(first.fingerprint).toBe(second.fingerprint);
+    if (first.presentation?.kind === "choice") {
+      const labels = first.presentation.options.map((item) => item.label);
+      expect(new Set(labels).size).toBe(labels.length);
+      expect(labels).toContain(first.answer);
+    }
+  });
+
+  it("can instantiate fill-blank and worked forms", () => {
+    const blank = instantiateTemplate("linear_equation", 1, {
+      a: 3,
+      b: -2,
+      c: 12,
+      form: "fill_blank",
+    });
+    expect(blank.questionType).toBe("fill_blank");
+    expect(blank.answer).toBe("6");
+    const worked = instantiateTemplate("linear_equation", 1, {
+      a: 3,
+      b: -2,
+      c: 12,
+      form: "worked",
+    });
+    expect(worked.questionType).toBe("worked");
+    expect(worked.answerSpec?.kind).toBe("worked");
+  });
 });

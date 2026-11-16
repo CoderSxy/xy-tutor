@@ -22,6 +22,8 @@ describe("configuration", () => {
       adaptivePracticeEnabled: false,
       learningEvaluationEnabled: false,
       groupReferenceEnabled: false,
+      practiceSetsEnabled: false,
+      mobileStudyEnabled: false,
     });
   });
   it("parses explicit boolean flags", () => {
@@ -32,6 +34,8 @@ describe("configuration", () => {
       ADAPTIVE_PRACTICE_ENABLED: "true",
       LEARNING_EVALUATION_ENABLED: "true",
       LEARNING_GROUP_REFERENCE_ENABLED: "true",
+      PRACTICE_SETS_ENABLED: "true",
+      MOBILE_STUDY_ENABLED: "true",
     });
     expect(config.features).toEqual({
       selfCheckEnabled: true,
@@ -39,6 +43,8 @@ describe("configuration", () => {
       adaptivePracticeEnabled: true,
       learningEvaluationEnabled: true,
       groupReferenceEnabled: true,
+      practiceSetsEnabled: true,
+      mobileStudyEnabled: true,
     });
   });
   it("rejects adaptive practice without self check", () =>

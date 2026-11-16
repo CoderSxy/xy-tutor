@@ -22,6 +22,8 @@ import type {
   ProfileDTO,
 } from "../../../../packages/contracts/src/learning-profile.js";
 import { goalLabels } from "../features/question-bank/labels";
+import { PracticeStudyView } from "../features/practice/PracticeStudyView";
+import { usePracticeSet } from "../features/practice/usePracticeSet";
 export function Study() {
   const { id } = useParams();
   const a = useAuth();
@@ -60,6 +62,9 @@ export function Study() {
   );
   const [requesting, setRequesting] = useState(false);
   const [resuming, setResuming] = useState(false);
+  const practice = usePracticeSet(
+    task.data?.kind === "daily_practice" ? id : undefined,
+  );
   if (!task.data)
     return (
       <div className="home-layout">
@@ -107,7 +112,10 @@ export function Study() {
     try {
       const complete =
         data.kind !== "daily_practice" ||
-        (items.data?.filter((q) => q.status !== "pending").length ?? 0) >= 5;
+        (practice.set
+          ? practice.set.canContinue
+          : (items.data?.filter((q) => q.status !== "pending").length ?? 0) >=
+            5);
       await api(a.scoped(`/api/tasks/${id}`), {
         method: "PATCH",
         ...jsonBody({
@@ -163,7 +171,8 @@ export function Study() {
         aria-busy={switching}
       >
         {switching && <div className="study-switch-progress" aria-hidden="true" />}
-        {(error || tutor.error || task.error || items.error) && (
+        {!practice.set &&
+          (error || tutor.error || task.error || items.error) && (
           <p className="notice error-text" role="alert">
             {error || tutor.error || task.error || items.error}
           </p>
@@ -201,6 +210,19 @@ export function Study() {
             </Button>
           </div>
         )}
+        {practice.set ? (
+          <PracticeStudyView
+            task={data}
+            ready={ready}
+            practice={practice}
+            tutor={tutor}
+            images={images}
+            timingEnabled={timingEnabled}
+            onFinish={() => void finish()}
+          />
+        ) : practice.loading && data.kind === "daily_practice" ? (
+          <StatusPanel state="loading" title="正在读取练习题组" />
+        ) : (
         <div className={`study-layout${current ? "" : " is-solo"}`}>
           {current && (
             <aside
@@ -365,6 +387,7 @@ export function Study() {
             )}
           </section>
         </div>
+        )}
       </section>
     </div>
   );
